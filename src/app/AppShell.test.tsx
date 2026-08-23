@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
-const { logout, navigate, request, routerState } = vi.hoisted(() => ({
+const { authState, logout, navigate, request, routerState } = vi.hoisted(() => ({
+  authState: { roles: ["Admin"] as Array<"Admin" | "Doctor" | "Secretary"> },
   logout: vi.fn(),
   navigate: vi.fn(),
   request: vi.fn(async () => []),
@@ -34,7 +35,7 @@ vi.mock("../auth/AuthProvider", () => ({
       userId: "u-1",
       email: "ana@example.test",
       clinicId: "c-1",
-      roles: ["Admin"],
+      roles: authState.roles,
       name: "Ana Martins",
       tokens: {
         accessToken: "token",
@@ -57,7 +58,7 @@ vi.mock("./navigation", async (importOriginal) => ({
     className?: string | ((state: { isActive: boolean }) => string);
     onClick?: () => void;
   }) => {
-    const isActive = to === "/app/agenda";
+    const isActive = to === routerState.pathname;
     const resolved = typeof className === "function"
       ? className({ isActive })
       : className;
@@ -78,6 +79,7 @@ vi.mock("./navigation", async (importOriginal) => ({
 const railStore = new Map<string, string>();
 
 beforeEach(() => {
+  authState.roles = ["Admin"];
   logout.mockClear();
   navigate.mockClear();
   railStore.clear();
@@ -106,12 +108,40 @@ test("rail expõe destinos e usuário sem depender de ícones", () => {
   expect(
     screen.getByRole("navigation", { name: "Navegação principal" }),
   ).toBeVisible();
-  expect(screen.getByRole("link", { name: "Agenda" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "Agendas" })).toHaveAttribute(
     "aria-current",
     "page",
   );
   expect(screen.getByRole("button", { name: /Ana Martins/ })).toBeVisible();
   expect(screen.getByRole("button", { name: "Sair" })).toBeVisible();
+});
+
+test("médico usa o Início pessoal e mantém o acesso a Agendas", () => {
+  authState.roles = ["Doctor"];
+  renderShell("/app/inicio");
+
+  expect(screen.getByRole("link", { name: "Início" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect(screen.getByRole("link", { name: "Agendas" })).toHaveAttribute(
+    "href",
+    "/app/agenda",
+  );
+});
+
+test("médico administrador mantém Início e também recebe Agendas", () => {
+  authState.roles = ["Admin", "Doctor"];
+  renderShell("/app/inicio");
+
+  expect(screen.getByRole("link", { name: "Início" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect(screen.getByRole("link", { name: "Agendas" })).toHaveAttribute(
+    "href",
+    "/app/agenda",
+  );
 });
 
 // A busca em si é coberta em features/search/GlobalSearch.test.tsx; aqui só

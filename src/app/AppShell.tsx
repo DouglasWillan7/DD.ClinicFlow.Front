@@ -2,6 +2,7 @@ import clsx from "clsx";
 import {
   Building2,
   CalendarDays,
+  House,
   LogOut,
   Menu,
   MessageCircleMore,
@@ -71,12 +72,21 @@ export function AppShell({ children }: PropsWithChildren) {
   const roleLabel = formatRoles(session);
   // O hover é a expansão padrão do handoff; o teclado precisa do mesmo gatilho.
   const railExpanded = railPinned || railHovered || railFocused;
-  const primaryNav = [
-    { to: "/app/agenda", label: "Agenda", icon: CalendarDays },
+  const isDoctor = hasRole(session, "Doctor");
+  const doctorNav = [
+    { to: "/app/inicio", label: "Início", icon: House },
+    { to: "/app/pacientes", label: "Pacientes", icon: UsersRound },
+    { to: "/app/agenda", label: "Agendas", icon: CalendarDays },
+    { to: "/app/equipe", label: "Equipe médica", icon: UserRoundPlus },
+    { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
+  ];
+  const operationalNav = [
+    { to: "/app/agenda", label: "Agendas", icon: CalendarDays },
     { to: "/app/pacientes", label: "Pacientes", icon: UsersRound },
     { to: "/app/equipe", label: "Equipe médica", icon: UserRoundPlus },
     { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
   ];
+  const primaryNav = isDoctor ? doctorNav : operationalNav;
   const adminNav = [
     { to: "/app/onboarding", label: "Primeiros passos", icon: Stethoscope },
     {

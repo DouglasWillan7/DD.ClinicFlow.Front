@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
+import { hasRole } from "../../auth/roles";
 import { getAuthScope } from "../../auth/sessionScope";
 import {
   searchEntries,
@@ -78,6 +79,8 @@ export function GlobalSearch() {
   const { session } = useAuth();
   const index = useGlobalSearchIndex();
   const scope = session ? getAuthScope(session) : "";
+  const canSearchDoctors =
+    hasRole(session, "Admin") || hasRole(session, "Secretary");
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -111,18 +114,24 @@ export function GlobalSearch() {
     [index.patients, term],
   );
   const doctorHits = useMemo(
-    () => searchEntries(index.doctors, term, RESULTS_PER_GROUP),
-    [index.doctors, term],
+    () =>
+      canSearchDoctors
+        ? searchEntries(index.doctors, term, RESULTS_PER_GROUP)
+        : [],
+    [canSearchDoctors, index.doctors, term],
   );
   const entriesByKey = useMemo(
     () =>
       new Map(
-        [...index.patients, ...index.doctors].map((entry) => [
+        [
+          ...index.patients,
+          ...(canSearchDoctors ? index.doctors : []),
+        ].map((entry) => [
           `${entry.kind}:${entry.id}`,
           entry,
         ]),
       ),
-    [index.doctors, index.patients],
+    [canSearchDoctors, index.doctors, index.patients],
   );
 
   function close() {

@@ -32,9 +32,10 @@ const session: AuthResponse = {
     accessTokenExpiresAtUtc: "2099-01-01T00:00:00Z",
   },
 };
+let activeSession: AuthResponse = session;
 
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({ request: requestMock, session }),
+  useAuth: () => ({ request: requestMock, session: activeSession }),
 }));
 
 const clinic: Clinic = {
@@ -127,6 +128,18 @@ const historicalAppointment: Appointment = {
   notes: "Atendimento anterior",
   createdAtUtc: "2000-08-01T12:00:00Z",
 };
+const completedAppointment: Appointment = {
+  id: "40000000-0000-4000-8000-000000000006",
+  patientId: "30000000-0000-4000-8000-000000000006",
+  patientName: "Renata Nascimento",
+  doctorUserId: doctorId,
+  startUtc: "2026-08-10T17:00:00Z",
+  endUtc: "2026-08-10T17:30:00Z",
+  type: "InPerson",
+  status: "Realizada",
+  notes: "Acompanhamento",
+  createdAtUtc: "2026-08-06T12:00:00Z",
+};
 const availability: DoctorAvailability = {
   doctorUserId: doctorId,
   timeZoneId: "America/Sao_Paulo",
@@ -200,6 +213,7 @@ function mockAgenda(appointments: Appointment[] = [appointment]) {
 }
 
 beforeEach(() => {
+  activeSession = session;
   window.history.replaceState({}, "", "/app/agenda?date=2026-08-10");
   mockAgenda();
 });
@@ -279,6 +293,90 @@ test("resume o dia sem contar canceladas e conta os horários livres", async () 
     .closest("section")!;
   const stats = within(summary).getAllByRole("definition");
   expect(stats.map((stat) => stat.textContent)).toEqual(["2", "1", "1", "2"]);
+});
+
+test.each([
+  { profile: "médico", roles: ["Doctor"] as const },
+  { profile: "médico administrador", roles: ["Admin", "Doctor"] as const },
+])("adapta Minha Agenda para o $profile", async ({ roles }) => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    email: "helena@example.test",
+    roles: [...roles],
+    name: "Dra. Helena Costa",
+  };
+  const user = userEvent.setup();
+  mockAgenda([appointment, teleconsultation, completedAppointment]);
+  render(
+    <QueryHarness>
+      <AgendaPage personal />
+    </QueryHarness>,
+  );
+
+  expect(await screen.findByText("Minha Agenda")).toBeVisible();
+  expect(screen.getByText("Agendas")).toBeVisible();
+  expect(screen.queryByText("Por médico")).not.toBeInTheDocument();
+  const timelineTitle = await screen.findByRole("heading", {
+    name: "Segunda-feira, 10 Ago 2026",
+  });
+  expect(timelineTitle.closest("section")).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: /^Nova consulta$/ }),
+  ).toBeVisible();
+
+  const summary = screen
+    .getByRole("heading", { name: "Resumo do dia" })
+    .closest("section")!;
+  expect(
+    within(summary).getAllByRole("definition").map((stat) => stat.textContent),
+  ).toEqual(["3", "1", "1", "1"]);
+  expect(within(summary).getByText("Realizadas")).toBeVisible();
+  expect(within(summary).queryByText("Horários livres")).not.toBeInTheDocument();
+
+  const nextAppointment = screen
+    .getByRole("heading", { name: "Próxima consulta" })
+    .closest("section")!;
+  expect(within(nextAppointment).getByText("Carlos Souza")).toBeVisible();
+  expect(within(nextAppointment).getByText("11:00 · 60 min")).toBeVisible();
+  await user.click(
+    within(nextAppointment).getByRole("button", { name: "Abrir prontuário" }),
+  );
+  expect(window.location.pathname).toBe(
+    `/app/pacientes/${teleconsultation.patientId}`,
+  );
+});
+
+test("Minha Agenda ignora outro médico informado na URL", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    roles: ["Admin", "Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  window.history.replaceState(
+    {},
+    "",
+    `/app/inicio?date=2026-08-10&doctorId=${secondDoctorId}`,
+  );
+  mockAgenda([appointment, otherDoctorAppointment]);
+
+  render(
+    <QueryHarness>
+      <AgendaPage personal />
+    </QueryHarness>,
+  );
+
+  const timeline = await screen.findByRole("region", {
+    name: "Segunda-feira, 10 Ago 2026",
+  });
+  expect(within(timeline).getByText("Marina Oliveira")).toBeVisible();
+  expect(screen.queryByText("Bianca Souza")).not.toBeInTheDocument();
+  expect(
+    requestMock.mock.calls.some(([path]) =>
+      String(path).includes(`/doctors/${secondDoctorId}/availability`),
+    ),
+  ).toBe(false);
 });
 
 test("filtro de tipo marca o horário como ocupado sem mexer no resumo", async () => {

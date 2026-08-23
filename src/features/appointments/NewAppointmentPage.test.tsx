@@ -40,9 +40,10 @@ const session: AuthResponse = {
     accessTokenExpiresAtUtc: "2099-01-01T00:00:00Z",
   },
 };
+let activeSession: AuthResponse = session;
 
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({ request: requestMock, session }),
+  useAuth: () => ({ request: requestMock, session: activeSession }),
 }));
 vi.mock("../../app/navigation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../app/navigation")>();
@@ -168,6 +169,7 @@ const createdAppointment: Appointment = {
 };
 
 beforeEach(() => {
+  activeSession = session;
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-08-06T12:00:00-03:00"));
   sessionStorage.clear();
@@ -235,6 +237,90 @@ test("confirma seleção completa e retorna para a consulta criada", async () =>
     `/app/agenda?date=2026-08-10&doctorId=${doctorId}&appointmentId=${appointmentId}&created=true`,
   );
   expect(sessionStorage.getItem(draftKey)).toBeNull();
+});
+
+test("retorna ao Início quando a consulta parte da agenda pessoal", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    email: "helena@example.test",
+    roles: ["Admin", "Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?date=2026-08-10&patientId=${patientId}&doctorId=${doctorId}&origin=home`,
+  );
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path === `/patients/${patientId}`) return patient;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    if (path === "/appointments" && init?.method === "POST") {
+      return createdAppointment;
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(await screen.findByText("Início")).toBeVisible();
+  await user.click(
+    await screen.findByRole("button", { name: "Presencial" }),
+  );
+  await user.click(
+    await screen.findByRole("button", {
+      name: "10 de agosto de 2026, disponível",
+    }),
+  );
+  await user.click(screen.getByRole("button", { name: "09:00" }));
+  await user.click(
+    screen.getByRole("button", { name: "Confirmar agendamento" }),
+  );
+
+  expect(navigateMock).toHaveBeenCalledWith(
+    `/app/inicio?date=2026-08-10&appointmentId=${appointmentId}&created=true`,
+  );
+});
+
+test("volta da criação para o dia aberto no Início", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    email: "helena@example.test",
+    roles: ["Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?date=2026-08-10&doctorId=${doctorId}&origin=home`,
+  );
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(await screen.findByText("Início")).toBeVisible();
+  await user.click(
+    screen.getByRole("button", { name: "Voltar para o início" }),
+  );
+
+  expect(navigateMock).toHaveBeenCalledWith("/app/inicio?date=2026-08-10");
 });
 
 test("mantém o paciente escolhido enquanto a hidratação da URL termina depois", async () => {

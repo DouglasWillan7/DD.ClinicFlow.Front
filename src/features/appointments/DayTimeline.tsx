@@ -14,6 +14,7 @@ export interface DayTimelineProps {
   freeSlots: number;
   rows: TimelineRow[];
   emptyMessage: string;
+  personal?: boolean;
   onSelectFreeSlot(slot: AvailabilitySlot): void;
 }
 
@@ -30,6 +31,7 @@ export function DayTimeline({
   freeSlots,
   rows,
   emptyMessage,
+  personal = false,
   onSelectFreeSlot,
 }: DayTimelineProps) {
   const navigate = useNavigate();
@@ -42,21 +44,31 @@ export function DayTimeline({
       className={clsx(styles.card, styles.timelineCard)}
       aria-labelledby="agenda-doctor-title"
     >
-      <header className={styles.doctorHeader}>
-        <span className={styles.doctorAvatar} aria-hidden="true">
-          {getInitials(doctorName)}
-        </span>
-        <span className={styles.doctorIdentity}>
-          <h1 id="agenda-doctor-title" className={styles.doctorName}>
-            {doctorName}
-          </h1>
-          <span className={styles.doctorMeta}>
-            {specialty ? `${specialty} · ` : ""}
+      {personal ? (
+        <header className={styles.personalTimelineHeader}>
+          <h1 id="agenda-doctor-title" className={styles.personalTimelineTitle}>
             {dayTitle}
+          </h1>
+        </header>
+      ) : (
+        <header className={styles.doctorHeader}>
+          <span className={styles.doctorAvatar} aria-hidden="true">
+            {getInitials(doctorName)}
           </span>
-        </span>
-        <span className={styles.freeSlotsPill}>{formatFreeSlots(freeSlots)}</span>
-      </header>
+          <span className={styles.doctorIdentity}>
+            <h1 id="agenda-doctor-title" className={styles.doctorName}>
+              {doctorName}
+            </h1>
+            <span className={styles.doctorMeta}>
+              {specialty ? `${specialty} · ` : ""}
+              {dayTitle}
+            </span>
+          </span>
+          <span className={styles.freeSlotsPill}>
+            {formatFreeSlots(freeSlots)}
+          </span>
+        </header>
+      )}
 
       {rows.length ? (
         <ul className={styles.timeline}>

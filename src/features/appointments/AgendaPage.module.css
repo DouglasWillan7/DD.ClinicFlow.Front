@@ -1,7 +1,7 @@
 /*
- * Agenda por médico — handoff "design_handoff_agenda_multi_medico".
- * Um médico por vez: a troca acontece na busca global da topbar. Coluna
- * esquerda de 380px (mini calendário + resumo) e o dia do médico à direita.
+ * Agenda clínica + Minha Agenda. A recepção mantém a troca de médico pela
+ * busca global; o médico logado recebe a composição do handoff dedicado.
+ * Ambas usam coluna lateral de 380px e o dia em contexto à direita.
  */
 .page {
   --chip-border: rgba(22, 40, 58, 0.1);
@@ -444,10 +444,131 @@
   color: var(--color-success-text);
 }
 
+/* ---------------------------------------------------- Próxima consulta --- */
+
+.nextPatient {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.nextPatientAvatar {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.nextPatientCopy {
+  min-width: 0;
+}
+
+.nextPatientCopy strong,
+.nextPatientCopy span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.nextPatientCopy strong {
+  color: var(--color-ink);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.nextPatientCopy span {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.nextAppointmentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nextTimeBadge,
+.nextTypeBadge {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.nextTimeBadge {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.nextTypeBadge {
+  border: 1.5px solid var(--chip-border);
+  color: var(--color-ink);
+}
+
+.openPatientRecord {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-surface);
+  background: var(--color-primary);
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.openPatientRecord:hover {
+  background: color-mix(in srgb, var(--color-primary), var(--color-ink) 4%);
+}
+
+.openPatientRecord:active {
+  transform: scale(0.98);
+}
+
 /* --------------------------------------------------------- Linha do tempo --- */
 
 .timelineCard {
   padding-bottom: 28px;
+}
+
+.personalTimelineHeader {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.personalTimelineTitle {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.3;
+  text-wrap: balance;
 }
 
 .doctorHeader {
@@ -763,7 +884,34 @@
 
 @media (max-width: 639px) {
   .contextRow {
+    flex-wrap: wrap;
+    align-items: flex-start;
     gap: var(--space-3);
+  }
+
+  .breadcrumb {
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+
+  .contextSpacer {
+    display: none;
+  }
+
+  .filters {
+    order: 3;
+    flex: 1 0 100%;
+    overflow-x: visible;
+  }
+
+  .filters .chip {
+    flex: 1 1 0;
+    padding-inline: 10px;
+  }
+
+  .newAppointment {
+    margin-left: auto;
+    padding-inline: 16px;
   }
 
   .doctorHeader {
@@ -790,12 +938,23 @@
   }
 }
 
+@media (max-width: 359px) {
+  .filters {
+    overflow-x: auto;
+  }
+
+  .filters .chip {
+    flex: 0 0 auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chip,
   .calendarDay .dayCircle,
   .monthNavigation,
   .newAppointment,
-  .freeSlot {
+  .freeSlot,
+  .openPatientRecord {
     transition: none;
   }
 }

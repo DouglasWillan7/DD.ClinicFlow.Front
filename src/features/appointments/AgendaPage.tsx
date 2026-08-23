@@ -44,6 +44,7 @@ import {
 } from "./agendaDoctors";
 import { AgendaMonthCalendar } from "./AgendaMonthCalendar";
 import { DayTimeline } from "./DayTimeline";
+import { NextAppointmentCard } from "./NextAppointmentCard";
 import styles from "./AgendaPage.module.css";
 
 const typeFilters: Array<{ value: TypeFilter; label: string }> = [
@@ -56,7 +57,11 @@ function capitalize(value: string) {
   return value.charAt(0).toLocaleUpperCase("pt-BR") + value.slice(1);
 }
 
-export function AgendaPage() {
+export function AgendaPage({
+  personal = false,
+}: {
+  personal?: boolean;
+}) {
   const { request, session } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -74,7 +79,7 @@ export function AgendaPage() {
   const createdId = parseGuid(params.get("appointmentId"));
   // O médico ativo mora na URL: a busca global da topbar escreve `?doctorId=`,
   // a página lê, e um link compartilhado abre exatamente a mesma agenda.
-  const requestedDoctorId = parseGuid(params.get("doctorId"));
+  const requestedDoctorId = personal ? null : parseGuid(params.get("doctorId"));
 
   const clinic = useQuery({
     queryKey: ["clinic", "current"],
@@ -117,10 +122,13 @@ export function AgendaPage() {
     () => listDoctors(members.data ?? []),
     [members.data],
   );
-  const doctor = resolveActiveDoctor(
-    doctors,
-    requestedDoctorId,
-    session?.userId,
+  // O Início nunca pode cair silenciosamente na agenda de um colega caso o
+  // vínculo do usuário logado esteja ausente ou ainda não tenha carregado.
+  const doctor = personal
+    ? doctors.find((candidate) => candidate.userId === session?.userId) ?? null
+    : resolveActiveDoctor(doctors, requestedDoctorId, session?.userId);
+  const personalAgenda = Boolean(
+    personal && hasRole(session, "Doctor"),
   );
 
   const availabilityFrom = format(startOfMonth(month), "yyyy-MM-dd");
@@ -217,6 +225,14 @@ export function AgendaPage() {
 
   const stats = getDayStats(dayAppointments);
   const freeSlots = countFreeSlots(rows);
+  const nextAppointment = personalAgenda
+    ? dayAppointments
+        .filter((appointment) => appointment.status === "Confirmada")
+        .sort(
+          (first, second) =>
+            Date.parse(first.startUtc) - Date.parse(second.startUtc),
+        )[0] ?? null
+    : null;
 
   function updateParams(apply: (next: URLSearchParams) => void) {
     setParams(
@@ -268,6 +284,11 @@ export function AgendaPage() {
   const dayTitle = capitalize(
     format(parseISO(day), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR }),
   );
+  const personalDayTitle = `${capitalize(
+    format(parseISO(day), "EEEE", { locale: ptBR }),
+  )}, ${format(parseISO(day), "d")} ${capitalize(
+    format(parseISO(day), "MMM", { locale: ptBR }).replace(".", ""),
+  )} ${format(parseISO(day), "yyyy")}`;
   const filterLabel = typeFilters
     .find((filter) => filter.value === typeFilter)
     ?.label.toLocaleLowerCase("pt-BR");
@@ -284,10 +305,10 @@ export function AgendaPage() {
     <div className={styles.page}>
       <div className={styles.contextRow}>
         <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
-          <span>Agenda</span>
+          <span>Agendas</span>
           <span aria-hidden="true">›</span>
-          <strong>Por médico</strong>
-          {doctor ? (
+          <strong>{personalAgenda ? "Minha Agenda" : "Por médico"}</strong>
+          {doctor && !personalAgenda ? (
             <>
               <span aria-hidden="true">›</span>
               <span className={styles.breadcrumbDoctor}>
@@ -319,7 +340,7 @@ export function AgendaPage() {
           onClick={() => bookSlot(null)}
         >
           <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
-          {doctor
+          {doctor && !personalAgenda
             ? `Nova consulta · ${getShortDoctorName(doctor)}`
             : "Nova consulta"}
         </button>
@@ -410,11 +431,18 @@ export function AgendaPage() {
                 <dt>Aguardando</dt>
               </div>
               <div className={`${styles.stat} ${styles.statFree}`}>
-                <dd>{freeSlots}</dd>
-                <dt>Horários livres</dt>
+                <dd>{personalAgenda ? stats.completed : freeSlots}</dd>
+                <dt>{personalAgenda ? "Realizadas" : "Horários livres"}</dt>
               </div>
             </dl>
           </section>
+
+          {nextAppointment ? (
+            <NextAppointmentCard
+              appointment={nextAppointment}
+              timeZone={timeZone}
+            />
+          ) : null}
 
           {doctor ? (
             <DoctorBlocksCard
@@ -439,7 +467,9 @@ export function AgendaPage() {
               {dayTitle}
             </h2>
             <p className={styles.emptyMessage} role="status">
-              Cadastre um médico para montar a agenda da clínica.
+              {personalAgenda
+                ? "Não foi possível localizar seu cadastro médico."
+                : "Cadastre um médico para montar a agenda da clínica."}
             </p>
           </section>
         ) : appointments.isLoading || availabilityForDay.isLoading ? (
@@ -470,10 +500,11 @@ export function AgendaPage() {
         ) : (
           <DayTimeline
             doctor={doctor}
-            dayTitle={dayTitle}
+            dayTitle={personalAgenda ? personalDayTitle : dayTitle}
             freeSlots={freeSlots}
             rows={rows}
             emptyMessage={emptyMessage}
+            personal={personalAgenda}
             onSelectFreeSlot={bookSlot}
           />
         )}

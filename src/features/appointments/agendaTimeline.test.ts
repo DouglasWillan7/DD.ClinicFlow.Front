@@ -151,6 +151,11 @@ describe("getDayStats", () => {
       }),
     ]);
 
-    expect(stats).toEqual({ total: 2, teleconsultations: 1, pending: 1 });
+    expect(stats).toEqual({
+      total: 2,
+      teleconsultations: 1,
+      pending: 1,
+      completed: 1,
+    });
   });
 });

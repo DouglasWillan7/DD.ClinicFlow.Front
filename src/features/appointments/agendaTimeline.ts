@@ -161,6 +161,7 @@ export interface DayStats {
   total: number;
   teleconsultations: number;
   pending: number;
+  completed: number;
 }
 
 /** Resumo do dia do médico ativo; independe do filtro de tipo (handoff). */
@@ -175,6 +176,9 @@ export function getDayStats(appointments: Appointment[]): DayStats {
     ).length,
     pending: appointments.filter(
       (appointment) => appointmentTimelineTone(appointment.status) === "pending",
+    ).length,
+    completed: appointments.filter(
+      (appointment) => appointmentTimelineTone(appointment.status) === "done",
     ).length,
   };
 }

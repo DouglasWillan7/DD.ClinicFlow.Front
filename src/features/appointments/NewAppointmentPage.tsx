@@ -27,6 +27,7 @@ import type {
 } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
+import { hasRole } from "../../auth/roles";
 import { getAuthScope } from "../../auth/sessionScope";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { onboardingKey } from "../onboarding/onboarding";
@@ -103,6 +104,8 @@ export function NewAppointmentPage() {
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const authScope = session ? getAuthScope(session) : "";
+  const openedFromHome =
+    params.get("origin") === "home" && hasRole(session, "Doctor");
   const [restoredDraft] = useState(() =>
     authScope ? restoreDraft(authScope) : null,
   );
@@ -273,10 +276,10 @@ export function NewAppointmentPage() {
         exact: true,
       });
       void queryClient.invalidateQueries({ queryKey: onboardingKey });
-      // A agenda mostra um médico por vez: volta já no do agendamento.
-      navigate(
-        `/app/agenda?date=${attempt.date}&doctorId=${encodeURIComponent(appointment.doctorUserId)}&appointmentId=${encodeURIComponent(appointment.id)}&created=true`,
-      );
+      const destination = openedFromHome
+        ? `/app/inicio?date=${attempt.date}&appointmentId=${encodeURIComponent(appointment.id)}&created=true`
+        : `/app/agenda?date=${attempt.date}&doctorId=${encodeURIComponent(appointment.doctorUserId)}&appointmentId=${encodeURIComponent(appointment.id)}&created=true`;
+      navigate(destination);
     },
     onError: (error, attempt) => {
       const attemptIsStillActive = selectionMatchesAttempt(
@@ -310,7 +313,8 @@ export function NewAppointmentPage() {
   function returnToAgenda() {
     clearDraft(authScope);
     const date = contextDate ?? selection.date;
-    navigate(date ? `/app/agenda?date=${date}` : "/app/agenda");
+    const destination = openedFromHome ? "/app/inicio" : "/app/agenda";
+    navigate(date ? `${destination}?date=${date}` : destination);
   }
 
   function createPatient() {
@@ -319,6 +323,7 @@ export function NewAppointmentPage() {
     const returnParams = new URLSearchParams();
     const returnDate = selection.date ?? contextDate;
     if (returnDate) returnParams.set("date", returnDate);
+    if (openedFromHome) returnParams.set("origin", "home");
     const returnQuery = returnParams.toString();
     const returnTo = `/app/agenda/nova${returnQuery ? `?${returnQuery}` : ""}`;
     navigate(
@@ -347,12 +352,16 @@ export function NewAppointmentPage() {
         <button
           type="button"
           className={styles.backButton}
-          aria-label="Voltar para a agenda"
+          aria-label={
+            openedFromHome ? "Voltar para o início" : "Voltar para a agenda"
+          }
           onClick={returnToAgenda}
         >
           <ChevronLeft size={18} aria-hidden="true" />
         </button>
-        <span className={styles.breadcrumbParent}>Agenda</span>
+        <span className={styles.breadcrumbParent}>
+          {openedFromHome ? "Início" : "Agendas"}
+        </span>
         <span className={styles.breadcrumbSeparator} aria-hidden="true">
           ›
         </span>

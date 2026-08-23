@@ -23,9 +23,10 @@ const session: AuthResponse = {
     accessTokenExpiresAtUtc: "2099-01-01T00:00:00Z",
   },
 };
+let activeSession: AuthResponse = session;
 
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({ request: requestMock, session }),
+  useAuth: () => ({ request: requestMock, session: activeSession }),
 }));
 
 vi.mock("../../app/navigation", () => ({
@@ -89,6 +90,7 @@ function renderSearch() {
 }
 
 beforeEach(() => {
+  activeSession = session;
   navigate.mockClear();
   store.clear();
   Object.defineProperty(window, "localStorage", {
@@ -161,6 +163,19 @@ test("escolher o médico abre a agenda dele", async () => {
   await user.click(await screen.findByRole("option", { name: /Helena Costa/ }));
 
   expect(navigate).toHaveBeenCalledWith("/app/agenda?doctorId=d1");
+});
+
+test("médico sem acesso administrativo não recebe agendas de colegas", async () => {
+  activeSession = { ...session, roles: ["Doctor"] };
+  const user = userEvent.setup();
+  const search = renderSearch();
+
+  await user.type(search, "cardio");
+
+  expect(
+    screen.queryByRole("option", { name: /Médico Dra\. Helena Costa/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Médicos")).not.toBeInTheDocument();
 });
 
 test("sem paciente correspondente, oferece o cadastro com o nome preenchido", async () => {

@@ -260,11 +260,16 @@ async function mockClinicFlow(
     } else if (url.pathname === "/appointments") {
       const from = Date.parse(url.searchParams.get("from") ?? "");
       const to = Date.parse(url.searchParams.get("to") ?? "");
+      const doctorId = url.searchParams.get("doctorId");
       body = appointmentStore.filter((appointment) => {
         const start = Date.parse(appointment.startUtc);
-        return Number.isNaN(from) || Number.isNaN(to)
+        const insideRange = Number.isNaN(from) || Number.isNaN(to)
           ? true
           : start >= from && start < to;
+        return (
+          insideRange &&
+          (!doctorId || appointment.doctorUserId === doctorId)
+        );
       });
     } else if (url.pathname === "/patients") {
       const search = url.searchParams.get("search")?.trim().toLocaleLowerCase(
@@ -685,6 +690,171 @@ test("médico configura a própria agenda em Meu perfil", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Salvar cadastro" }),
   ).toBeVisible();
+});
+
+for (const viewport of [
+  { name: "desktop", width: 1440, height: 1000 },
+  { name: "mobile", width: 390, height: 844 },
+]) {
+  test(`médico recebe o dashboard no Início em ${viewport.name}`, async ({ page }) => {
+    await mockClinicFlow(page, {
+      roles: ["Doctor"],
+      userId: members[0].userId,
+    });
+    await page.setViewportSize(viewport);
+    await page.goto("/app/inicio?date=2026-07-28");
+
+    if (viewport.name === "desktop") {
+      await expect(page.getByRole("link", { name: "Início" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await expect(page.getByRole("link", { name: "Agendas" })).toHaveAttribute(
+        "href",
+        "/app/agenda",
+      );
+    } else {
+      await page.getByRole("button", { name: "Abrir navegação" }).click();
+      await expect(page.getByRole("link", { name: "Início" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await expect(page.getByRole("link", { name: "Agendas" })).toHaveAttribute(
+        "href",
+        "/app/agenda",
+      );
+      await page.getByRole("button", { name: "Fechar navegação" }).click();
+    }
+    await expect(
+      page.getByRole("heading", { name: "Bom dia, Dra. Helena" }),
+    ).toBeVisible();
+    await expect(page.getByText("Minha Agenda", { exact: true })).toHaveCount(0);
+    const agenda = page.getByRole("region", { name: "Agenda do dia" });
+    await expect(agenda.getByText("Marina Oliveira")).toBeVisible();
+    await expect(agenda.getByText("09:00")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Marina Oliveira" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Pendências" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Sua semana" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Nova consulta$/ }),
+    ).toBeVisible();
+    if (viewport.name === "desktop") {
+      await expect(
+        page.getByRole("complementary").filter({
+          has: page.getByRole("navigation", { name: "Navegação principal" }),
+        }),
+      ).toHaveCSS("width", "72px");
+    }
+    await expectNoGlobalOverflow(page);
+    await expectMinimumTouchTargets(page);
+
+    await page.screenshot({
+      path: `/private/tmp/clinicflow-dashboard-${viewport.name}.png`,
+      fullPage: true,
+    });
+
+    await page.getByRole("button", { name: /^Nova consulta$/ }).click();
+    await expect(page).toHaveURL(
+      `/app/agenda/nova?date=2026-07-28&doctorId=${members[0].userId}&origin=home`,
+    );
+    await expect(
+      page
+        .getByRole("navigation", { name: "Navegação estrutural" })
+        .getByText("Início", { exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Voltar para o início" }).click();
+    await expect(page).toHaveURL("/app/inicio?date=2026-07-28");
+  });
+}
+
+test("médico administrador separa o Início pessoal das Agendas da clínica", async ({
+  page,
+}) => {
+  await mockClinicFlow(page, {
+    roles: ["Admin", "Doctor"],
+    userId: members[0].userId,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/app");
+
+  await expect(page).toHaveURL("/app/inicio");
+  await expect(
+    page.getByRole("link", { name: "Início" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("heading", { name: "Bom dia, Dra. Helena" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Agenda do dia" })
+      .getByText("Marina Oliveira"),
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Agendas" }).click();
+  await expect(page).toHaveURL("/app/agenda");
+  await expect(
+    page.getByRole("link", { name: "Agendas" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("Por médico", { exact: true })).toBeVisible();
+  await expect(page.getByText("Minha Agenda", { exact: true })).toHaveCount(0);
+
+  const search = page.getByRole("combobox", { name: "Busca global" });
+  await search.fill("rafael");
+  await page.getByRole("option", { name: /Dr\. Rafael Lima/ }).click();
+  await expect(page).toHaveURL(/doctorId=44444444-4444-4444-4444-444444444444/);
+  await expect(page.getByText("Por médico", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Dr. Rafael Lima" }).getByText("Paulo Mendes"),
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Início" }).click();
+  await expect(page).toHaveURL("/app/inicio");
+  await expect(
+    page.getByRole("heading", { name: "Bom dia, Dra. Helena" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Agenda do dia" })
+      .getByText("Marina Oliveira"),
+  ).toBeVisible();
+});
+
+test("Agendas abre Minha Agenda para médico sem papel administrativo", async ({
+  page,
+}) => {
+  await mockClinicFlow(page, {
+    roles: ["Doctor"],
+    userId: members[0].userId,
+  });
+
+  await page.goto("/app/agenda?date=2026-07-28");
+
+  await expect(page).toHaveURL("/app/agenda?date=2026-07-28");
+  await expect(
+    page.getByRole("link", { name: "Agendas" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("Minha Agenda", { exact: true })).toBeVisible();
+  await expect(page.getByText("Por médico", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Terça-feira, 28 Jul 2026" })
+      .getByText("Marina Oliveira"),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: /^Nova consulta$/ }).click();
+  await expect(page).toHaveURL(
+    `/app/agenda/nova?date=2026-07-28&doctorId=${members[0].userId}`,
+  );
+  await expect(
+    page
+      .getByRole("navigation", { name: "Navegação estrutural" })
+      .getByText("Agendas", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Voltar para a agenda" }).click();
+  await expect(page).toHaveURL("/app/agenda?date=2026-07-28");
 });
 
 test("administrador abre a agenda médica pelo detalhe da equipe", async ({

@@ -49,6 +49,11 @@ const AgendaPage = lazy(() =>
     default: module.AgendaPage,
   })),
 );
+const DoctorHomePage = lazy(() =>
+  import("../features/dashboard/DoctorHomePage").then((module) => ({
+    default: module.DoctorHomePage,
+  })),
+);
 const NewAppointmentPage = lazy(() =>
   import("../features/appointments/NewAppointmentPage").then((module) => ({
     default: module.NewAppointmentPage,
@@ -123,13 +128,16 @@ function AppRoutes() {
   const { session } = useAuth();
   const [location] = useLocation();
   const path = location.split("?")[0];
+  const appStart = hasRole(session, "Doctor") ? "/app/inicio" : "/app/agenda";
+  const canViewClinicAgendas =
+    hasRole(session, "Admin") || hasRole(session, "Secretary");
 
   if (path === "/") {
-    return <Redirect to={session ? "/app/agenda" : "/entrar"} replace />;
+    return <Redirect to={session ? appStart : "/entrar"} replace />;
   }
 
   if (path === "/entrar" || path === "/cadastro") {
-    if (session) return <Redirect to="/app/agenda" replace />;
+    if (session) return <Redirect to={appStart} replace />;
     if (path === "/entrar") return <LoginPage />;
     return <RegisterPage />;
   }
@@ -145,7 +153,11 @@ function AppRoutes() {
 
   if (path.startsWith("/app")) {
     if (!session) return <Redirect to="/entrar" replace />;
-    if (path === "/app") return <Redirect to="/app/agenda" replace />;
+    if (path === "/app") return <Redirect to={appStart} replace />;
+
+    if (path === "/app/inicio" && !hasRole(session, "Doctor")) {
+      return <Redirect to="/app/agenda" replace />;
+    }
 
     // Equipe saiu de Configuração e virou destino próprio; o link antigo continua funcionando.
     if (path === "/app/configuracoes/equipe") {
@@ -159,7 +171,12 @@ function AppRoutes() {
       "/app/configuracoes/whatsapp": <WhatsAppSettingsPage />,
     };
     const commonRoutes: Record<string, React.ReactNode> = {
-      "/app/agenda": <AgendaPage />,
+      "/app/inicio": <DoctorHomePage />,
+      "/app/agenda": canViewClinicAgendas ? (
+        <AgendaPage />
+      ) : (
+        <AgendaPage personal />
+      ),
       "/app/agenda/nova": <NewAppointmentPage />,
       "/app/pacientes": <PatientsPage />,
       "/app/pacientes/novo": <NewPatientPage />,
@@ -168,7 +185,7 @@ function AppRoutes() {
     };
 
     if (path in adminRoutes && !hasRole(session, "Admin")) {
-      return <Redirect to="/app/agenda" replace />;
+      return <Redirect to={appStart} replace />;
     }
 
     // Só hexadecimal, então /equipe/novo nunca cai aqui.
