@@ -1,0 +1,36 @@
+name: clinicflow-front
+
+services:
+  clinicflow-web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    init: true
+    read_only: true
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./current:/srv:ro
+    tmpfs:
+      - /config:size=1m,mode=0750
+      - /data:size=1m,mode=0750
+    networks:
+      - shared
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # A imagem oficial marca o binário do Caddy com cap_net_bind_service.
+    # Manter somente essa capability permite executar o binário com o bounding set reduzido.
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--output-document=/dev/null", "http://127.0.0.1:8080/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+networks:
+  shared:
+    name: dwexpenses_default
+    external: true

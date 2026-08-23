@@ -1,0 +1,5 @@
+# Anexe este bloco ao Caddyfile compartilhado em /opt/dwexpenses.
+clinicflow.dwsolucoes.tech {
+	encode zstd gzip
+	reverse_proxy clinicflow-web:8080
+}
