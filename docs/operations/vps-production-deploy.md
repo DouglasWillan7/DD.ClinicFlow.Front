@@ -10,15 +10,16 @@ GitHub Actions
   ├── lint + testes
   ├── build da imagem com VITE_API_URL de produção
   ├── push para ghcr.io/douglaswillan7/dd.clinicflow.front
-  └── SSH para atualizar /opt/dwexpenses/clinicflow-front
+  └── SSH para atualizar /opt/dwexpenses/clinicflow-api
 
 Internet
   └── Caddy compartilhado -> clinicflow-web:8080
 ```
 
-O Compose do frontend é isolado em `/opt/dwexpenses/clinicflow-front` e compartilha
-somente a rede Docker externa `dwexpenses_default`. O deploy da API permanece
-independente em `/opt/clinicflow`.
+API e frontend pertencem ao mesmo projeto Compose `clinicflow`, instalado em
+`/opt/dwexpenses/clinicflow-api` e conectado à rede Docker externa
+`dwexpenses_default`. Os pipelines permanecem independentes e atualizam somente o
+serviço de cada aplicação.
 
 ## Pipeline
 
@@ -51,8 +52,9 @@ usuário `deploy`.
 
 ## Instalação inicial na VPS
 
-Copie `deploy/vps/docker-compose.yml` para
-`/opt/dwexpenses/clinicflow-front/docker-compose.yml`. A rota pública em
+O Compose unificado é mantido pelo repositório da API em
+`deploy/vps/docker-compose.yml` e instalado em
+`/opt/dwexpenses/clinicflow-api/docker-compose.yml`. A rota pública em
 `deploy/vps/Caddyfile.edge` deve estar anexada ao Caddyfile compartilhado.
 
 A VPS precisa estar autenticada no GHCR com permissão `read:packages`:
@@ -67,7 +69,7 @@ O Caddy de borda e `clinicflow-web` devem participar da rede
 ## Verificação
 
 ```bash
-cd /opt/dwexpenses/clinicflow-front
+cd /opt/dwexpenses/clinicflow-api
 docker compose ps
 docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q clinicflow-web)"
 curl --fail --show-error https://clinicflow.dwsolucoes.tech/
@@ -79,7 +81,7 @@ curl --fail --show-error https://clinicflow.dwsolucoes.tech/entrar
 Use uma tag SHA publicada por uma execução anterior bem-sucedida:
 
 ```bash
-cd /opt/dwexpenses/clinicflow-front
+cd /opt/dwexpenses/clinicflow-api
 CLINICFLOW_FRONT_IMAGE_TAG=SHA docker compose pull clinicflow-web
 CLINICFLOW_FRONT_IMAGE_TAG=SHA docker compose up -d --force-recreate clinicflow-web
 ```
@@ -88,6 +90,6 @@ O próximo workflow bem-sucedido volta a implantar `latest`.
 
 ## Atualização da infraestrutura
 
-O workflow atualiza a imagem, não o `docker-compose.yml` nem o Caddyfile de borda.
-Quando esses arquivos mudarem, copie-os manualmente para a VPS e valide antes de
-recriar containers.
+O workflow atualiza a imagem, não o Compose unificado nem o Caddyfile de borda.
+Quando esses arquivos mudarem, publique o Compose a partir do repositório da API e
+valide-o na VPS antes de recriar containers.

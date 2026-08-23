@@ -78,7 +78,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             set -eu
-            cd /opt/dwexpenses/clinicflow-front
+            cd /opt/dwexpenses/clinicflow-api
             docker compose pull clinicflow-web
             docker compose up -d clinicflow-web
 
