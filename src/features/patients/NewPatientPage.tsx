@@ -7,9 +7,8 @@ import { useAuth } from "../../auth/AuthProvider";
 import { hasRole } from "../../auth/roles";
 import { Button } from "../../components/Button";
 import { LoadingBlock } from "../../components/Feedback";
-import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
-import { PatientForm } from "./PatientForm.tsx";
+import { PatientRegistrationForm } from "./PatientRegistrationForm";
 import {
   emptyPatientForm,
   getSafeReturnTo,
@@ -56,50 +55,38 @@ export function NewPatientPage() {
     members.data?.filter((member) => hasRole(member, "Doctor")) ?? [];
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Pacientes"
-        title="Novo cadastro"
-        description="Registre somente os dados necessários para identificar e atender o paciente."
-      />
-      <div className={styles.content}>
-        {members.isLoading ? (
-          <LoadingBlock label="Carregando os médicos…" />
-        ) : doctors.length === 0 ? (
-          <section className={styles.prerequisite}>
-            <Stethoscope size={28} aria-hidden="true" />
-            <h2>Adicione um médico antes do paciente</h2>
-            <p>
-              Todo paciente precisa de um médico responsável ativo na clínica.
-              Convites pendentes ainda não liberam o cadastro.
-            </p>
-            <Button
-              type="button"
-              onClick={() => navigate("/app/equipe/novo")}
-            >
-              Adicionar médico
-            </Button>
-          </section>
-        ) : (
-          <section className={styles.formPanel}>
-            <PatientForm
-              initialValue={{ ...emptyPatientForm, name: suggestedName }}
-              doctors={doctors}
-              submitLabel="Salvar paciente"
-              onSubmit={(values) => mutation.mutate(values)}
-              onCancel={() => navigate(returnTo)}
-              pending={mutation.isPending}
-              serverError={
-                mutation.isError
-                  ? mutation.error instanceof ApiError
-                    ? mutation.error.message
-                    : "Não foi possível cadastrar o paciente."
-                  : null
-              }
-            />
-          </section>
-        )}
-      </div>
-    </>
+    <main className={styles.registrationPage}>
+      {members.isLoading ? (
+        <LoadingBlock label="Carregando os médicos…" />
+      ) : doctors.length === 0 ? (
+        <section className={styles.prerequisite}>
+          <Stethoscope size={28} aria-hidden="true" />
+          <h1>Adicione um médico antes do paciente</h1>
+          <p>
+            Todo paciente precisa de um médico responsável ativo na clínica.
+            Convites pendentes ainda não liberam o cadastro.
+          </p>
+          <Button type="button" onClick={() => navigate("/app/equipe/novo")}>
+            Adicionar médico
+          </Button>
+        </section>
+      ) : (
+        <PatientRegistrationForm
+          initialValue={{ ...emptyPatientForm, name: suggestedName }}
+          doctors={doctors}
+          onSubmit={(values) => mutation.mutate(values)}
+          onCancel={() => navigate(returnTo)}
+          onResetServerError={mutation.reset}
+          pending={mutation.isPending}
+          serverError={
+            mutation.isError
+              ? mutation.error instanceof ApiError
+                ? mutation.error.message
+                : "Não foi possível cadastrar o paciente."
+              : null
+          }
+        />
+      )}
+    </main>
   );
 }

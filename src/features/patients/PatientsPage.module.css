@@ -533,6 +533,15 @@
 
 /* --------------------------------------- Formulários (novo/editar paciente) --- */
 
+.registrationPage {
+  display: flex;
+  min-width: 0;
+  min-height: calc(100vh - 120px);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px clamp(20px, 3.5vw, 48px) 48px;
+}
+
 .formPanel {
   width: min(100%, 760px);
   padding: 26px;
@@ -634,6 +643,11 @@
 }
 
 @media (max-width: 720px) {
+  .registrationPage {
+    min-height: auto;
+    padding: 8px 0 32px;
+  }
+
   .form {
     grid-template-columns: 1fr;
   }

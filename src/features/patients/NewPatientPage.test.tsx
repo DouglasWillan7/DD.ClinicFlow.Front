@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
+import { ApiError } from "../../api/client";
 import type { Member, Patient } from "../../api/types";
 import { NewPatientPage } from "./NewPatientPage";
 
@@ -75,6 +76,8 @@ test("adiciona patientId ao retorno sem apagar a data existente", async () => {
   await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
   await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
   await user.type(screen.getByLabelText("CPF"), "52998224725");
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
   await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
   await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
 
@@ -125,4 +128,58 @@ test.each([
   await user.click(await screen.findByRole("button", { name: "Cancelar" }));
 
   expect(navigateMock).toHaveBeenCalledWith("/app/pacientes");
+});
+
+test("orienta a adicionar um médico quando não há responsável ativo", async () => {
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/members") return [];
+    throw new Error(`Unexpected request: ${path}`);
+  });
+
+  render(
+    <QueryHarness>
+      <NewPatientPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByRole("heading", {
+      name: "Adicione um médico antes do paciente",
+    }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("list", { name: "Etapas do cadastro do paciente" }),
+  ).not.toBeInTheDocument();
+});
+
+test("preserva o cadastro quando a API recusa o CPF", async () => {
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path === "/clinics/members") return [doctor];
+    if (path === "/patients" && init?.method === "POST") {
+      throw new ApiError("CPF já cadastrado nesta clínica.", 409);
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <NewPatientPage />
+    </QueryHarness>,
+  );
+
+  await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
+  await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+  await user.type(screen.getByLabelText("CPF"), "52998224725");
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
+  await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "CPF já cadastrado nesta clínica.",
+  );
+  await user.click(screen.getByRole("button", { name: "Voltar" }));
+  await user.click(screen.getByRole("button", { name: "Voltar" }));
+  expect(screen.getByLabelText("Nome completo")).toHaveValue("Marina Oliveira");
+  expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
 });
