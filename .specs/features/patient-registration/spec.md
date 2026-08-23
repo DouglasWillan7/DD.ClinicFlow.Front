@@ -71,16 +71,16 @@ O cadastro atual apresenta todos os dados de uma vez e não segue a composição
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| PATREG-01 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-02 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-03 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-04 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-05 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-06 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-07 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-08 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-09 | P1: Cadastro progressivo | Execute | Implementing |
-| PATREG-10 | P1: Cadastro progressivo | Execute | Implementing |
+| PATREG-01 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-02 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-03 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-04 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-05 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-06 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-07 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-08 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-09 | P1: Cadastro progressivo | Execute | Verified |
+| PATREG-10 | P1: Cadastro progressivo | Execute | Verified |
 
 **Coverage:** 10 total, 10 mapped to the implicit execution plan, 0 unmapped.
 
