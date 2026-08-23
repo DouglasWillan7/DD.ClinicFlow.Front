@@ -6,9 +6,9 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 
 ## Goals
 
-- [ ] Make Agenda and New appointment use one availability policy for calendar dates.
-- [ ] Keep Agenda's appointment-count context without overriding availability state.
-- [ ] Load the active doctor's availability for the full displayed Agenda month.
+- [x] Make Agenda and New appointment use one availability policy for calendar dates.
+- [x] Keep Agenda's appointment-count context without overriding availability state.
+- [x] Load the active doctor's availability for the full displayed Agenda month.
 
 ## Out of Scope
 
@@ -66,16 +66,16 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| CAL-01 | P1: Consistent calendar availability AC1 | Execute | Implementing |
-| CAL-02 | P1: Consistent calendar availability AC2 | Execute | Implementing |
-| CAL-03 | P1: Consistent calendar availability AC3 | Execute | Implementing |
-| CAL-04 | P1: Consistent calendar availability AC4 | Execute | Implementing |
-| CAL-05 | P1: Consistent calendar availability AC5 | Execute | Implementing |
-| CAL-06 | P1: Consistent calendar availability AC6 | Execute | Implementing |
-| CAL-07 | P1: Consistent calendar availability AC7 | Execute | Implementing |
-| CAL-08 | Edge cases: invalid time zone | Execute | Implementing |
-| CAL-09 | Edge cases: doctor or month change | Execute | Implementing |
-| CAL-10 | Edge cases: no active doctor | Execute | Implementing |
+| CAL-01 | P1: Consistent calendar availability AC1 | Execute | Verified |
+| CAL-02 | P1: Consistent calendar availability AC2 | Execute | Verified |
+| CAL-03 | P1: Consistent calendar availability AC3 | Execute | Verified |
+| CAL-04 | P1: Consistent calendar availability AC4 | Execute | Verified |
+| CAL-05 | P1: Consistent calendar availability AC5 | Execute | Verified |
+| CAL-06 | P1: Consistent calendar availability AC6 | Execute | Verified |
+| CAL-07 | P1: Consistent calendar availability AC7 | Execute | Verified |
+| CAL-08 | Edge cases: invalid time zone | Execute | Verified |
+| CAL-09 | Edge cases: doctor or month change | Execute | Verified |
+| CAL-10 | Edge cases: no active doctor | Execute | Verified |
 
 **Coverage:** 10 total, 10 mapped to implicit execution steps, 0 unmapped.
 
@@ -83,9 +83,9 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 
 ## Success Criteria
 
-- [ ] Agenda and New appointment classify the same availability fixtures identically.
-- [ ] Agenda requests one inclusive monthly availability range per active doctor-month.
-- [ ] Frontend unit tests, lint, and production build pass without skipped tests.
+- [x] Agenda and New appointment classify the same availability fixtures identically.
+- [x] Agenda requests one inclusive monthly availability range per active doctor-month.
+- [x] Frontend unit tests, lint, and production build pass without skipped tests.
 
 ## Implicit-Requirement Dimensions
 
