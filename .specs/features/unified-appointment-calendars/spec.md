@@ -69,9 +69,9 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
 | CAL-01 | P1: Consistent calendar availability AC1 | Execute | Verified |
-| CAL-02 | P1: Consistent calendar availability AC2 | Execute | Implementing |
-| CAL-11 | P1: Historical Agenda navigation AC3 | Execute | Implementing |
-| CAL-03 | P1: Consistent calendar availability AC4 | Execute | Implementing |
+| CAL-02 | P1: Consistent calendar availability AC2 | Execute | Verified |
+| CAL-11 | P1: Historical Agenda navigation AC3 | Execute | Verified |
+| CAL-03 | P1: Consistent calendar availability AC4 | Execute | Verified |
 | CAL-04 | P1: Consistent calendar availability AC5 | Execute | Verified |
 | CAL-05 | P1: Consistent calendar availability AC6 | Execute | Verified |
 | CAL-06 | P1: Consistent calendar availability AC7 | Execute | Verified |
