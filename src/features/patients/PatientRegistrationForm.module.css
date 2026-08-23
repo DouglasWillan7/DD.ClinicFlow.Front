@@ -70,7 +70,7 @@
   margin-top: var(--space-6);
   border-radius: var(--radius-panel);
   background: var(--color-surface);
-  box-shadow: var(--shadow-floating);
+  box-shadow: var(--shadow-card);
 }
 
 .header {
@@ -172,7 +172,7 @@
 .back,
 .primary {
   min-height: 54px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   font-weight: 600;
   transition:
     color var(--transition-fast),

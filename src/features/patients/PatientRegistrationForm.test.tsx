@@ -33,13 +33,14 @@ describe("PatientRegistrationForm", () => {
     expect(
       screen.getByRole("list", { name: "Etapas do cadastro do paciente" }),
     ).toBeVisible();
+    expect(screen.getByText("Identificação")).toBeVisible();
+    expect(screen.getByText("Dados clínicos")).toBeVisible();
+    expect(screen.getByText("Atendimento")).toBeVisible();
+    expect(screen.getByText("Identificação").closest("li")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
     expect(screen.getByRole("heading", { name: "Identifique o paciente" })).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: "Continuar" }));
-
-    expect(await screen.findByText("Informe o nome completo.")).toBeVisible();
-    expect(screen.getByText("Use somente dígitos, com DDI e DDD.")).toBeVisible();
-    expect(screen.getByText("Informe um CPF válido.")).toBeVisible();
 
     await user.type(screen.getByLabelText("Nome completo"), "Marina Oliveira");
     await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
@@ -47,15 +48,59 @@ describe("PatientRegistrationForm", () => {
     await user.click(screen.getByRole("button", { name: "Continuar" }));
 
     expect(screen.getByRole("heading", { name: "Dados clínicos" })).toBeVisible();
+    await user.type(screen.getByLabelText("Data de nascimento"), "1984-03-12");
     await user.selectOptions(screen.getByLabelText("Tipo sanguíneo"), "ABNegative");
+    await user.selectOptions(
+      screen.getByLabelText("Sexo para referência laboratorial"),
+      "Feminino",
+    );
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(screen.getByRole("heading", { name: "Organize o atendimento" })).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Voltar" }));
+    expect(screen.getByLabelText("Data de nascimento")).toHaveValue("1984-03-12");
     expect(screen.getByLabelText("Tipo sanguíneo")).toHaveValue("ABNegative");
+    expect(screen.getByLabelText("Sexo para referência laboratorial")).toHaveValue(
+      "Feminino",
+    );
     await user.click(screen.getByRole("button", { name: "Voltar" }));
     expect(screen.getByLabelText("Nome completo")).toHaveValue("Marina Oliveira");
+    expect(screen.getByLabelText("WhatsApp")).toHaveValue("+5511999990000");
     expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
+  });
+
+  test.each([
+    ["Nome completo", "Informe o nome completo."],
+    ["WhatsApp", "Use somente dígitos, com DDI e DDD."],
+    ["CPF", "Informe um CPF válido."],
+  ])("bloqueia o avanço quando somente %s está inválido", async (invalidField, message) => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <PatientRegistrationForm
+        initialValue={emptyPatientForm}
+        doctors={doctors}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+        pending={false}
+        serverError={null}
+      />,
+    );
+
+    if (invalidField !== "Nome completo") {
+      await user.type(screen.getByLabelText("Nome completo"), "Marina Oliveira");
+    }
+    if (invalidField !== "WhatsApp") {
+      await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+    }
+    if (invalidField !== "CPF") {
+      await user.type(screen.getByLabelText("CPF"), "52998224725");
+    }
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
+    expect(await screen.findByText(message)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Identifique o paciente" })).toBeVisible();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   test("submete os dados finais e apresenta o estado pendente", async () => {

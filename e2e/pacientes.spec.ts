@@ -427,13 +427,39 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   await mockPacientes(page);
 
   await page.goto("/app/pacientes/novo");
-  await expect(
-    page.getByRole("list", { name: "Etapas do cadastro do paciente" }),
-  ).toBeVisible();
+  const stepper = page.getByRole("list", {
+    name: "Etapas do cadastro do paciente",
+  });
+  await expect(stepper).toBeVisible();
+  await expect(stepper).toContainText("Identificação");
+  await expect(stepper).toContainText("Dados clínicos");
+  await expect(stepper).toContainText("Atendimento");
+  await expect(stepper.locator('[aria-current="step"]')).toContainText(
+    "Identificação",
+  );
   await expect(
     page.getByRole("heading", { name: "Identifique o paciente" }),
   ).toBeVisible();
-  await page.getByLabel("Nome completo").fill("Marina Oliveira");
+  expect(await page.evaluate(() => document.body.scrollWidth)).toBe(1440);
+
+  const nameField = page.getByLabel("Nome completo");
+  await nameField.focus();
+  expect(
+    await nameField.evaluate((element) => getComputedStyle(element).boxShadow),
+  ).not.toBe("none");
+  for (const control of [
+    nameField,
+    page.getByLabel("WhatsApp"),
+    page.getByLabel("CPF"),
+    page.getByRole("button", { name: "Continuar" }),
+  ]) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await nameField.fill("Marina Oliveira");
   await page.getByLabel("WhatsApp").fill("+5511999990000");
   await page.getByLabel("CPF").fill("52998224725");
   await page.screenshot({
@@ -442,6 +468,8 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   });
   await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByRole("heading", { name: "Dados clínicos" })).toBeVisible();
+  await page.getByLabel("Data de nascimento").fill("1984-03-12");
+  await page.getByLabel("Tipo sanguíneo").selectOption("ABNegative");
   await page
     .getByLabel("Sexo para referência laboratorial")
     .selectOption("Feminino");
@@ -449,7 +477,11 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   await expect(
     page.getByRole("heading", { name: "Organize o atendimento" }),
   ).toBeVisible();
+  await expect(stepper.locator('[aria-current="step"]')).toContainText(
+    "Atendimento",
+  );
   await page.getByLabel("Médico responsável").selectOption(doctorUserId);
+  await page.getByLabel("Observações").fill("Retorno em 30 dias");
   await page.screenshot({
     path: "test-results/pacientes-10-cadastro-atendimento.png",
     fullPage: true,
@@ -458,8 +490,15 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
     (request) => request.url().endsWith("/patients") && request.method() === "POST",
   );
   await page.getByRole("button", { name: "Salvar paciente" }).click();
-  expect((await created).postDataJSON()).toMatchObject({
+  expect((await created).postDataJSON()).toEqual({
+    name: "Marina Oliveira",
+    phone: "+5511999990000",
+    cpf: "52998224725",
+    bloodType: "ABNegative",
     sexForClinicalUse: "Feminino",
+    doctorUserId,
+    birthDate: "1984-03-12",
+    notes: "Retorno em 30 dias",
   });
 
   const patient = patients[0];
@@ -512,6 +551,15 @@ test.describe("mobile", () => {
     await mockPacientes(page);
     await page.goto("/app/pacientes/novo");
 
+    const stepper = page.getByRole("list", {
+      name: "Etapas do cadastro do paciente",
+    });
+    await expect(stepper).toContainText("Identificação");
+    await expect(stepper).toContainText("Dados clínicos");
+    await expect(stepper).toContainText("Atendimento");
+    await expect(stepper.locator('[aria-current="step"]')).toContainText(
+      "Identificação",
+    );
     await expect(
       page.getByRole("heading", { name: "Identifique o paciente" }),
     ).toBeVisible();
@@ -521,6 +569,17 @@ test.describe("mobile", () => {
     expect(formBox!.x).toBeGreaterThanOrEqual(0);
     expect(formBox!.x + formBox!.width).toBeLessThanOrEqual(390);
     expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
+    for (const control of [
+      page.getByLabel("Nome completo"),
+      page.getByLabel("WhatsApp"),
+      page.getByLabel("CPF"),
+      page.getByRole("button", { name: "Continuar" }),
+    ]) {
+      const box = await control.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
 
     await page.getByLabel("Nome completo").fill("Marina Oliveira");
     await page.getByLabel("WhatsApp").fill("+5511999990000");
@@ -528,6 +587,9 @@ test.describe("mobile", () => {
     await page.getByRole("button", { name: "Continuar" }).click();
     await page.getByRole("button", { name: "Continuar" }).click();
     await expect(page.getByLabel("Médico responsável")).toBeVisible();
+    await expect(stepper.locator('[aria-current="step"]')).toContainText(
+      "Atendimento",
+    );
 
     await page.screenshot({
       path: "test-results/pacientes-11-cadastro-mobile.png",

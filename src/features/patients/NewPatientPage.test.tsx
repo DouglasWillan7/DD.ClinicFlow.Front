@@ -171,15 +171,75 @@ test("preserva o cadastro quando a API recusa o CPF", async () => {
   await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
   await user.type(screen.getByLabelText("CPF"), "52998224725");
   await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.type(screen.getByLabelText("Data de nascimento"), "1984-03-12");
+  await user.selectOptions(screen.getByLabelText("Tipo sanguíneo"), "ABNegative");
+  await user.selectOptions(
+    screen.getByLabelText("Sexo para referência laboratorial"),
+    "Feminino",
+  );
   await user.click(screen.getByRole("button", { name: "Continuar" }));
   await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
+  await user.type(screen.getByLabelText("Observações"), "Alergia registrada");
   await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "CPF já cadastrado nesta clínica.",
   );
+  expect(screen.getByLabelText("Médico responsável")).toHaveValue(doctorId);
+  expect(screen.getByLabelText("Observações")).toHaveValue("Alergia registrada");
   await user.click(screen.getByRole("button", { name: "Voltar" }));
+  expect(screen.getByLabelText("Data de nascimento")).toHaveValue("1984-03-12");
+  expect(screen.getByLabelText("Tipo sanguíneo")).toHaveValue("ABNegative");
+  expect(screen.getByLabelText("Sexo para referência laboratorial")).toHaveValue(
+    "Feminino",
+  );
   await user.click(screen.getByRole("button", { name: "Voltar" }));
   expect(screen.getByLabelText("Nome completo")).toHaveValue("Marina Oliveira");
+  expect(screen.getByLabelText("WhatsApp")).toHaveValue("+5511999990000");
   expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
+});
+
+test("limita o nome sugerido a 120 caracteres", async () => {
+  const suggestedName = "M".repeat(140);
+  window.history.replaceState(
+    {},
+    "",
+    `/app/pacientes/novo?nome=${suggestedName}`,
+  );
+
+  render(
+    <QueryHarness>
+      <NewPatientPage />
+    </QueryHarness>,
+  );
+
+  expect(await screen.findByLabelText("Nome completo")).toHaveValue(
+    suggestedName.slice(0, 120),
+  );
+});
+
+test("conclusão com retorno externo usa a lista de pacientes", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    "/app/pacientes/novo?returnTo=https%3A%2F%2Fevil.example%2Fcapture",
+  );
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <NewPatientPage />
+    </QueryHarness>,
+  );
+
+  await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
+  await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+  await user.type(screen.getByLabelText("CPF"), "52998224725");
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
+  await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
+
+  await waitFor(() =>
+    expect(navigateMock).toHaveBeenCalledWith("/app/pacientes"),
+  );
 });
