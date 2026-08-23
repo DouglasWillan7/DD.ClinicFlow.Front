@@ -136,6 +136,28 @@ const availability: DoctorAvailability = {
         },
       ],
     },
+    {
+      date: "2099-08-10",
+      status: "Available",
+      slots: [
+        {
+          startUtc: "2099-08-10T12:30:00Z",
+          endUtc: "2099-08-10T13:00:00Z",
+          label: "09:30",
+        },
+      ],
+    },
+    {
+      date: "2099-08-11",
+      status: "Available",
+      slots: [
+        {
+          startUtc: "2099-08-11T12:30:00Z",
+          endUtc: "2099-08-11T13:00:00Z",
+          label: "09:30",
+        },
+      ],
+    },
   ],
 };
 
@@ -204,6 +226,9 @@ test("apresenta o médico ativo com especialidade, dia e horários livres", asyn
   ).toBeVisible();
   expect(within(timeline).getByText("2 horários livres")).toBeVisible();
   expect(screen.getByText("Por médico")).toBeVisible();
+  expect(requestMock).toHaveBeenCalledWith(
+    `/doctors/${doctorId}/availability?from=2026-08-01&to=2026-08-31`,
+  );
 });
 
 test("monta a linha do tempo com consultas, horários livres e intervalo", async () => {
@@ -306,9 +331,39 @@ test("abre a agenda do médico pedido na URL, sem misturar com o outro", async (
   const timeline = await findTimeline("Dr. Paulo Nunes");
   expect(await within(timeline).findByText("Bianca Souza")).toBeVisible();
   expect(screen.queryByText("Marina Oliveira")).not.toBeInTheDocument();
+  expect(requestMock).toHaveBeenCalledWith(
+    `/doctors/${secondDoctorId}/availability?from=2026-08-01&to=2026-08-31`,
+  );
+});
+
+test("mantém datas indisponíveis sem consultar disponibilidade quando não há médico", async () => {
+  window.history.replaceState({}, "", "/app/agenda?date=2099-08-10");
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return [];
+    if (path.startsWith("/appointments?")) return [];
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByRole("button", {
+      name: "10 de agosto de 2099, indisponível, sem consultas",
+    }),
+  ).toBeDisabled();
+  expect(
+    requestMock.mock.calls.some(([path]) =>
+      String(path).includes("/availability"),
+    ),
+  ).toBe(false);
 });
 
 test("troca o dia pelo calendário e mantém a data na URL", async () => {
+  window.history.replaceState({}, "", "/app/agenda?date=2099-08-10");
   const user = userEvent.setup();
   render(
     <QueryHarness>
@@ -318,16 +373,68 @@ test("troca o dia pelo calendário e mantém a data na URL", async () => {
 
   await user.click(
     await screen.findByRole("button", {
-      name: "11 de agosto de 2026, sem consultas",
+      name: "11 de agosto de 2099, disponível, sem consultas",
     }),
   );
 
   expect(`${window.location.pathname}${window.location.search}`).toBe(
-    "/app/agenda?date=2026-08-11",
+    "/app/agenda?date=2099-08-11",
   );
   expect(
-    await screen.findByText(/Terça-feira, 11 de agosto de 2026/),
+    await screen.findByText(/Terça-feira, 11 de agosto de 2099/),
   ).toBeVisible();
+});
+
+test("busca a disponibilidade novamente ao navegar para outro mês", async () => {
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  await screen.findByRole("table", { name: "Calendário de agosto de 2026" });
+  await user.click(screen.getByRole("button", { name: "Próximo mês" }));
+
+  await waitFor(() =>
+    expect(requestMock).toHaveBeenCalledWith(
+      `/doctors/${doctorId}/availability?from=2026-09-01&to=2026-09-30`,
+    ),
+  );
+  expect(
+    await screen.findByText(/Segunda-feira, 10 de agosto de 2026/),
+  ).toBeVisible();
+});
+
+test("mostra erro recuperável quando a disponibilidade mensal falha", async () => {
+  let availabilityAttempts = 0;
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path.startsWith("/appointments?")) return [appointment];
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) {
+      availabilityAttempts += 1;
+      if (availabilityAttempts === 1) throw new Error("offline");
+      return availability;
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Não foi possível carregar a disponibilidade do médico.",
+  );
+  await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+  expect(
+    await screen.findByRole("table", { name: "Calendário de agosto de 2026" }),
+  ).toBeVisible();
+  expect(availabilityAttempts).toBe(2);
 });
 
 test("anuncia a consulta criada e remove somente o marcador com replace", async () => {

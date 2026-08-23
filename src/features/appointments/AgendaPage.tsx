@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { addMonths, format, parseISO, startOfMonth } from "date-fns";
+import {
+  addMonths,
+  endOfMonth,
+  format,
+  parseISO,
+  startOfMonth,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { CheckCircle2, Plus } from "lucide-react";
@@ -117,14 +123,28 @@ export function AgendaPage() {
     session?.userId,
   );
 
-  const availability = useQuery({
-    queryKey: ["availability", doctor?.userId, day],
+  const availabilityFrom = format(startOfMonth(month), "yyyy-MM-dd");
+  const availabilityTo = format(endOfMonth(month), "yyyy-MM-dd");
+  const monthAvailability = useQuery({
+    queryKey: ["availability", doctor?.userId, monthKey],
     enabled: Boolean(doctor),
+    queryFn: () =>
+      request<DoctorAvailability>(
+        `/doctors/${encodeURIComponent(doctor!.userId)}/availability?from=${availabilityFrom}&to=${availabilityTo}`,
+      ),
+  });
+  const selectedDayInDisplayedMonth = day.slice(0, 7) === monthKey;
+  const selectedDayAvailability = useQuery({
+    queryKey: ["availability", doctor?.userId, day],
+    enabled: Boolean(doctor && !selectedDayInDisplayedMonth),
     queryFn: () =>
       request<DoctorAvailability>(
         `/doctors/${encodeURIComponent(doctor!.userId)}/availability?from=${day}&to=${day}`,
       ),
   });
+  const availabilityForDay = selectedDayInDisplayedMonth
+    ? monthAvailability
+    : selectedDayAvailability;
 
   const created = useQuery({
     queryKey: ["appointments", "detail", createdId],
@@ -180,7 +200,7 @@ export function AgendaPage() {
     [day, doctorAppointments, timeZone],
   );
 
-  const availabilityDay = availability.data?.days.find(
+  const availabilityDay = availabilityForDay.data?.days.find(
     (entry) => entry.date === day,
   );
 
@@ -337,13 +357,38 @@ export function AgendaPage() {
 
       <div className={styles.layout}>
         <div className={styles.sideColumn}>
-          <AgendaMonthCalendar
-            month={month}
-            selectedDate={day}
-            countByDate={countByDate}
-            onMonthChange={setMonth}
-            onDateChange={changeDay}
-          />
+          {!doctor ? (
+            <AgendaMonthCalendar
+              month={month}
+              selectedDate={day}
+              days={[]}
+              timeZoneId={timeZone}
+              countByDate={countByDate}
+              onMonthChange={setMonth}
+              onDateChange={changeDay}
+            />
+          ) : monthAvailability.isLoading ? (
+            <section className={styles.card} aria-label="Calendário da agenda">
+              <LoadingBlock label="Carregando disponibilidade…" />
+            </section>
+          ) : monthAvailability.isError || !monthAvailability.data ? (
+            <section className={styles.card} aria-label="Calendário da agenda">
+              <ErrorBlock
+                message="Não foi possível carregar a disponibilidade do médico."
+                retry={() => void monthAvailability.refetch()}
+              />
+            </section>
+          ) : (
+            <AgendaMonthCalendar
+              month={month}
+              selectedDate={day}
+              days={monthAvailability.data.days}
+              timeZoneId={monthAvailability.data.timeZoneId}
+              countByDate={countByDate}
+              onMonthChange={setMonth}
+              onDateChange={changeDay}
+            />
+          )}
 
           <section className={styles.card} aria-labelledby="agenda-summary-title">
             <h2 id="agenda-summary-title" className={styles.cardTitle}>
@@ -395,7 +440,7 @@ export function AgendaPage() {
               Cadastre um médico para montar a agenda da clínica.
             </p>
           </section>
-        ) : appointments.isLoading || availability.isLoading ? (
+        ) : appointments.isLoading || availabilityForDay.isLoading ? (
           <section className={styles.card} aria-label="Agenda do dia">
             <LoadingBlock label="Organizando os horários…" />
           </section>
@@ -405,6 +450,20 @@ export function AgendaPage() {
               message="Não foi possível carregar as consultas deste dia."
               retry={() => void appointments.refetch()}
             />
+          </section>
+        ) : availabilityForDay.isError ? (
+          <section className={styles.card} aria-label="Agenda do dia">
+            {selectedDayInDisplayedMonth ? (
+              <p className={styles.emptyMessage} role="status">
+                Recarregue a disponibilidade no calendário para ver os horários
+                deste dia.
+              </p>
+            ) : (
+              <ErrorBlock
+                message="Não foi possível carregar a disponibilidade do médico."
+                retry={() => void selectedDayAvailability.refetch()}
+              />
+            )}
           </section>
         ) : (
           <DayTimeline

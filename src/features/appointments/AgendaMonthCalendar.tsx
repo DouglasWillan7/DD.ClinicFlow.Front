@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import {
   addMonths,
   eachDayOfInterval,
@@ -10,12 +11,19 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { AvailabilityDay } from "../../api/types";
 import { formatDateOnlyLong } from "./appointmentLabels";
+import {
+  getCalendarAvailabilityState,
+  getDateOnlyInTimeZone,
+} from "./calendarAvailability";
 import styles from "./AgendaPage.module.css";
 
 export interface AgendaMonthCalendarProps {
   month: Date;
   selectedDate: string;
+  days: AvailabilityDay[];
+  timeZoneId: string;
   countByDate: Map<string, number>;
   onMonthChange(month: Date): void;
   onDateChange(date: string): void;
@@ -43,11 +51,14 @@ function capitalize(value: string) {
 export function AgendaMonthCalendar({
   month,
   selectedDate,
+  days,
+  timeZoneId,
   countByDate,
   onMonthChange,
   onDateChange,
 }: AgendaMonthCalendarProps) {
   const monthStart = startOfMonth(month);
+  const availabilityByDate = new Map(days.map((day) => [day.date, day]));
   const cells = eachDayOfInterval({
     start: startOfWeek(monthStart, { locale: ptBR }),
     end: endOfWeek(endOfMonth(monthStart), { locale: ptBR }),
@@ -56,6 +67,7 @@ export function AgendaMonthCalendar({
     cells.slice(index * 7, index * 7 + 7),
   );
   const monthLabel = format(monthStart, "MMMM 'de' yyyy", { locale: ptBR });
+  const clinicToday = getDateOnlyInTimeZone(timeZoneId, new Date());
 
   return (
     <section className={styles.card} aria-labelledby="agenda-month-title">
@@ -117,7 +129,13 @@ export function AgendaMonthCalendar({
                 }
 
                 const count = countByDate.get(key) ?? 0;
-                const selected = key === selectedDate;
+                const { available, selected, withoutSlots, status } =
+                  getCalendarAvailabilityState({
+                    date: key,
+                    availability: availabilityByDate.get(key),
+                    clinicToday,
+                    selectedDate,
+                  });
                 const summary =
                   count === 0
                     ? "sem consultas"
@@ -129,11 +147,15 @@ export function AgendaMonthCalendar({
                   <td key={key} className={styles.calendarCell}>
                     <button
                       type="button"
-                      className={styles.calendarDay}
-                      aria-label={`${formatDateOnlyLong(key)}, ${summary}${
+                      className={clsx(
+                        styles.calendarDay,
+                        withoutSlots && styles.busyDay,
+                      )}
+                      aria-label={`${formatDateOnlyLong(key)}, ${status}, ${summary}${
                         selected ? ", selecionado" : ""
                       }`}
                       aria-pressed={selected}
+                      disabled={!available}
                       onClick={() => onDateChange(key)}
                     >
                       <span className={styles.dayCircle}>
@@ -154,9 +176,28 @@ export function AgendaMonthCalendar({
         </tbody>
       </table>
 
-      <p className={styles.calendarLegend}>
-        <span className={styles.legendMark} aria-hidden="true" /> dias com
-        consultas
+      <p className={styles.calendarLegend} aria-label="Legenda do calendário">
+        <span>
+          <span className={styles.legendDot} aria-hidden="true" /> selecionado
+        </span>
+        <span>
+          <span
+            className={`${styles.legendDot} ${styles.legendBusy}`}
+            aria-hidden="true"
+          />{" "}
+          sem horários
+        </span>
+        <span>
+          <span
+            className={`${styles.legendDot} ${styles.legendOff}`}
+            aria-hidden="true"
+          />{" "}
+          indisponível
+        </span>
+        <span>
+          <span className={styles.legendMark} aria-hidden="true" /> dias com
+          consultas
+        </span>
       </p>
     </section>
   );

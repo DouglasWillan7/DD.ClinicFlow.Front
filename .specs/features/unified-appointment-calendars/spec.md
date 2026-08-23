@@ -70,12 +70,12 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 | CAL-02 | P1: Consistent calendar availability AC2 | Execute | Implementing |
 | CAL-03 | P1: Consistent calendar availability AC3 | Execute | Implementing |
 | CAL-04 | P1: Consistent calendar availability AC4 | Execute | Implementing |
-| CAL-05 | P1: Consistent calendar availability AC5 | Execute | Pending |
-| CAL-06 | P1: Consistent calendar availability AC6 | Execute | Pending |
-| CAL-07 | P1: Consistent calendar availability AC7 | Execute | Pending |
-| CAL-08 | Edge cases: invalid time zone | Execute | Pending |
-| CAL-09 | Edge cases: doctor or month change | Execute | Pending |
-| CAL-10 | Edge cases: no active doctor | Execute | Pending |
+| CAL-05 | P1: Consistent calendar availability AC5 | Execute | Implementing |
+| CAL-06 | P1: Consistent calendar availability AC6 | Execute | Implementing |
+| CAL-07 | P1: Consistent calendar availability AC7 | Execute | Implementing |
+| CAL-08 | Edge cases: invalid time zone | Execute | Implementing |
+| CAL-09 | Edge cases: doctor or month change | Execute | Implementing |
+| CAL-10 | Edge cases: no active doctor | Execute | Implementing |
 
 **Coverage:** 10 total, 10 mapped to implicit execution steps, 0 unmapped.
 
