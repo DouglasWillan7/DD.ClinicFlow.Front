@@ -115,6 +115,18 @@ const otherDoctorAppointment: Appointment = {
   notes: null,
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
+const historicalAppointment: Appointment = {
+  id: "40000000-0000-4000-8000-000000000005",
+  patientId: "30000000-0000-4000-8000-000000000005",
+  patientName: "Paciente Histórico",
+  doctorUserId: doctorId,
+  startUtc: "2000-08-09T12:00:00Z",
+  endUtc: "2000-08-09T12:30:00Z",
+  type: "InPerson",
+  status: "Confirmada",
+  notes: "Atendimento anterior",
+  createdAtUtc: "2000-08-01T12:00:00Z",
+};
 const availability: DoctorAvailability = {
   doctorUserId: doctorId,
   timeZoneId: "America/Sao_Paulo",
@@ -337,7 +349,7 @@ test("abre a agenda do médico pedido na URL, sem misturar com o outro", async (
 });
 
 test("mantém datas indisponíveis sem consultar disponibilidade quando não há médico", async () => {
-  window.history.replaceState({}, "", "/app/agenda?date=2099-08-10");
+  window.history.replaceState({}, "", "/app/agenda?date=2000-08-10");
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
     if (path === "/clinics/members") return [];
@@ -352,7 +364,7 @@ test("mantém datas indisponíveis sem consultar disponibilidade quando não há
 
   expect(
     await screen.findByRole("button", {
-      name: "10 de agosto de 2099, indisponível, sem consultas",
+      name: "10 de agosto de 2000, data passada, sem consultas",
     }),
   ).toBeDisabled();
   expect(
@@ -382,6 +394,30 @@ test("troca o dia pelo calendário e mantém a data na URL", async () => {
   );
   expect(
     await screen.findByText(/Terça-feira, 11 de agosto de 2099/),
+  ).toBeVisible();
+});
+
+test("abre um dia passado e mostra quem o médico atendeu", async () => {
+  window.history.replaceState({}, "", "/app/agenda?date=2000-08-10");
+  mockAgenda([historicalAppointment]);
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  const pastDay = await screen.findByRole("button", {
+    name: "9 de agosto de 2000, data passada, 1 consulta",
+  });
+  expect(pastDay).toBeEnabled();
+  await user.click(pastDay);
+
+  expect(`${window.location.pathname}${window.location.search}`).toBe(
+    "/app/agenda?date=2000-08-09",
+  );
+  expect(
+    await within(await findTimeline()).findByText("Paciente Histórico"),
   ).toBeVisible();
 });
 

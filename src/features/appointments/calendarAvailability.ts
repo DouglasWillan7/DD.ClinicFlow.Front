@@ -33,16 +33,19 @@ export function getCalendarAvailabilityState({
   availability,
   clinicToday,
   selectedDate,
+  pastDatesSelectable = false,
 }: {
   date: string;
   availability: AvailabilityDay | undefined;
   clinicToday: string | null;
   selectedDate: string | null;
+  pastDatesSelectable?: boolean;
 }): CalendarAvailabilityState {
   const past = clinicToday !== null && date < clinicToday;
   const hasRealSlots = Boolean(availability?.slots.length);
-  const available =
-    !past && availability?.status === "Available" && hasRealSlots;
+  const available = past
+    ? pastDatesSelectable
+    : availability?.status === "Available" && hasRealSlots;
   const withoutSlots =
     !past &&
     (availability?.status === "Full" ||

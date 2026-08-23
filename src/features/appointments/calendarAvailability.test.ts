@@ -76,6 +76,23 @@ test("data passada no fuso da clínica prevalece sobre o status da API", () => {
   });
 });
 
+test("permite data passada sem disponibilidade somente para navegação histórica", () => {
+  expect(
+    getCalendarAvailabilityState({
+      date: "2026-08-09",
+      availability: undefined,
+      clinicToday: "2026-08-10",
+      selectedDate: "2026-08-09",
+      pastDatesSelectable: true,
+    }),
+  ).toEqual({
+    available: true,
+    selected: true,
+    withoutSlots: false,
+    status: "data passada",
+  });
+});
+
 test("calcula hoje no fuso da clínica e tolera identificador inválido", () => {
   const instant = new Date("2026-08-11T01:00:00Z");
   expect(getDateOnlyInTimeZone("America/Sao_Paulo", instant)).toBe(

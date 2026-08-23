@@ -30,6 +30,7 @@ test("aplica disponibilidade compartilhada sem perder contagem de consultas", ()
       selectedDate="2026-08-10"
       days={days}
       timeZoneId="America/Sao_Paulo"
+      pastDatesSelectable
       countByDate={new Map([
         ["2026-08-10", 2],
         ["2026-08-12", 1],
@@ -48,11 +49,12 @@ test("aplica disponibilidade compartilhada sem perder contagem de consultas", ()
   fireEvent.click(available);
   expect(onDateChange).toHaveBeenCalledWith("2026-08-10");
 
-  expect(
-    screen.getByRole("button", {
-      name: "1 de agosto de 2026, data passada, sem consultas",
-    }),
-  ).toBeDisabled();
+  const past = screen.getByRole("button", {
+    name: "1 de agosto de 2026, data passada, sem consultas",
+  });
+  expect(past).toBeEnabled();
+  fireEvent.click(past);
+  expect(onDateChange).toHaveBeenNthCalledWith(2, "2026-08-01");
   expect(
     screen.getByRole("button", {
       name: "11 de agosto de 2026, bloqueado, sem consultas",
@@ -91,6 +93,7 @@ test("mantém disponibilidade autoritativa com fuso inválido", () => {
         selectedDate="2026-08-10"
         days={days}
         timeZoneId="Fuso/Inexistente"
+        pastDatesSelectable
         countByDate={new Map()}
         onMonthChange={vi.fn()}
         onDateChange={vi.fn()}

@@ -363,6 +363,7 @@ export function AgendaPage() {
               selectedDate={day}
               days={[]}
               timeZoneId={timeZone}
+              pastDatesSelectable={false}
               countByDate={countByDate}
               onMonthChange={setMonth}
               onDateChange={changeDay}
@@ -384,6 +385,7 @@ export function AgendaPage() {
               selectedDate={day}
               days={monthAvailability.data.days}
               timeZoneId={monthAvailability.data.timeZoneId}
+              pastDatesSelectable
               countByDate={countByDate}
               onMonthChange={setMonth}
               onDateChange={changeDay}

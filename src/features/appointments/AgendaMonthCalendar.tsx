@@ -24,6 +24,7 @@ export interface AgendaMonthCalendarProps {
   selectedDate: string;
   days: AvailabilityDay[];
   timeZoneId: string;
+  pastDatesSelectable: boolean;
   countByDate: Map<string, number>;
   onMonthChange(month: Date): void;
   onDateChange(date: string): void;
@@ -53,6 +54,7 @@ export function AgendaMonthCalendar({
   selectedDate,
   days,
   timeZoneId,
+  pastDatesSelectable,
   countByDate,
   onMonthChange,
   onDateChange,
@@ -135,6 +137,7 @@ export function AgendaMonthCalendar({
                     availability: availabilityByDate.get(key),
                     clinicToday,
                     selectedDate,
+                    pastDatesSelectable,
                   });
                 const summary =
                   count === 0
