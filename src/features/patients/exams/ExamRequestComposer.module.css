@@ -1,0 +1,59 @@
+.root,
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.triggers,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.composer {
+  padding: var(--space-5);
+  border-radius: var(--radius-control);
+  background: var(--color-app-background);
+}
+
+.form {
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.6fr) minmax(170px, 0.55fr);
+  align-items: start;
+}
+
+.conflict,
+.serverError,
+.actions {
+  grid-column: 1 / -1;
+}
+
+.conflict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  color: var(--color-warning-text);
+  background: var(--color-warning-tint);
+}
+
+.serverError {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .form { grid-template-columns: 1fr; }
+  .conflict { align-items: stretch; flex-direction: column; }
+  .actions > * { flex: 1 1 auto; }
+}

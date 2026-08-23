@@ -1,0 +1,422 @@
+import { useQuery } from "@tanstack/react-query";
+import { addMonths, format, parseISO, startOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { CheckCircle2, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  Appointment,
+  AvailabilitySlot,
+  Clinic,
+  DoctorAvailability,
+  Member,
+  OnboardingStatus,
+} from "../../api/types";
+import { parseGuid } from "../../api/identifiers";
+import { useNavigate, useSearchParams } from "../../app/navigation";
+import { useAuth } from "../../auth/AuthProvider";
+import { hasRole } from "../../auth/roles";
+import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
+import { OnboardingChecklist } from "../onboarding/OnboardingChecklist";
+import { DoctorBlocksCard } from "./DoctorBlocksCard";
+import { onboardingKey } from "../onboarding/onboarding";
+import {
+  appointmentTypeLabels,
+  parseDateOnly,
+} from "./appointmentLabels";
+import {
+  buildDayTimeline,
+  countFreeSlots,
+  getDayStats,
+  type TypeFilter,
+} from "./agendaTimeline";
+import {
+  getDoctorName,
+  getShortDoctorName,
+  listDoctors,
+  resolveActiveDoctor,
+} from "./agendaDoctors";
+import { AgendaMonthCalendar } from "./AgendaMonthCalendar";
+import { DayTimeline } from "./DayTimeline";
+import styles from "./AgendaPage.module.css";
+
+const typeFilters: Array<{ value: TypeFilter; label: string }> = [
+  { value: "all", label: "Todas" },
+  { value: "InPerson", label: appointmentTypeLabels.InPerson },
+  { value: "Teleconsultation", label: appointmentTypeLabels.Teleconsultation },
+];
+
+function capitalize(value: string) {
+  return value.charAt(0).toLocaleUpperCase("pt-BR") + value.slice(1);
+}
+
+export function AgendaPage() {
+  const { request, session } = useAuth();
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const [day, setDay] = useState(() => {
+    const requested = params.get("date");
+    return requested && parseDateOnly(requested)
+      ? requested
+      : format(new Date(), "yyyy-MM-dd");
+  });
+  const [month, setMonth] = useState(() => startOfMonth(parseISO(day)));
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [showCreated, setShowCreated] = useState(
+    () => params.get("created") === "true",
+  );
+  const createdId = parseGuid(params.get("appointmentId"));
+  // O médico ativo mora na URL: a busca global da topbar escreve `?doctorId=`,
+  // a página lê, e um link compartilhado abre exatamente a mesma agenda.
+  const requestedDoctorId = parseGuid(params.get("doctorId"));
+
+  const clinic = useQuery({
+    queryKey: ["clinic", "current"],
+    queryFn: () => request<Clinic>("/clinics/current"),
+  });
+  const members = useQuery({
+    queryKey: ["clinic", "members"],
+    queryFn: () => request<Member[]>("/clinics/members"),
+  });
+  const onboarding = useQuery({
+    queryKey: onboardingKey,
+    enabled: hasRole(session, "Admin"),
+    queryFn: () => request<OnboardingStatus>("/onboarding/status"),
+  });
+
+  const timeZone = clinic.data?.timeZoneId ?? "America/Sao_Paulo";
+  const monthKey = format(month, "yyyy-MM");
+
+  const monthRange = useMemo(() => {
+    if (!clinic.data) return null;
+    return {
+      from: fromZonedTime(`${monthKey}-01T00:00:00`, timeZone),
+      to: fromZonedTime(
+        `${format(startOfMonth(addMonths(month, 1)), "yyyy-MM-dd")}T00:00:00`,
+        timeZone,
+      ),
+    };
+  }, [clinic.data, month, monthKey, timeZone]);
+
+  const appointments = useQuery({
+    queryKey: ["appointments", "month", monthKey, timeZone],
+    enabled: Boolean(monthRange),
+    queryFn: () =>
+      request<Appointment[]>(
+        `/appointments?from=${encodeURIComponent(monthRange!.from.toISOString())}&to=${encodeURIComponent(monthRange!.to.toISOString())}`,
+      ),
+  });
+
+  const doctors = useMemo(
+    () => listDoctors(members.data ?? []),
+    [members.data],
+  );
+  const doctor = resolveActiveDoctor(
+    doctors,
+    requestedDoctorId,
+    session?.userId,
+  );
+
+  const availability = useQuery({
+    queryKey: ["availability", doctor?.userId, day],
+    enabled: Boolean(doctor),
+    queryFn: () =>
+      request<DoctorAvailability>(
+        `/doctors/${encodeURIComponent(doctor!.userId)}/availability?from=${day}&to=${day}`,
+      ),
+  });
+
+  const created = useQuery({
+    queryKey: ["appointments", "detail", createdId],
+    enabled: Boolean(showCreated && createdId),
+    queryFn: () =>
+      request<Appointment>(`/appointments/${encodeURIComponent(createdId!)}`),
+  });
+
+  useEffect(() => {
+    if (!showCreated) return;
+    const timeout = window.setTimeout(() => {
+      setShowCreated(false);
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete("created");
+          return next;
+        },
+        { replace: true },
+      );
+    }, 4_000);
+    return () => window.clearTimeout(timeout);
+  }, [setParams, showCreated]);
+
+  const doctorAppointments = useMemo(
+    () =>
+      (appointments.data ?? []).filter(
+        (appointment) => appointment.doctorUserId === doctor?.userId,
+      ),
+    [appointments.data, doctor?.userId],
+  );
+
+  const countByDate = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const appointment of doctorAppointments) {
+      if (appointment.status === "Cancelada") continue;
+      const date = formatInTimeZone(
+        appointment.startUtc,
+        timeZone,
+        "yyyy-MM-dd",
+      );
+      counts.set(date, (counts.get(date) ?? 0) + 1);
+    }
+    return counts;
+  }, [doctorAppointments, timeZone]);
+
+  const dayAppointments = useMemo(
+    () =>
+      doctorAppointments.filter(
+        (appointment) =>
+          formatInTimeZone(appointment.startUtc, timeZone, "yyyy-MM-dd") === day,
+      ),
+    [day, doctorAppointments, timeZone],
+  );
+
+  const availabilityDay = availability.data?.days.find(
+    (entry) => entry.date === day,
+  );
+
+  const rows = useMemo(
+    () =>
+      buildDayTimeline({
+        appointments: dayAppointments,
+        slots: availabilityDay?.slots ?? [],
+        timeZone,
+        typeFilter,
+      }),
+    [availabilityDay?.slots, dayAppointments, timeZone, typeFilter],
+  );
+
+  const stats = getDayStats(dayAppointments);
+  const freeSlots = countFreeSlots(rows);
+
+  function updateParams(apply: (next: URLSearchParams) => void) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        apply(next);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function changeDay(nextDay: string) {
+    setDay(nextDay);
+    setMonth(startOfMonth(parseISO(nextDay)));
+    updateParams((next) => {
+      next.set("date", nextDay);
+      next.delete("appointmentId");
+      next.delete("created");
+    });
+  }
+
+  /** Sem slot, a nova consulta começa no horário em branco; o médico ativo já vai junto. */
+  function bookSlot(slot: AvailabilitySlot | null) {
+    const booking = new URLSearchParams({ date: day });
+    if (doctor) booking.set("doctorId", doctor.userId);
+    if (slot) booking.set("time", slot.label);
+    navigate(`/app/agenda/nova?${booking.toString()}`);
+  }
+
+  if (clinic.isLoading || members.isLoading) {
+    return <LoadingBlock label="Preparando a agenda…" />;
+  }
+
+  if (clinic.isError || members.isError || !clinic.data) {
+    return (
+      <div className={styles.page}>
+        <ErrorBlock
+          message="Não foi possível preparar a agenda da clínica."
+          retry={() => {
+            void clinic.refetch();
+            void members.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
+  const dayTitle = capitalize(
+    format(parseISO(day), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR }),
+  );
+  const filterLabel = typeFilters
+    .find((filter) => filter.value === typeFilter)
+    ?.label.toLocaleLowerCase("pt-BR");
+  const emptyMessage =
+    availabilityDay?.status === "NoSchedule"
+      ? "Sem agenda configurada para este dia."
+      : availabilityDay?.status === "Blocked"
+        ? "Dia bloqueado na agenda do médico."
+        : typeFilter === "all"
+          ? "Nenhuma consulta neste dia."
+          : `Nenhuma consulta (${filterLabel}) neste dia.`;
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.contextRow}>
+        <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
+          <span>Agenda</span>
+          <span aria-hidden="true">›</span>
+          <strong>Por médico</strong>
+          {doctor ? (
+            <>
+              <span aria-hidden="true">›</span>
+              <span className={styles.breadcrumbDoctor}>
+                {doctor.name?.trim() || doctor.email}
+              </span>
+            </>
+          ) : null}
+        </nav>
+
+        <span className={styles.contextSpacer} />
+
+        <div className={styles.filters} role="group" aria-label="Filtrar por tipo">
+          {typeFilters.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              className={styles.chip}
+              aria-pressed={typeFilter === filter.value}
+              onClick={() => setTypeFilter(filter.value)}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={styles.newAppointment}
+          onClick={() => bookSlot(null)}
+        >
+          <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
+          {doctor
+            ? `Nova consulta · ${getShortDoctorName(doctor)}`
+            : "Nova consulta"}
+        </button>
+      </div>
+
+      {showCreated ? (
+        <div
+          className={styles.successBanner}
+          role="status"
+          aria-label="Consulta agendada"
+          aria-live="polite"
+        >
+          <CheckCircle2 size={19} aria-hidden="true" />
+          {created.data ? (
+            <span>
+              Consulta agendada:{" "}
+              {members.data?.find(
+                (member) => member.userId === created.data.doctorUserId,
+              )?.name ?? "Médico"}
+              ,{" "}
+              {formatInTimeZone(
+                created.data.startUtc,
+                timeZone,
+                "d 'de' MMMM 'de' yyyy",
+                { locale: ptBR },
+              )}{" "}
+              às {formatInTimeZone(created.data.startUtc, timeZone, "HH:mm")} (
+              {appointmentTypeLabels[created.data.type]})
+            </span>
+          ) : (
+            <span>Consulta agendada com sucesso.</span>
+          )}
+        </div>
+      ) : null}
+
+      <div className={styles.layout}>
+        <div className={styles.sideColumn}>
+          <AgendaMonthCalendar
+            month={month}
+            selectedDate={day}
+            countByDate={countByDate}
+            onMonthChange={setMonth}
+            onDateChange={changeDay}
+          />
+
+          <section className={styles.card} aria-labelledby="agenda-summary-title">
+            <h2 id="agenda-summary-title" className={styles.cardTitle}>
+              Resumo do dia
+            </h2>
+            <dl className={styles.statGrid}>
+              <div className={styles.stat}>
+                <dd>{stats.total}</dd>
+                <dt>Consultas</dt>
+              </div>
+              <div className={styles.stat}>
+                <dd>{stats.teleconsultations}</dd>
+                <dt>Teleconsultas</dt>
+              </div>
+              <div className={`${styles.stat} ${styles.statPending}`}>
+                <dd>{stats.pending}</dd>
+                <dt>Aguardando</dt>
+              </div>
+              <div className={`${styles.stat} ${styles.statFree}`}>
+                <dd>{freeSlots}</dd>
+                <dt>Horários livres</dt>
+              </div>
+            </dl>
+          </section>
+
+          {doctor ? (
+            <DoctorBlocksCard
+              key={doctor.userId}
+              doctorId={doctor.userId}
+              doctorName={getDoctorName(doctor)}
+              selectedDate={day}
+              canEdit={
+                hasRole(session, "Admin") || doctor.userId === session?.userId
+              }
+            />
+          ) : null}
+
+          {onboarding.data && !onboarding.data.completed ? (
+            <OnboardingChecklist status={onboarding.data} compact />
+          ) : null}
+        </div>
+
+        {!doctor ? (
+          <section className={styles.card} aria-labelledby="agenda-day-title">
+            <h2 id="agenda-day-title" className={styles.cardTitle}>
+              {dayTitle}
+            </h2>
+            <p className={styles.emptyMessage} role="status">
+              Cadastre um médico para montar a agenda da clínica.
+            </p>
+          </section>
+        ) : appointments.isLoading || availability.isLoading ? (
+          <section className={styles.card} aria-label="Agenda do dia">
+            <LoadingBlock label="Organizando os horários…" />
+          </section>
+        ) : appointments.isError ? (
+          <section className={styles.card} aria-label="Agenda do dia">
+            <ErrorBlock
+              message="Não foi possível carregar as consultas deste dia."
+              retry={() => void appointments.refetch()}
+            />
+          </section>
+        ) : (
+          <DayTimeline
+            doctor={doctor}
+            dayTitle={dayTitle}
+            freeSlots={freeSlots}
+            rows={rows}
+            emptyMessage={emptyMessage}
+            onSelectFreeSlot={bookSlot}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

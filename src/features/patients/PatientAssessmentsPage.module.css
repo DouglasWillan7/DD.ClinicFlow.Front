@@ -1,0 +1,822 @@
+/*
+ * Avaliações físicas — histórico tabelado, visualização gráfica e registro de nova
+ * avaliação. A tela de detalhes lê daqui a avaliação mais recente para a figura.
+ */
+.content {
+  --divider: rgba(22, 40, 58, 0.08);
+  --divider-strong: rgba(22, 40, 58, 0.1);
+
+  display: grid;
+  min-width: 0;
+  gap: var(--space-5);
+  color: var(--color-ink);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.contextRow {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.backButton {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.backButton:hover {
+  background: var(--color-primary-subtle);
+}
+
+.breadcrumb {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.breadcrumb strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* Painel principal ------------------------------------------------------- */
+
+.panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 28px 32px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.panelHeading {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.panelMeta {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-8) 0;
+  color: var(--color-text-body);
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.formError {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+  font-size: 14px;
+}
+
+/* Controles -------------------------------------------------------------- */
+
+.segmented {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-app-background);
+}
+
+.segment {
+  min-height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.segment:hover {
+  color: var(--color-ink);
+}
+
+.segmentOn {
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.primaryAction {
+  display: inline-flex;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-surface);
+  background: var(--color-primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.primaryAction:hover {
+  background: color-mix(in srgb, var(--color-primary) 94%, black);
+}
+
+.primaryAction:active {
+  transform: scale(0.98);
+}
+
+.chartControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.controlsDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--divider-strong);
+}
+
+.chips {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 16px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.chipOn {
+  border-color: transparent;
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--metric-color) 12%, var(--color-surface));
+}
+
+.chipDot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: #cfd8e0;
+}
+
+.chipOn .chipDot {
+  background: var(--metric-color);
+}
+
+/* Tabela ----------------------------------------------------------------- */
+
+/* `position: relative` é obrigatório, não decoração: os textos `.srOnly` da tabela são
+   `position: absolute` e, sem um ancestral posicionado, ancoram no bloco raiz — na
+   posição que ocupam na tabela rolada, esticando a rolagem horizontal da PÁGINA. */
+.tableScroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 14px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table thead th {
+  border-bottom: 1px solid var(--divider-strong);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  vertical-align: bottom;
+}
+
+.numericHead {
+  text-align: right;
+}
+
+.metricName {
+  display: block;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.metricUnit {
+  font-size: 12px;
+}
+
+.table tbody tr + tr th,
+.table tbody tr + tr td {
+  border-top: 1px solid var(--divider);
+}
+
+.table tbody th {
+  font-weight: 400;
+}
+
+.rowDate {
+  display: block;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rowNumber {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.numeric {
+  text-align: right;
+}
+
+.cellValue {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.delta {
+  margin-left: var(--space-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.good {
+  color: var(--color-success-text);
+}
+
+.bad {
+  color: var(--color-danger-text);
+}
+
+.flat {
+  color: var(--color-text-muted);
+}
+
+.tableNote {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.removeButton {
+  display: inline-flex;
+  height: 44px;
+  width: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.removeButton:hover:not(:disabled) {
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+}
+
+.removeButton:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Gráfico agrupado ------------------------------------------------------- */
+
+.chartPanel {
+  margin: 0;
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-annotation);
+}
+
+.chartArea {
+  position: relative;
+}
+
+.chartSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.gridline {
+  stroke: #e9eef4;
+  stroke-width: 1.5;
+}
+
+.axisLabel {
+  fill: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.marker {
+  stroke: var(--color-text-disabled);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.line {
+  fill: none;
+  stroke: var(--metric-color);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.point {
+  fill: var(--color-surface);
+  stroke: var(--metric-color);
+  stroke-width: 2;
+}
+
+.hitArea {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.hitArea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  z-index: var(--z-tooltip);
+  min-width: 168px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+  font-size: 13px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tooltip strong {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tooltip ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tooltip li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip b {
+  margin-left: auto;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--metric-color);
+}
+
+.chartNote {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Gráfico individual ----------------------------------------------------- */
+
+.cardGrid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metricCard {
+  padding: 18px 20px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-annotation);
+}
+
+.metricCardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.metricCardName {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.metricCardValue {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.metricCardValue small {
+  margin-left: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.deltaLine {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.deltaEmpty {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.deltaLine .delta {
+  margin-left: 0;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-3);
+}
+
+.sparkArea {
+  fill: color-mix(in srgb, var(--metric-color) 14%, transparent);
+}
+
+.sparkLine {
+  fill: none;
+  stroke: var(--metric-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkPoint {
+  fill: var(--color-surface);
+  stroke: var(--metric-color);
+  stroke-width: 2.2;
+}
+
+.metricCardRange {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.metricCardEmpty {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Modal ------------------------------------------------------------------ */
+
+.dialog {
+  width: min(640px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-ink);
+}
+
+.dialog::backdrop {
+  background: rgba(16, 24, 40, 0.45);
+}
+
+.dialogPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: min(86vh, 760px);
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.dialogClose {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: var(--color-app-background);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.dialogClose:hover {
+  color: var(--color-ink);
+  background: var(--color-primary-subtle);
+}
+
+.dialogNote {
+  margin: calc(var(--space-4) * -1) 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dialogDate,
+.measureField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dialogDate label,
+.measureField label {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dialogDate small,
+.measureField small {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.dialogDate input {
+  width: 220px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--divider-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.dialogGrid {
+  display: grid;
+  gap: 14px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.measureInput {
+  display: flex;
+  min-height: 44px;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--divider-strong);
+  border-radius: var(--radius-control);
+}
+
+.measureInput input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px 14px;
+  border: 0;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+  outline: none;
+}
+
+.measureInput span {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-left: 1px solid var(--divider);
+  color: var(--color-text-muted);
+  background: var(--color-app-background);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dialogDate input:focus-visible,
+.measureInput:focus-within {
+  border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary-soft);
+  outline-offset: 1px;
+}
+
+.fieldError {
+  color: var(--color-danger-text);
+}
+
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* Responsivo ------------------------------------------------------------- */
+
+@media (max-width: 1279px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 959px) {
+  .panelHeader {
+    align-items: stretch;
+  }
+
+  .panelHeading {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 639px) {
+  .panel {
+    padding: var(--space-5);
+  }
+
+  .cardGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dialogGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dialogPanel {
+    padding: var(--space-5);
+  }
+
+  .segmented,
+  .primaryAction {
+    width: 100%;
+  }
+
+  .segment {
+    flex: 1;
+  }
+
+  .primaryAction {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backButton,
+  .removeButton,
+  .segment,
+  .chip,
+  .primaryAction,
+  .dialogClose {
+    transition: none;
+  }
+}

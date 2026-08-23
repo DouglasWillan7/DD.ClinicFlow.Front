@@ -1,0 +1,101 @@
+.recovery {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, var(--color-surface));
+  border-radius: var(--radius-control);
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+}
+
+.recovery h3,
+.recovery h4,
+.recovery p {
+  margin: 0;
+}
+
+.heading,
+.actions,
+.confirmationActions {
+  display: flex;
+  align-items: center;
+}
+
+.actionItem {
+  display: inline-flex;
+}
+
+.heading {
+  gap: var(--space-2);
+  color: var(--color-ink);
+}
+
+.processingError,
+.confirmation p {
+  max-width: 70ch;
+  overflow-wrap: anywhere;
+}
+
+.actions,
+.confirmationActions {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.confirmation {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-danger) 28%, var(--color-surface));
+  color: var(--color-text-body);
+}
+
+.confirmation h4 {
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+.confirmation h4:focus {
+  border-radius: var(--space-1);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+.submitError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-danger-text);
+  font-weight: 600;
+}
+
+.liveStatus {
+  color: var(--color-text-body);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .recovery {
+    padding: var(--space-4);
+  }
+
+  .actions,
+  .confirmationActions,
+  .submitError {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions > *,
+  .confirmationActions > *,
+  .submitError > button {
+    width: 100%;
+  }
+
+  .actionItem > button {
+    width: 100%;
+  }
+}

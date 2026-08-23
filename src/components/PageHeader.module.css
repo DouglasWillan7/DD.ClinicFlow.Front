@@ -1,0 +1,42 @@
+.header {
+  display: flex;
+  gap: 24px;
+  align-items: end;
+  justify-content: space-between;
+  padding: 32px clamp(20px, 3.5vw, 48px) 24px;
+}
+
+.header > div:first-child {
+  max-width: 680px;
+}
+
+.header span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.header h1 {
+  margin-bottom: 7px;
+}
+
+.header p {
+  margin-bottom: 0;
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+    padding-top: 20px;
+  }
+}

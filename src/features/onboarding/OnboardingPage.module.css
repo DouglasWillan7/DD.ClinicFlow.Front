@@ -1,0 +1,39 @@
+.content {
+  display: grid;
+  max-width: 980px;
+  grid-template-columns: minmax(0, 620px) minmax(220px, 1fr);
+  gap: 24px;
+  padding: 0 clamp(20px, 3.5vw, 48px) 48px;
+}
+
+.content aside {
+  align-self: start;
+  padding: 24px;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-selected-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-selected-background);
+}
+
+.content aside span {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.content aside h2 {
+  color: var(--color-ink);
+}
+
+.content aside p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+@media (max-width: 780px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}

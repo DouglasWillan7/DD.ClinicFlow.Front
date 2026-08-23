@@ -1,0 +1,133 @@
+.card {
+  width: 100%;
+  max-width: 420px;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.card header {
+  margin-bottom: 30px;
+}
+
+.card header p {
+  margin-bottom: 0;
+  color: var(--color-text-secondary);
+}
+
+.form {
+  display: grid;
+  min-width: 0;
+  gap: 17px;
+}
+
+.planGroup {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.planGroup legend {
+  margin-bottom: 8px;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.planGroup label,
+.doctorToggle {
+  display: flex;
+  min-height: 58px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.planGroup label:hover,
+.doctorToggle:hover {
+  background: var(--color-hover);
+}
+
+.planGroup .planSelected {
+  border-color: var(--color-primary);
+  background: var(--color-selected-background);
+}
+
+.planGroup input,
+.doctorToggle input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--color-primary);
+}
+
+.planGroup span,
+.planGroup strong,
+.planGroup small,
+.doctorToggle span,
+.doctorToggle strong,
+.doctorToggle small {
+  display: block;
+}
+
+.planGroup strong,
+.doctorToggle strong {
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+.planGroup small,
+.doctorToggle small {
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.form button[type="submit"] {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.serverError {
+  padding: 12px 14px;
+  color: var(--color-danger-text);
+  border: 1px solid #fecdca;
+  border-radius: var(--radius-md);
+  background: var(--color-danger-tint);
+  font-size: 13px;
+}
+
+.switch {
+  margin-top: 24px;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.switch a {
+  color: var(--color-primary);
+  font-weight: 750;
+}
+
+.privacy {
+  margin-top: 28px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.invited {
+  margin: 18px auto 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}

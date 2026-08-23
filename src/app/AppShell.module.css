@@ -1,0 +1,549 @@
+/* Menu lateral do handoff: painel único branco, 72px recolhido, 264px expandido
+   no hover (ou fixado pelo alfinete). A expansão EMPURRA o conteúdo. */
+.shell {
+  --rail-width: var(--sidebar-width);
+
+  display: grid;
+  min-width: 0;
+  min-height: 100vh;
+  gap: 20px;
+  grid-template-columns: auto 1fr;
+  padding: 24px;
+}
+
+.shellExpanded {
+  --rail-width: var(--sidebar-width-expanded);
+}
+
+.sidebar {
+  position: sticky;
+  z-index: var(--z-sticky);
+  top: 24px;
+  display: flex;
+  width: var(--rail-width);
+  height: calc(100vh - 48px);
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 12px;
+  border-radius: var(--radius-rail);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: width var(--transition-context);
+}
+
+.sidebar:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.brandRow {
+  display: flex;
+  min-height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.brandLogo {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.brandLogo [aria-label="ClinicFlow"] i,
+.brandLogo [aria-label="ClinicFlow"] i:last-child {
+  background: var(--color-surface);
+}
+
+.wordmark {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  transition: opacity var(--transition-context);
+  white-space: nowrap;
+}
+
+.pinButton {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  background: transparent;
+  opacity: 0;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    opacity var(--transition-context),
+    transform var(--transition-fast);
+}
+
+.pinButton:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.pinButton:active {
+  transform: scale(0.98);
+}
+
+.pinActive {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.shellExpanded .wordmark,
+.shellExpanded .pinButton {
+  opacity: 1;
+}
+
+.navigation {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.navigation::-webkit-scrollbar {
+  display: none;
+}
+
+/* Recolhido não há espaço para o rótulo do grupo: ele vira uma hairline
+   ocupando a mesma altura, então a lista não salta ao expandir. */
+.navLabel {
+  position: relative;
+  display: flex;
+  min-height: 26px;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  padding: 0 14px 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  opacity: 0;
+  text-transform: uppercase;
+  transition: opacity var(--transition-context);
+  white-space: nowrap;
+}
+
+.navLabel::before {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  left: 14px;
+  height: 1px;
+  background: var(--color-border-hairline);
+  content: "";
+  transition: opacity var(--transition-context);
+}
+
+.shellExpanded .navLabel {
+  opacity: 1;
+}
+
+.shellExpanded .navLabel::before {
+  opacity: 0;
+}
+
+.railItem {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  flex: 0 0 48px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  border: 0;
+  /* O handoff pede #93a3b0, mas esse tom dá 2,6:1 no branco e reprova no
+     WCAG AA exigido pelo PRODUCT.md; ficamos no muted (4,7:1). */
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-sizing: border-box;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.railItem svg {
+  flex: 0 0 auto;
+}
+
+.railItem:hover {
+  color: var(--color-ink);
+  background: var(--color-primary-subtle);
+}
+
+.railItem:active {
+  transform: scale(0.98);
+}
+
+.railItemText {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-body);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  opacity: 0;
+  text-align: left;
+  text-overflow: ellipsis;
+  transition: opacity var(--transition-context);
+  white-space: nowrap;
+}
+
+.shellExpanded .railItemText {
+  opacity: 1;
+}
+
+.navLink.active {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.navLink.active .railItemText {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.logoutButton {
+  flex: 0 0 auto;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  min-width: 0;
+  min-height: 76px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.topbarSpacer {
+  flex: 1;
+}
+
+/* A busca global mora em features/search/GlobalSearch.module.css. */
+
+.userContext {
+  position: relative;
+}
+
+.userButton {
+  display: flex;
+  min-width: 0;
+  min-height: 60px;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 20px 7px 7px;
+  color: var(--color-ink);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.userButton:hover {
+  color: var(--color-primary);
+}
+
+.userButton:active,
+.menuButton:active,
+.closeButton:active {
+  transform: scale(0.98);
+}
+
+.avatar {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  place-items: center;
+  color: var(--color-primary);
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.userCopy {
+  min-width: 0;
+}
+
+.userCopy strong,
+.userCopy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userCopy strong {
+  max-width: 220px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.userCopy small {
+  max-width: 220px;
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.userMenu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  padding: 8px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.userMenu a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.userMenu a:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.menuButton,
+.closeButton {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--color-text-body);
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.menuButton:hover,
+.closeButton:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.closeButton,
+.backdrop {
+  display: none;
+}
+
+.main {
+  min-width: 0;
+}
+
+@media (max-width: 959px) {
+  .shell {
+    display: block;
+    padding: 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: var(--z-modal);
+    inset: 12px auto 12px 12px;
+    width: min(86vw, 320px);
+    height: auto;
+    padding: 16px;
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-overlay);
+    overflow-y: auto;
+    transform: translateX(calc(-100% - 24px));
+    transition: transform var(--transition-context);
+    visibility: hidden;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .brandRow {
+    padding: 0 4px;
+  }
+
+  .brandLogo {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  /* O drawer já ocupa a largura toda: rótulos sempre visíveis, sem alfinete. */
+  .wordmark,
+  .navLabel,
+  .railItemText {
+    opacity: 1;
+  }
+
+  .navLabel::before {
+    content: none;
+  }
+
+  .pinButton {
+    display: none;
+  }
+
+  .navigation {
+    overflow-y: visible;
+  }
+
+  .closeButton {
+    display: grid;
+    margin-left: auto;
+  }
+
+  .backdrop {
+    position: fixed;
+    z-index: var(--z-modal-backdrop);
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(22, 40, 58, 0.42);
+  }
+
+  .workspace {
+    padding: 0 16px 16px;
+  }
+
+  .topbar {
+    position: sticky;
+    z-index: var(--z-sticky);
+    top: 0;
+    min-height: 72px;
+    margin-bottom: 12px;
+    background: var(--color-app-background);
+  }
+
+  .menuButton,
+  .closeButton {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-border-hairline);
+    border-radius: var(--radius-control);
+    box-shadow: none;
+  }
+
+  .userButton {
+    min-height: 44px;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid var(--color-border-hairline);
+    box-shadow: none;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 960px) {
+  .menuButton {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .workspace {
+    padding-inline: 12px;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .userButton {
+    width: 44px;
+    padding: 4px;
+  }
+
+  .userCopy {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .wordmark,
+  .pinButton,
+  .navLabel,
+  .navLabel::before,
+  .railItem,
+  .railItemText {
+    transition: none;
+  }
+}

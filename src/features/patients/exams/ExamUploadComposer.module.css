@@ -1,0 +1,421 @@
+.dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-panel);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.panel {
+  display: flex;
+  max-height: calc(100vh - 64px);
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) 28px;
+  overflow-y: auto;
+}
+
+/* Cabeçalho ------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.header p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-disabled);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.close {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: var(--color-app-background);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.close:hover {
+  color: var(--color-ink);
+  background: var(--color-primary-subtle);
+}
+
+/* Estado 1 — escolha do arquivo ----------------------------------------- */
+
+.dropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-5);
+  border: 2px dashed color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: var(--radius-control);
+  text-align: center;
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.dropZone:hover {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+}
+
+.dropIcon {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.dropZone strong {
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dropHint {
+  color: var(--color-text-disabled);
+  font-size: 12px;
+}
+
+.dropActions {
+  display: flex;
+  margin-top: var(--space-2);
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.fileStatus {
+  margin: calc(var(--space-3) * -1) 0 0;
+  color: var(--color-text-disabled);
+  font-size: 12px;
+}
+
+.metadata {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(160px, 0.8fr) minmax(0, 1fr);
+}
+
+.error,
+.submitError {
+  color: var(--color-danger-text);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+}
+
+.submitError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-danger-tint);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Estado 2 — processamento ---------------------------------------------- */
+
+.fileCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+}
+
+.fileCard > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.fileCard strong {
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.fileCard span {
+  color: var(--color-text-disabled);
+  font-size: 12px;
+}
+
+/*
+ * O backend não expõe percentual — a barra sinaliza atividade, e as fases abaixo
+ * carregam o progresso real.
+ */
+.progressTrack {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-app-background);
+  overflow: hidden;
+}
+
+.progressPulse {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  animation: slide 1400ms var(--ease-out-expo) infinite;
+}
+
+@keyframes slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.stages {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.stages li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.stageMark {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  box-sizing: border-box;
+}
+
+.stageDone {
+  color: var(--color-success-text);
+}
+
+.stageDone .stageMark {
+  color: var(--color-surface);
+  background: var(--color-success);
+}
+
+.stageActive {
+  color: var(--color-ink);
+}
+
+.stageActive .stageMark {
+  border: 2px solid var(--color-primary);
+  border-top-color: transparent;
+  animation: spin 800ms linear infinite;
+}
+
+.stageWaiting {
+  color: var(--color-text-disabled);
+}
+
+.stageWaiting .stageMark {
+  border: 2px solid var(--color-border-hairline);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.processingFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.processingFooter p {
+  margin: 0;
+  flex: 1 1 220px;
+  color: var(--color-text-disabled);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Estado 3 — conclusão e falha ------------------------------------------ */
+
+.successHeader,
+.failureHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.successHeader strong,
+.failureHeader strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.successHeader span,
+.failureHeader span {
+  color: var(--color-text-disabled);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.successIcon,
+.failureIcon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+}
+
+.successIcon {
+  color: var(--color-success-text);
+  background: var(--color-success-tint);
+}
+
+.failureIcon {
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+}
+
+.counts {
+  display: grid;
+  margin: 0;
+  gap: var(--space-2);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.counts > div {
+  display: flex;
+  flex-direction: column-reverse;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
+}
+
+.counts dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.counts dd {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.countDanger {
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 4%, var(--color-surface));
+}
+
+.countDanger dd {
+  color: var(--color-danger-text);
+}
+
+.countWarning {
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 5%, var(--color-surface));
+}
+
+.countWarning dd {
+  color: var(--color-warning-text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .panel { padding: var(--space-5); }
+  .metadata { grid-template-columns: 1fr; }
+  .counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .submitError { align-items: stretch; flex-direction: column; }
+  .actions > *,
+  .dropActions > * { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressPulse,
+  .stageActive .stageMark { animation: none; }
+  .progressPulse { width: 100%; opacity: 0.4; }
+}

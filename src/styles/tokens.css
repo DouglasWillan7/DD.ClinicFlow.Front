@@ -1,0 +1,77 @@
+:root {
+  color-scheme: light;
+  font-family: "Instrument Sans Variable", "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --font-sans: "Instrument Sans Variable", "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+
+  --color-primary: #3b5bfe;
+  --color-primary-soft: #dbe3ff;
+  --color-primary-subtle: #eef2ff;
+  --color-ink: #16283a;
+  --color-text-body: #33475b;
+  --color-text-muted: #657685;
+  --color-text-disabled: #93a3b0;
+  --color-danger: #e8404a;
+  --color-danger-text: #c92f3a;
+  --color-success: #2f9e57;
+  --color-success-text: #237a45;
+  --color-app-background: #eef1f6;
+  --color-surface: #ffffff;
+  --color-border-hairline: #eceeef;
+
+  /* Aliases mantidos durante a migração dos consumidores existentes. */
+  --color-text-secondary: var(--color-text-body);
+  --color-attention: var(--color-danger);
+  --color-attention-text: var(--color-danger-text);
+  --color-attention-tint: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+  --color-success-tint: color-mix(in srgb, var(--color-success) 10%, var(--color-surface));
+  --color-warning: #a86a0e;
+  --color-warning-text: #805000;
+  --color-warning-tint: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --color-selected-background: var(--color-primary-subtle);
+  --color-selected-border: var(--color-primary-soft);
+  --color-hover: var(--color-primary-subtle);
+  --color-blue-tint: var(--color-primary-soft);
+  --color-border: var(--color-border-hairline);
+  --color-border-soft: var(--color-border-hairline);
+  --color-danger-tint: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+
+  --radius-control: 16px;
+  --radius-annotation: 18px;
+  --radius-panel: 24px;
+  --radius-rail: 28px;
+  --radius-pill: 999px;
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-panel);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-10: var(--space-8);
+
+  --shadow-card: 0 6px 18px rgba(23, 63, 84, 0.08);
+  --shadow-floating: 0 12px 32px rgba(23, 63, 84, 0.1);
+  --shadow-overlay: 0 16px 40px rgba(23, 63, 84, 0.16);
+  --shadow-low: none;
+  --shadow-raised: none;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 160ms var(--ease-out-expo);
+  --transition-context: 200ms var(--ease-out-expo);
+
+  --sidebar-width: 72px;
+  --sidebar-width-expanded: 264px;
+  --z-dropdown: 40;
+  --z-sticky: 50;
+  --z-modal-backdrop: 60;
+  --z-modal: 70;
+  --z-tooltip: 80;
+}

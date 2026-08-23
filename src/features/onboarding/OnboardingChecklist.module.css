@@ -1,0 +1,171 @@
+.checklist {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-low);
+}
+
+.checklist > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 13px;
+  align-items: center;
+  padding: 22px 24px 16px;
+}
+
+.routeIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-blue-tint);
+}
+
+.checklist h2 {
+  margin-bottom: 1px;
+}
+
+.checklist header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.percentage {
+  color: var(--color-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  height: 5px;
+  margin: 0 24px 18px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-soft);
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 180ms ease;
+}
+
+.checklist ol {
+  padding: 0 24px 18px;
+  margin: 0;
+  list-style: none;
+}
+
+.checklist li {
+  display: grid;
+  min-height: 48px;
+  grid-template-columns: 25px 1fr auto;
+  align-items: center;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.marker {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.checklist li a {
+  min-height: 44px;
+  padding: 12px 0;
+  font-weight: 650;
+}
+
+.checklist li:not(.done) a:hover {
+  color: var(--color-primary);
+}
+
+.checklist li.done {
+  color: var(--color-text-muted);
+}
+
+.checklist li.done > .marker {
+  color: white;
+  border-color: var(--color-success);
+  background: var(--color-success);
+}
+
+.blocked {
+  color: var(--color-text-muted);
+}
+
+.blockedLabel {
+  display: block;
+  padding: 8px 0;
+}
+
+.blockedLabel small {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.checklist li.done a {
+  text-decoration: line-through;
+  text-decoration-color: #c7cdd7;
+}
+
+.compact > header {
+  padding: 18px 18px 13px;
+}
+
+.compact .routeIcon {
+  width: 34px;
+  height: 34px;
+}
+
+.compact .progress {
+  margin: 0 18px 15px;
+}
+
+.nextAction {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  border-top: 1px solid var(--color-border-soft);
+  background: var(--color-selected-background);
+}
+
+.nextAction span,
+.nextAction small,
+.nextAction strong {
+  display: block;
+}
+
+.nextAction small {
+  margin-bottom: 2px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nextAction strong {
+  color: var(--color-primary);
+  font-size: 13px;
+}
+
+.completeCopy {
+  padding: 0 18px 18px;
+  margin: 0;
+  color: var(--color-success-text);
+  font-size: 13px;
+}

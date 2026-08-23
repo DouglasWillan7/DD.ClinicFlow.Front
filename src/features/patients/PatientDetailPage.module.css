@@ -1,0 +1,173 @@
+.content {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-5);
+  color: var(--color-ink);
+}
+
+.workspace {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  gap: var(--space-4);
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.contextColumn,
+.clinicalColumn {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.panel {
+  min-width: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panel h2 {
+  margin: 0 0 var(--space-4);
+  color: var(--color-ink);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.patientData {
+  display: grid;
+  margin: 0;
+  gap: var(--space-3);
+}
+
+.patientData div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.patientData dt {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.patientData dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.appointment,
+.emptyAppointment {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.appointmentDate,
+.appointmentMeta,
+.emptyAppointment p {
+  margin: 0;
+  color: var(--color-text-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.appointmentDate,
+.appointmentMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.appointmentDate {
+  color: var(--color-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.contextAction {
+  display: inline-flex;
+  min-height: 44px;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary-soft);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.contextAction:hover {
+  color: var(--color-surface);
+  background: var(--color-primary);
+}
+
+.contextAction:active {
+  transform: scale(0.98);
+}
+
+.contextAction:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (min-width: 1280px) {
+  .contextColumn {
+    position: sticky;
+    top: var(--space-5);
+  }
+}
+
+@media (max-width: 959px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextColumn {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .contextColumn {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .patientData div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .patientData dd {
+    text-align: left;
+  }
+
+  .contextAction {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contextAction {
+    transition: none;
+  }
+}

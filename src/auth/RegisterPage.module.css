@@ -1,0 +1,170 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  padding: 44px 28px;
+  background: var(--color-app-background);
+}
+
+.logo { width: auto; height: 44px; }
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  margin: 28px 0 0;
+  list-style: none;
+}
+
+.stepper li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.connector {
+  width: 56px;
+  height: 2px;
+  margin-right: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(22, 40, 58, 0.12);
+}
+
+.stepCircle {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid rgba(22, 40, 58, 0.2);
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reached .stepCircle {
+  border-color: var(--color-primary);
+  color: white;
+  background: var(--color-primary);
+}
+
+.reached .connector { background: var(--color-primary); }
+.stepper .activeLabel { color: var(--color-ink); font-weight: 600; }
+
+.card {
+  display: flex;
+  width: min(520px, 100%);
+  flex-direction: column;
+  gap: 16px;
+  padding: 40px 44px;
+  margin-top: 24px;
+  border-radius: 28px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+}
+
+.header { margin-bottom: 2px; }
+.header h1 { margin-bottom: 6px; font-size: 26px; line-height: 1.25; }
+.header p { margin: 0; color: var(--color-text-muted); font-size: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 8px; color: var(--color-text-body); font-size: 13px; font-weight: 500; }
+.field input,
+.field select {
+  width: 100%;
+  height: 52px;
+  padding: 0 18px;
+  border: 1px solid rgba(22, 40, 58, 0.12);
+  border-radius: var(--radius-control);
+  outline: 0;
+  color: var(--color-ink);
+  background: #f7fafc;
+  font-size: 15px;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.field select { padding: 0 14px; cursor: pointer; }
+.field input::placeholder { color: var(--color-text-muted); }
+.field input:focus,
+.field select:focus { border-color: var(--color-primary); background: white; box-shadow: 0 0 0 4px rgba(59, 91, 254, 0.1); }
+.field .invalidInput { border-color: rgba(232, 64, 74, 0.5); }
+.placeholderSelect { color: var(--color-text-muted) !important; }
+
+.passwordControl { position: relative; display: block; }
+.passwordControl input { padding-right: 92px; }
+.passwordControl button {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-width: 72px;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+}
+.passwordControl button:hover { color: var(--color-ink); background: var(--color-app-background); }
+
+.passwordMeter { display: flex; flex-direction: column; gap: 7px; margin-top: -4px; color: var(--color-success-text); }
+.passwordMeter > div { display: flex; gap: 6px; }
+.passwordMeter i { height: 5px; flex: 1; border-radius: var(--radius-pill); background: rgba(22, 40, 58, 0.1); }
+.passwordMeter i[data-filled="true"] { background: currentColor; }
+.passwordMeter small,
+.invalidHint,
+.validHint { font-size: 12px; font-weight: 400; }
+.passwordMeter[data-tone="weak"] { color: var(--color-danger-text); }
+.passwordMeter[data-tone="fair"] { color: #a8660c; }
+.invalidHint { color: var(--color-danger-text); }
+.validHint { color: var(--color-success-text); }
+
+.splitFields { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 16px; }
+
+.terms { position: relative; display: flex; min-height: 44px; gap: 10px; align-items: flex-start; padding-top: 4px; color: var(--color-text-body); cursor: pointer; font-size: 13px; line-height: 1.5; }
+.terms input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.checkbox { display: grid; width: 20px; height: 20px; flex: 0 0 auto; place-items: center; margin-top: 1px; border: 1px solid rgba(22, 40, 58, 0.25); border-radius: 6px; color: transparent; background: white; }
+.terms input:checked + .checkbox { border-color: var(--color-primary); color: white; background: var(--color-primary); }
+.terms input:focus-visible + .checkbox { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.terms button { min-height: 22px; padding: 0; border: 0; color: var(--color-primary); background: transparent; font-size: inherit; }
+.terms button:hover { color: var(--color-ink); }
+
+.errorBanner { padding: 12px 16px; border-radius: 14px; color: var(--color-danger-text); background: rgba(232, 64, 74, 0.08); font-size: 13px; line-height: 1.5; }
+.actions { display: flex; gap: 10px; margin-top: 4px; }
+.back,
+.primary { height: 54px; border-radius: var(--radius-pill); font-weight: 600; transition: background var(--transition-fast), transform var(--transition-fast); }
+.back { padding: 0 28px; border: 1px solid rgba(22, 40, 58, 0.14); color: var(--color-text-body); background: white; font-size: 15px; }
+.back:hover { background: #f7fafc; }
+.primary { display: inline-flex; flex: 1; gap: 10px; align-items: center; justify-content: center; padding: 0 20px; border: 0; color: white; background: var(--color-primary); box-shadow: 0 6px 18px rgba(59, 91, 254, 0.28); font-size: 16px; }
+.primary:hover:not(:disabled) { background: #2f4be0; }
+.back:active,
+.primary:active:not(:disabled) { transform: scale(0.98); }
+.primary:disabled { cursor: wait; opacity: 0.72; }
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.35); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+.loginLink { margin: 20px 0 0; color: var(--color-text-muted); font-size: 14px; }
+.loginLink a { color: var(--color-primary); font-weight: 600; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .page { padding: 28px 18px; }
+  .logo { height: 40px; }
+  .stepper { width: 100%; justify-content: center; gap: 6px; }
+  .stepper li { gap: 5px; font-size: 12px; }
+  .connector { width: clamp(12px, 4vw, 24px); margin-right: 1px; }
+  .card { padding: 30px 22px; border-radius: var(--radius-panel); }
+  .splitFields { grid-template-columns: minmax(0, 1fr) 104px; gap: 10px; }
+}
+
+@media (max-width: 390px) {
+  .stepper li > span:last-child:not(.stepCircle) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .connector { width: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

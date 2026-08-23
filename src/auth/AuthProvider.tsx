@@ -1,0 +1,495 @@
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  createContext,
+  type PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { apiBlobRequest, apiRequest } from "../api/client";
+import type { AuthResponse, ClinicPlan } from "../api/types";
+import { getRoles } from "./roles";
+import {
+  clearScopedSessionStorage,
+  getAuthScope,
+} from "./sessionScope";
+
+const SESSION_KEY = "clinicflow.session";
+
+interface AuthContextValue {
+  session: AuthResponse | null;
+  login(
+    email: string,
+    password: string,
+    rememberConnection?: boolean,
+  ): Promise<AuthResponse>;
+  register(
+    name: string,
+    email: string,
+    password: string,
+    plan: ClinicPlan,
+    worksAsDoctor: boolean,
+    onboarding?: {
+      clinicName: string;
+      clinicCity: string;
+      clinicState: string;
+      medicalLicense: string;
+      medicalLicenseState: string;
+      specialty: string;
+      termsAccepted: boolean;
+      termsVersion: string;
+    },
+  ): Promise<AuthResponse>;
+  activate(
+    email: string,
+    token: string,
+    password: string,
+    name?: string,
+  ): Promise<AuthResponse>;
+  refreshSession(): Promise<AuthResponse>;
+  logout(): void;
+  updateSessionName(name: string): void;
+  request<T>(path: string, init?: RequestInit): Promise<T>;
+  requestBlob(path: string, init?: RequestInit): Promise<Blob>;
+}
+
+interface RefreshOperation {
+  generation: number;
+  scope: string;
+  promise: Promise<AuthResponse>;
+}
+
+interface SessionOperation {
+  generation: number;
+  scope: string;
+}
+
+class StaleSessionOperationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StaleSessionOperationError";
+  }
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+function getPersistentSession() {
+  return typeof localStorage?.getItem === "function"
+    ? localStorage.getItem(SESSION_KEY)
+    : null;
+}
+
+function clearPersistentSession() {
+  if (typeof localStorage?.removeItem === "function") {
+    localStorage.removeItem(SESSION_KEY);
+  }
+}
+
+function savePersistentSession(value: string) {
+  if (typeof localStorage?.setItem === "function") {
+    localStorage.setItem(SESSION_KEY, value);
+    return true;
+  }
+  return false;
+}
+
+function normalizeSession(value: AuthResponse): AuthResponse {
+  const roles = getRoles(value);
+  if (roles.length === 0) {
+    throw new Error("A sessão recebida não informa as permissões do usuário.");
+  }
+
+  return {
+    ...value,
+    roles,
+  };
+}
+
+function readSession(): AuthResponse | null {
+  try {
+    const serialized = sessionStorage.getItem(SESSION_KEY) ?? getPersistentSession();
+    if (!serialized) return null;
+    return normalizeSession(JSON.parse(serialized) as AuthResponse);
+  } catch {
+    sessionStorage.removeItem(SESSION_KEY);
+    clearPersistentSession();
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
+  const [session, setSessionState] = useState<AuthResponse | null>(readSession);
+  const sessionRef = useRef(session);
+  const operationGenerationRef = useRef(0);
+  const refreshOperationRef = useRef<RefreshOperation | null>(null);
+  const mountedRef = useRef(true);
+  const persistentSessionRef = useRef(getPersistentSession() !== null);
+
+  const saveSession = useCallback((value: AuthResponse | null) => {
+    const next = value ? normalizeSession(value) : null;
+    const current = sessionRef.current;
+    const currentScope = current ? getAuthScope(current) : null;
+    const nextScope = next ? getAuthScope(next) : null;
+    if (currentScope !== nextScope) {
+      queryClient.clear();
+      clearScopedSessionStorage();
+    }
+    sessionRef.current = next;
+    setSessionState(next);
+    sessionStorage.removeItem(SESSION_KEY);
+    clearPersistentSession();
+    if (next) {
+      const serialized = JSON.stringify(next);
+      if (
+        !persistentSessionRef.current ||
+        !savePersistentSession(serialized)
+      ) {
+        sessionStorage.setItem(SESSION_KEY, serialized);
+      }
+    }
+    return next;
+  }, [queryClient]);
+
+  const beginExplicitTransition = useCallback(() => {
+    operationGenerationRef.current += 1;
+    refreshOperationRef.current = null;
+    return operationGenerationRef.current;
+  }, []);
+
+  const commitExplicitTransition = useCallback(
+    (value: AuthResponse, generation: number) => {
+      if (
+        !mountedRef.current ||
+        operationGenerationRef.current !== generation
+      ) {
+        throw new StaleSessionOperationError(
+          "A operação de sessão foi substituída.",
+        );
+      }
+      return saveSession(value)!;
+    },
+    [saveSession],
+  );
+
+  const clearSession = useCallback(() => {
+    beginExplicitTransition();
+    saveSession(null);
+  }, [beginExplicitTransition, saveSession]);
+
+  const assertCurrentSession = useCallback((operation: SessionOperation) => {
+    const current = sessionRef.current;
+    if (
+      !mountedRef.current ||
+      operationGenerationRef.current !== operation.generation ||
+      !current ||
+      getAuthScope(current) !== operation.scope
+    ) {
+      throw new StaleSessionOperationError(
+        "A operação pertence a uma sessão que não está mais ativa.",
+      );
+    }
+    return current;
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      operationGenerationRef.current += 1;
+      refreshOperationRef.current = null;
+    };
+  }, []);
+
+  const login = useCallback(
+    async (email: string, password: string, rememberConnection = false) => {
+      const generation = beginExplicitTransition();
+      persistentSessionRef.current = rememberConnection;
+      const response = await apiRequest<AuthResponse>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      return commitExplicitTransition(response, generation);
+    },
+    [beginExplicitTransition, commitExplicitTransition],
+  );
+
+  const register = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      plan: ClinicPlan,
+      worksAsDoctor: boolean,
+      onboarding?: {
+        clinicName: string;
+        clinicCity: string;
+        clinicState: string;
+        medicalLicense: string;
+        medicalLicenseState: string;
+        specialty: string;
+        termsAccepted: boolean;
+        termsVersion: string;
+      },
+    ) => {
+      const generation = beginExplicitTransition();
+      const response = await apiRequest<AuthResponse>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          plan,
+          worksAsDoctor,
+          ...onboarding,
+        }),
+      });
+      return commitExplicitTransition(response, generation);
+    },
+    [beginExplicitTransition, commitExplicitTransition],
+  );
+
+  /** Médico cadastrado pela recepção define a senha com o token do convite e já entra. */
+  const activate = useCallback(
+    async (email: string, token: string, password: string, name?: string) => {
+      const generation = beginExplicitTransition();
+      const response = await apiRequest<AuthResponse>("/auth/activate", {
+        method: "POST",
+        body: JSON.stringify({ email, token, password, name: name ?? null }),
+      });
+      return commitExplicitTransition(response, generation);
+    },
+    [beginExplicitTransition, commitExplicitTransition],
+  );
+
+  const refresh = useCallback(async () => {
+    const current = sessionRef.current;
+    if (!current) throw new Error("Sessão não encontrada.");
+    const operation: SessionOperation = {
+      generation: operationGenerationRef.current,
+      scope: getAuthScope(current),
+    };
+    const existing = refreshOperationRef.current;
+    if (
+      existing &&
+      existing.generation === operation.generation &&
+      existing.scope === operation.scope
+    ) {
+      return existing.promise;
+    }
+
+    const promise = apiRequest<AuthResponse>("/auth/refresh", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken: current.tokens.refreshToken }),
+      })
+        .then(
+          (response) => {
+            assertCurrentSession(operation);
+            const next = normalizeSession(response);
+            if (
+              next.clinicId !== current.clinicId ||
+              next.userId !== current.userId
+            ) {
+              throw new Error(
+                "A atualização de sessão retornou outra identidade.",
+              );
+            }
+            return saveSession(next)!;
+          },
+          (error: unknown) => {
+            assertCurrentSession(operation);
+            throw error;
+          },
+        )
+        .finally(() => {
+          if (refreshOperationRef.current?.promise === promise) {
+            refreshOperationRef.current = null;
+          }
+        });
+    refreshOperationRef.current = {
+      generation: operation.generation,
+      scope: operation.scope,
+      promise,
+    };
+    return promise;
+  }, [assertCurrentSession, saveSession]);
+
+  const request = useCallback(
+    async <T,>(path: string, init: RequestInit = {}) => {
+      const origin = sessionRef.current;
+      if (!origin) throw new Error("Sua sessão expirou. Entre novamente.");
+      const operation: SessionOperation = {
+        generation: operationGenerationRef.current,
+        scope: getAuthScope(origin),
+      };
+
+      const refreshForOperation = async () => {
+        assertCurrentSession(operation);
+        try {
+          await refresh();
+        } catch (refreshError) {
+          assertCurrentSession(operation);
+          if (!(refreshError instanceof StaleSessionOperationError)) {
+            clearSession();
+          }
+          throw refreshError;
+        }
+        return assertCurrentSession(operation);
+      };
+
+      let current = assertCurrentSession(operation);
+
+      const expiresSoon =
+        new Date(current.tokens.accessTokenExpiresAtUtc).getTime() <
+        Date.now() + 30_000;
+      if (expiresSoon) current = await refreshForOperation();
+
+      let firstError: unknown;
+      try {
+        assertCurrentSession(operation);
+        const response = await apiRequest<T>(
+          path,
+          init,
+          current.tokens.accessToken,
+        );
+        assertCurrentSession(operation);
+        return response;
+      } catch (error) {
+        assertCurrentSession(operation);
+        firstError = error;
+      }
+
+      if (
+        !(firstError instanceof Error) ||
+        !("status" in firstError) ||
+        firstError.status !== 401
+      ) {
+        throw firstError;
+      }
+
+      current = await refreshForOperation();
+      assertCurrentSession(operation);
+      try {
+        const response = await apiRequest<T>(
+          path,
+          init,
+          current.tokens.accessToken,
+        );
+        assertCurrentSession(operation);
+        return response;
+      } catch (retryError) {
+        assertCurrentSession(operation);
+        if (
+          retryError instanceof Error &&
+          "status" in retryError &&
+          retryError.status === 401
+        ) {
+          clearSession();
+        }
+        throw retryError;
+      }
+    },
+    [assertCurrentSession, clearSession, refresh],
+  );
+
+  const requestBlob = useCallback(
+    async (path: string, init: RequestInit = {}) => {
+      const origin = sessionRef.current;
+      if (!origin) throw new Error("Sua sessão expirou. Entre novamente.");
+      const operation: SessionOperation = {
+        generation: operationGenerationRef.current,
+        scope: getAuthScope(origin),
+      };
+
+      const refreshForOperation = async () => {
+        assertCurrentSession(operation);
+        try {
+          await refresh();
+        } catch (refreshError) {
+          assertCurrentSession(operation);
+          if (!(refreshError instanceof StaleSessionOperationError)) clearSession();
+          throw refreshError;
+        }
+        return assertCurrentSession(operation);
+      };
+
+      let current = assertCurrentSession(operation);
+      if (
+        new Date(current.tokens.accessTokenExpiresAtUtc).getTime() <
+        Date.now() + 30_000
+      ) {
+        current = await refreshForOperation();
+      }
+
+      try {
+        const response = await apiBlobRequest(path, init, current.tokens.accessToken);
+        assertCurrentSession(operation);
+        return response;
+      } catch (error) {
+        assertCurrentSession(operation);
+        if (!(error instanceof Error) || !("status" in error) || error.status !== 401) {
+          throw error;
+        }
+      }
+
+      current = await refreshForOperation();
+      try {
+        const response = await apiBlobRequest(path, init, current.tokens.accessToken);
+        assertCurrentSession(operation);
+        return response;
+      } catch (retryError) {
+        assertCurrentSession(operation);
+        if (retryError instanceof Error && "status" in retryError && retryError.status === 401) {
+          clearSession();
+        }
+        throw retryError;
+      }
+    },
+    [assertCurrentSession, clearSession, refresh],
+  );
+
+  const value = useMemo(
+    () => ({
+      session,
+      login,
+      register,
+      activate,
+      refreshSession: refresh,
+      logout: clearSession,
+      updateSessionName: (name: string) => {
+        const current = sessionRef.current;
+        if (current) {
+          beginExplicitTransition();
+          saveSession({ ...current, name });
+        }
+      },
+      request,
+      requestBlob,
+    }),
+    [
+      activate,
+      beginExplicitTransition,
+      clearSession,
+      login,
+      refresh,
+      register,
+      request,
+      requestBlob,
+      saveSession,
+      session,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// O hook compartilha o mesmo módulo para manter uma única identidade de contexto.
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth deve ser usado dentro de AuthProvider.");
+  return context;
+}

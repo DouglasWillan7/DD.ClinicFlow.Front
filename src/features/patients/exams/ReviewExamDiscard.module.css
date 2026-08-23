@@ -1,0 +1,89 @@
+.triggerRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-danger) 24%, var(--color-surface));
+}
+
+.triggerRow > span {
+  display: inline-flex;
+}
+
+.toolbarTrigger {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.toolbarConfirmation {
+  width: min(460px, 100%);
+}
+
+.confirmation {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 28%, var(--color-surface));
+  border-radius: var(--radius-control);
+  color: var(--color-text-body);
+  background: var(--color-danger-tint);
+}
+
+.confirmation h4,
+.confirmation p {
+  margin: 0;
+}
+
+.confirmation h4 {
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+.confirmation h4:focus {
+  border-radius: var(--space-1);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+.confirmation p {
+  max-width: 70ch;
+  overflow-wrap: anywhere;
+}
+
+.actions,
+.error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+.error {
+  justify-content: space-between;
+  color: var(--color-danger-text);
+  font-weight: 600;
+}
+
+.liveStatus {
+  color: var(--color-text-body);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .triggerRow > span,
+  .triggerRow > span > button,
+  .actions > *,
+  .error > button {
+    width: 100%;
+  }
+
+  .actions,
+  .error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

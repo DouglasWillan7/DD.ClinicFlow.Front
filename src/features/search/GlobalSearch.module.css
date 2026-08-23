@@ -1,0 +1,315 @@
+/*
+ * Busca global — handoff "design_handoff_busca_global".
+ * Pill branca de 560px na topbar; o dropdown agrupado cobre o conteúdo da
+ * página. O teal do handoff para médicos não existe no ClinicFlow (DESIGN.md
+ * proíbe a paleta legada), então o grupo Médicos usa o neutro operacional.
+ */
+.search {
+  position: relative;
+  min-width: 0;
+  flex: 0 1 560px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.field {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 22px;
+  /* A borda existe sempre, transparente, para o foco não deslocar o texto. */
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-disabled);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.field svg {
+  flex: 0 0 auto;
+}
+
+/* O foco é da pill inteira (borda + anel); o outline do input desenharia um
+   segundo retângulo dentro dela. */
+.fieldFocused {
+  border-color: var(--color-primary);
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.fieldOpen {
+  box-shadow:
+    var(--shadow-overlay),
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--color-ink);
+  background: transparent;
+  font-size: 16px;
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+/* O × nativo do type=search duplicaria o botão de limpar do handoff. */
+.input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.clear {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  background: var(--color-app-background);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.clear:hover {
+  color: var(--color-ink);
+  background: var(--color-primary-subtle);
+}
+
+.shortcut {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border-hairline);
+  color: var(--color-text-muted);
+  border-radius: var(--space-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ------------------------------------------------------------- Dropdown --- */
+
+.dropdown {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + 12px);
+  right: 0;
+  left: 0;
+  padding: 10px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.status {
+  margin: 0;
+  padding: 10px 12px 6px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.retry {
+  padding: 0;
+  border: 0;
+  margin-left: 8px;
+  color: var(--color-primary);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.list {
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.groupLabel {
+  margin: 0;
+  padding: 8px 12px 4px;
+  /* O handoff pede #93a3b0; em 12px esse tom reprova no AA exigido pelo
+     PRODUCT.md, então o rótulo fica no muted (4,7:1). */
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.row {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.row:hover,
+.rowActive {
+  background: var(--color-primary-subtle);
+}
+
+.createRow {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-hairline);
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+  margin-top: 6px;
+}
+
+.avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.avatarPatient {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.avatarDoctor,
+.avatarRecent {
+  color: var(--color-text-body);
+  background: var(--color-app-background);
+}
+
+.avatarCreate {
+  color: var(--color-surface);
+  background: var(--color-primary);
+}
+
+.identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  display: block;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.createRow .title {
+  color: var(--color-primary);
+}
+
+/* O destaque do trecho é só peso: cor de fundo competiria com o hover. */
+.match {
+  color: inherit;
+  background: transparent;
+  font-weight: 700;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chipPatient {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.chipDoctor {
+  color: var(--color-text-body);
+  background: var(--color-app-background);
+}
+
+@media (max-width: 959px) {
+  .field {
+    min-height: 44px;
+    padding: 0 16px;
+    border-color: var(--color-border-hairline);
+    box-shadow: none;
+  }
+
+  .fieldFocused {
+    border-color: var(--color-primary);
+  }
+
+  .input {
+    height: 42px;
+  }
+}
+
+/* Sem largura para o chip do atalho; a busca ocupa o que sobra da topbar. */
+@media (max-width: 639px) {
+  .search {
+    flex: 1 1 auto;
+  }
+
+  .shortcut {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field,
+  .row,
+  .clear {
+    transition: none;
+  }
+}

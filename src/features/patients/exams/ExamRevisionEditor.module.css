@@ -1,0 +1,953 @@
+.reviewWorkspace {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(420px, 0.88fr) minmax(560px, 1.12fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
+.documentPanel,
+.editor {
+  min-width: 0;
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.documentPanel {
+  position: sticky;
+  top: var(--space-5);
+  display: flex;
+  height: calc(100vh - 40px);
+  min-height: 560px;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.documentHeader,
+.documentHeader > div,
+.documentLink,
+.progressHeading,
+.progressActions,
+.versionRow,
+.collectionHeading,
+.classificationControls,
+.resultSummary,
+.resultBadges,
+.valueGroup,
+.noteHeader,
+.noteToggle,
+.findingRow,
+.itemActions,
+.conflict,
+.footer,
+.footer > div {
+  display: flex;
+  align-items: center;
+}
+
+.documentHeader {
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.documentHeader > div {
+  min-width: 0;
+  gap: var(--space-2);
+  color: var(--color-ink);
+}
+
+.documentHeader span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.documentHeader strong,
+.documentHeader small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documentHeader strong {
+  font-size: 14px;
+}
+
+.documentHeader small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.documentLink {
+  min-height: 44px;
+  flex: 0 0 auto;
+  gap: 6px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.documentLink:hover {
+  color: var(--color-ink);
+}
+
+.documentLink:focus-visible,
+.confirmButton:focus-visible,
+.noteToggle:focus-visible,
+.advancedFields summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.documentViewport {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: 12px;
+  background: var(--color-app-background);
+}
+
+.documentViewport iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--color-app-background);
+}
+
+.documentFeedback {
+  display: grid;
+  max-width: 32ch;
+  place-self: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.documentFeedback p {
+  margin: 0;
+}
+
+.loader {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-primary-soft);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+.editor {
+  display: grid;
+  align-content: start;
+  overflow: clip;
+}
+
+.progressHeader {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border-hairline);
+  background: var(--color-surface);
+}
+
+.progressHeading {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.progressHeading > div:first-child {
+  min-width: 0;
+}
+
+.reviewActions {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 460px;
+  justify-content: flex-end;
+}
+
+.progressHeading h2,
+.progressHeading p,
+.sectionHeading h3,
+.sectionHeading p,
+.collectionHeading h3,
+.collectionHeading p,
+.referenceText,
+.footer p,
+.correctionNote,
+.errorBanner {
+  margin: 0;
+}
+
+.progressHeading h2 {
+  color: var(--color-ink);
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.progressHeading p,
+.sectionHeading p,
+.collectionHeading p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.progressActions {
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.progressActions strong {
+  color: var(--color-text-body);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.progressActions .progressComplete,
+.footerReady {
+  color: var(--color-success-text);
+}
+
+.progressActions button {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.progressTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-app-background);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 300ms var(--ease-out-expo);
+}
+
+.editorBody {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-6) var(--space-6);
+}
+
+.versionRow {
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.reviewStatus {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  color: var(--color-warning-text);
+  background: var(--color-warning-tint);
+  font-weight: 600;
+}
+
+.extractionWarnings {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 32%, var(--color-surface));
+  border-radius: var(--radius-control);
+  color: var(--color-warning-text);
+  background: var(--color-warning-tint);
+}
+
+.extractionWarnings > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.extractionWarnings > div {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.extractionWarnings h3,
+.extractionWarnings ul {
+  margin: 0;
+}
+
+.extractionWarnings h3 {
+  color: var(--color-ink);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.extractionWarnings ul {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-5);
+  color: var(--color-text-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.metadataSection,
+.collection,
+.decision {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.metadataSection,
+.collection,
+.decision {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-hairline);
+}
+
+.sectionHeading,
+.collectionHeading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.sectionHeading h3,
+.collectionHeading h3 {
+  color: var(--color-ink);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.collectionHeading {
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.collectionHeading h3 span {
+  display: inline-grid;
+  min-width: 24px;
+  min-height: 24px;
+  margin-left: 4px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-body);
+  background: var(--color-app-background);
+  font-size: 12px;
+}
+
+.collectionHeading > button {
+  min-height: 40px;
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.metadataGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.classificationControls {
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.classificationControls > :first-child {
+  min-width: 260px;
+  flex: 1;
+}
+
+.resultList,
+.noteList,
+.findingList {
+  display: grid;
+  gap: 6px;
+}
+
+.resultRow,
+.findingRow {
+  min-width: 0;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: 14px;
+  background: var(--color-surface);
+  transition: border-color var(--transition-context), background var(--transition-context);
+}
+
+.resultRow {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.itemConfirmed {
+  border-color: color-mix(in srgb, var(--color-success) 32%, transparent);
+  background: color-mix(in srgb, var(--color-success) 5%, var(--color-surface));
+}
+
+.resultSummary {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.3fr) minmax(142px, 0.8fr) minmax(150px, 1fr) 44px;
+  gap: var(--space-3);
+}
+
+.resultIdentity {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.resultNameField {
+  gap: 0;
+}
+
+.resultNameField label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.resultNameField input {
+  min-height: 34px;
+  padding: 4px 7px;
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.resultNameField input:hover,
+.resultNameField input:focus {
+  border-color: var(--color-border-hairline);
+  background: var(--color-surface);
+}
+
+.resultBadges {
+  min-height: 18px;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.referenceState,
+.editedBadge,
+.confidenceBadge {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.referenceState {
+  color: var(--color-text-muted);
+}
+
+.referenceStateAlert {
+  color: var(--color-danger-text);
+}
+
+.editedBadge,
+.confidenceBadge {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.editedBadge {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.confidenceBadge {
+  color: var(--color-warning-text);
+  background: var(--color-warning-tint);
+}
+
+.valueGroup {
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.valueGroup > span {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.valueField {
+  width: 86px;
+  flex: 0 0 86px;
+  gap: 0;
+}
+
+.valueField label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.valueField input {
+  min-height: 36px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+
+.valueFieldAlert input {
+  color: var(--color-danger-text);
+}
+
+.referenceText {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  color: var(--color-text-body);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.referenceText span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.confirmButton {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent);
+  border-radius: 50%;
+  color: var(--color-text-disabled);
+  background: var(--color-surface);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+.confirmButton:hover {
+  border-color: var(--color-success);
+  color: var(--color-success-text);
+}
+
+.confirmButton:active {
+  transform: scale(0.96);
+}
+
+.confirmButtonChecked {
+  border-color: var(--color-success);
+  color: var(--color-surface);
+  background: var(--color-success);
+}
+
+.advancedFields {
+  min-width: 0;
+}
+
+.advancedFields summary {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.advancedGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.itemActions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.itemActions button {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.noteRow {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-app-background) 45%, var(--color-surface));
+  transition: border-color var(--transition-context), background var(--transition-context);
+}
+
+.noteHeader {
+  gap: var(--space-2);
+  padding: 8px 10px 8px 14px;
+}
+
+.noteToggle {
+  min-width: 0;
+  min-height: 44px;
+  flex: 1;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  color: var(--color-ink);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.noteToggle span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteToggle svg {
+  flex: 0 0 auto;
+  transition: transform var(--transition-context);
+}
+
+.noteToggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.noteContent {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 14px 14px;
+}
+
+.additionalContent {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-hairline);
+}
+
+.additionalContent > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-ink);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.additionalContent > summary span {
+  display: inline-grid;
+  min-width: 24px;
+  min-height: 24px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-body);
+  background: var(--color-app-background);
+  font-size: 12px;
+}
+
+.additionalHint {
+  margin-bottom: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.additionalList {
+  display: grid;
+  gap: 6px;
+}
+
+.additionalList article {
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-app-background) 45%, var(--color-surface));
+}
+
+.additionalList h4 {
+  margin-bottom: 4px;
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+.additionalList p {
+  color: var(--color-text-body);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.findingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 44px;
+  gap: var(--space-3);
+}
+
+.findingFields {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(200px, 1.3fr);
+  gap: var(--space-3);
+}
+
+.findingRow .advancedFields {
+  grid-column: 1 / -1;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  color: var(--color-text-body);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 108px;
+  resize: vertical;
+  padding: 10px 13px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: 12px;
+  outline: none;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.field textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.field textarea[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.error,
+.errorBanner {
+  color: var(--color-danger-text);
+}
+
+.correctionNote,
+.errorBanner,
+.conflict {
+  padding: var(--space-3);
+  border-radius: 12px;
+}
+
+.correctionNote {
+  color: var(--color-warning-text);
+  background: var(--color-warning-tint);
+}
+
+.errorBanner,
+.conflict {
+  background: var(--color-danger-tint);
+}
+
+.conflict {
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-danger-text);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 14px var(--space-6);
+  border-top: 1px solid var(--color-border-hairline);
+  background: var(--color-surface);
+}
+
+.footer p {
+  max-width: 62ch;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.footer > div {
+  flex: 0 0 auto;
+  gap: var(--space-2);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1100px) {
+  .reviewWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .documentPanel {
+    position: static;
+    height: 62vh;
+    min-height: 480px;
+  }
+}
+
+@media (max-width: 720px) {
+  .documentPanel {
+    height: 54vh;
+    min-height: 380px;
+    padding: var(--space-3);
+  }
+
+  .documentHeader,
+  .progressHeading,
+  .collectionHeading,
+  .classificationControls,
+  .footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .documentLink {
+    align-self: flex-start;
+  }
+
+  .progressHeader,
+  .editorBody,
+  .footer {
+    padding-inline: var(--space-4);
+  }
+
+  .progressActions {
+    justify-content: space-between;
+  }
+
+  .reviewActions {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .metadataGrid,
+  .advancedGrid,
+  .findingFields {
+    grid-template-columns: 1fr;
+  }
+
+  .resultSummary {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .resultIdentity,
+  .valueGroup,
+  .referenceText {
+    grid-column: 1;
+  }
+
+  .confirmButton {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .valueGroup {
+    justify-self: start;
+  }
+
+  .findingRow {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .findingRow > .confidenceBadge {
+    grid-column: 1;
+  }
+
+  .findingRow > .confirmButton {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .footer > div {
+    width: 100%;
+  }
+
+  .footer > div > * {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .documentHeader small {
+    max-width: 220px;
+  }
+
+  .progressActions,
+  .footer > div,
+  .itemActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .progressActions button,
+  .footer > div > *,
+  .itemActions button,
+  .collectionHeading > button {
+    width: 100%;
+  }
+
+  .noteHeader {
+    align-items: flex-start;
+  }
+
+  .noteHeader .confirmButton {
+    flex: 0 0 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressTrack span,
+  .confirmButton,
+  .noteToggle svg,
+  .resultRow,
+  .noteRow {
+    transition: none;
+  }
+
+  .loader {
+    animation-duration: 1.5s;
+  }
+}

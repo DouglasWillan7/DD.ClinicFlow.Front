@@ -1,0 +1,32 @@
+.badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 26px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.neutral {
+  color: var(--color-text-secondary);
+  background: var(--color-hover);
+}
+
+.info {
+  color: var(--color-primary);
+  background: var(--color-blue-tint);
+}
+
+.success {
+  color: var(--color-success-text);
+  background: var(--color-success-tint);
+}
+
+.attention {
+  color: var(--color-attention-text);
+  background: var(--color-attention-tint);
+}

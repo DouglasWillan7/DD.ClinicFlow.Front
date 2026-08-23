@@ -1,0 +1,761 @@
+/*
+ * Agenda por médico — handoff "design_handoff_agenda_multi_medico".
+ * Um médico por vez: a troca acontece na busca global da topbar. Coluna
+ * esquerda de 380px (mini calendário + resumo) e o dia do médico à direita.
+ */
+.page {
+  --chip-border: rgba(22, 40, 58, 0.1);
+  --divider: rgba(22, 40, 58, 0.08);
+  --dashed-border: rgba(22, 40, 58, 0.14);
+  --neutral-soft: rgba(107, 124, 138, 0.1);
+  --break-soft: rgba(107, 124, 138, 0.06);
+  --done-soft: rgba(47, 158, 87, 0.1);
+  --canceled-soft: rgba(232, 64, 74, 0.12);
+
+  min-height: 100%;
+  min-width: 0;
+  color: var(--color-ink);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------ Linha de contexto --- */
+
+/* Linha única sempre: quando falta largura, os chips rolam na horizontal em
+   vez de empurrar o botão "Nova consulta" para baixo. */
+.contextRow {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-5);
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+.breadcrumb {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 14px;
+  white-space: nowrap;
+}
+
+.breadcrumb span:first-child {
+  color: var(--color-text-muted);
+}
+
+.breadcrumb span[aria-hidden] {
+  color: var(--color-text-disabled);
+}
+
+.breadcrumb strong {
+  flex: 0 0 auto;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.breadcrumbDoctor {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+}
+
+.contextSpacer {
+  flex: 1;
+}
+
+.filters {
+  display: flex;
+  min-width: 0;
+  gap: var(--space-2);
+  padding: 2px;
+  margin: -2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1.5px solid var(--chip-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.chip:hover {
+  background: var(--color-primary-subtle);
+}
+
+.chip:active {
+  transform: scale(0.98);
+}
+
+.chip[aria-pressed="true"] {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  font-weight: 600;
+}
+
+.newAppointment {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-surface);
+  background: var(--color-primary);
+  box-shadow: var(--shadow-card);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.newAppointment:hover {
+  background: color-mix(in srgb, var(--color-primary), var(--color-ink) 4%);
+}
+
+.newAppointment:active {
+  transform: scale(0.98);
+}
+
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-5);
+  padding: 14px 20px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- Layout --- */
+
+.layout {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.sideColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.card {
+  min-width: 0;
+  padding: 24px 28px;
+  border-radius: var(--radius-panel);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  margin: 0 0 18px;
+  color: var(--color-ink);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: 18px;
+}
+
+.cardHeader .cardTitle {
+  margin: 0;
+}
+
+.emptyMessage {
+  margin: 0;
+  padding: 10px 4px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------- Mini calendário --- */
+
+.monthNavigation {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.monthNavigation:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.monthNavigation:active {
+  transform: scale(0.98);
+}
+
+.monthActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.calendarTable {
+  width: 100%;
+  border-spacing: 0 3px;
+  table-layout: fixed;
+}
+
+.calendarTable th {
+  padding: 6px 0;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+}
+
+.calendarCell {
+  padding: 0;
+  text-align: center;
+}
+
+.outsideMonth {
+  padding: 0;
+  color: var(--color-text-disabled);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Alvo de toque de 44px com o círculo pintado de 40px do handoff. */
+.calendarDay {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.dayCircle {
+  position: relative;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.calendarDay:hover .dayCircle {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.calendarDay:active .dayCircle {
+  transform: scale(0.98);
+}
+
+.calendarDay[aria-pressed="true"] .dayCircle,
+.calendarDay[aria-pressed="true"]:hover .dayCircle {
+  color: var(--color-surface);
+  background: var(--color-primary);
+}
+
+.dayMark {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  transform: translateX(-50%);
+}
+
+.calendarDay[aria-pressed="true"] .dayMark {
+  display: none;
+}
+
+.calendarLegend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.legendMark {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+/* ------------------------------------------------------- Resumo do dia --- */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.stat {
+  padding: 14px 16px;
+  border-radius: var(--radius-control);
+  background: var(--color-primary-subtle);
+}
+
+.stat dd {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat dt {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.statPending {
+  background: var(--neutral-soft);
+}
+
+.statPending dd {
+  color: var(--color-text-muted);
+}
+
+.statFree {
+  background: var(--done-soft);
+}
+
+.statFree dd {
+  color: var(--color-success-text);
+}
+
+/* --------------------------------------------------------- Linha do tempo --- */
+
+.timelineCard {
+  padding-bottom: 28px;
+}
+
+.doctorHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.doctorAvatar {
+  display: grid;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 60px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.doctorIdentity {
+  min-width: 0;
+  flex: 1;
+}
+
+.doctorName {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.2;
+}
+
+.doctorMeta {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.freeSlotsPill {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.timeline {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timelineRow {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.timelineRow:last-child {
+  border-bottom: 0;
+}
+
+.rowTime {
+  color: var(--color-text-disabled);
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowTimeBooked {
+  align-self: start;
+  padding-top: 16px;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.appointmentCard {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-primary-subtle);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.appointmentCard:hover { background: var(--color-primary-soft); }
+.appointmentCard:active { transform: scale(.99); }
+.appointmentCard:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.appointmentAvatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.appointmentIdentity {
+  min-width: 0;
+  flex: 1;
+}
+
+.appointmentName {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.appointmentMeta {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.typeBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.statusLabel {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.long {
+  min-height: 96px;
+}
+
+.pending .appointmentCard {
+  border-left-color: var(--color-text-disabled);
+  background: var(--neutral-soft);
+}
+
+.pending .appointmentAvatar,
+.pending .typeBadge,
+.pending .statusLabel {
+  color: var(--color-text-muted);
+}
+
+.done .appointmentCard {
+  border-left-color: var(--color-success);
+  background: var(--done-soft);
+}
+
+.done .appointmentAvatar,
+.done .typeBadge,
+.done .statusLabel {
+  color: var(--color-success);
+}
+
+.canceled .appointmentCard {
+  border-left-color: var(--color-danger);
+  background: var(--canceled-soft);
+  opacity: 0.65;
+}
+
+.canceled .appointmentAvatar,
+.canceled .typeBadge,
+.canceled .statusLabel {
+  color: var(--color-danger);
+}
+
+.canceled .appointmentName {
+  text-decoration: line-through;
+}
+
+.breakBand {
+  padding: 16px 18px;
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  background: var(--break-soft);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* O filtro de tipo esconde a consulta, mas o horário continua ocupado. */
+.busyBand {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  background: var(--neutral-soft);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.freeSlot {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 18px;
+  border: 1.5px dashed var(--dashed-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text-disabled);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.freeSlot:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+/* ---------------------------------------------------------- Responsivo --- */
+
+@media (min-width: 1180px) {
+  .layout {
+    grid-template-columns: 380px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .doctorHeader {
+    gap: 12px;
+  }
+
+  .doctorAvatar {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    font-size: 17px;
+  }
+
+  .doctorName {
+    font-size: 19px;
+  }
+
+  .timelineRow {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .appointmentCard {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+  }
+
+  .appointmentIdentity {
+    flex: 1 1 60%;
+  }
+
+  .long {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .contextRow {
+    gap: var(--space-3);
+  }
+
+  .doctorHeader {
+    flex-wrap: wrap;
+  }
+
+  .freeSlotsPill {
+    order: 3;
+  }
+
+  .statGrid {
+    gap: 8px;
+  }
+
+  .appointmentAvatar {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    font-size: 13px;
+  }
+
+  .rowTimeBooked {
+    padding-top: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .calendarDay .dayCircle,
+  .monthNavigation,
+  .newAppointment,
+  .freeSlot {
+    transition: none;
+  }
+}
