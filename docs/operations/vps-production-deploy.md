@@ -1,60 +1,68 @@
-# Deploy do frontend ClinicFlow na VPS de produção
+# CI/CD do frontend ClinicFlow na VPS
 
-O frontend roda isolado em `/opt/dwexpenses/clinicflow-front` e compartilha apenas a rede Docker
-`dwexpenses_default` com o Caddy de borda. A API permanece no deploy separado em
-`/opt/clinicflow`.
+O frontend é empacotado como imagem imutável, publicado no GHCR e atualizado
+automaticamente na VPS a cada push na `main`.
 
-## Build
-
-Na raiz do repositório:
-
-```bash
-npm ci
-npm run lint
-npm test
-VITE_API_URL=https://clinicflow-api.dwsolucoes.tech npm run build
-```
-
-`VITE_API_URL` é incorporada ao JavaScript durante o build. Não publique um `dist`
-gerado sem essa variável.
-
-## Layout da VPS
+## Topologia
 
 ```text
-/opt/dwexpenses/clinicflow-front/
-  Caddyfile
-  docker-compose.yml
-  current -> releases/<release>
-  releases/
-    <release>/
+GitHub Actions
+  ├── lint + testes
+  ├── build da imagem com VITE_API_URL de produção
+  ├── push para ghcr.io/douglaswillan7/dd.clinicflow.front
+  └── SSH para atualizar /opt/dwexpenses/clinicflow-front
+
+Internet
+  └── Caddy compartilhado -> clinicflow-web:8080
 ```
 
-O container `clinicflow-web` serve o release apontado por `current`. A troca do
-symlink e a recriação do container tornam a atualização atômica e preservam releases
-anteriores para rollback.
+O Compose do frontend é isolado em `/opt/dwexpenses/clinicflow-front` e compartilha
+somente a rede Docker externa `dwexpenses_default`. O deploy da API permanece
+independente em `/opt/clinicflow`.
 
-## Primeiro deploy
+## Pipeline
 
-1. Crie `/opt/dwexpenses/clinicflow-front` com o usuário `deploy`.
-2. Copie `deploy/vps/Caddyfile` e `deploy/vps/docker-compose.yml` para esse diretório.
-3. Copie o conteúdo de `dist/` para um novo subdiretório de `releases/` e aponte
-   `current` para ele.
-4. Execute:
+O workflow `.github/workflows/deploy.yml` também pode ser iniciado manualmente por
+`Actions > deploy > Run workflow`. Ele executa, em ordem:
+
+1. `npm ci`, lint e testes;
+2. build da imagem com `VITE_API_URL=https://clinicflow-api.dwsolucoes.tech`;
+3. publicação das tags `latest` e SHA no GHCR;
+4. pull e recriação somente do serviço `clinicflow-web`;
+5. espera de até 120 segundos pelo healthcheck.
+
+Falhas de validação ou build impedem a publicação. Um container `unhealthy` faz o job
+falhar e inclui os logs recentes no GitHub Actions.
+
+## Secrets do GitHub
+
+Configure no repositório `DouglasWillan7/DD.ClinicFlow.Front`:
+
+| Secret | Valor |
+| --- | --- |
+| `VPS_HOST` | host ou IP da VPS |
+| `VPS_USER` | `deploy` |
+| `VPS_PORT` | porta SSH |
+| `VPS_SSH_KEY` | chave privada exclusiva do workflow |
+
+A chave pública correspondente deve existir em `/home/deploy/.ssh/authorized_keys`.
+A chave não concede `sudo`; o workflow pode alterar somente recursos já acessíveis ao
+usuário `deploy`.
+
+## Instalação inicial na VPS
+
+Copie `deploy/vps/docker-compose.yml` para
+`/opt/dwexpenses/clinicflow-front/docker-compose.yml`. A rota pública em
+`deploy/vps/Caddyfile.edge` deve estar anexada ao Caddyfile compartilhado.
+
+A VPS precisa estar autenticada no GHCR com permissão `read:packages`:
 
 ```bash
-cd /opt/dwexpenses/clinicflow-front
-docker compose config --quiet
-docker compose up -d
+docker login ghcr.io -u douglaswillan7
 ```
 
-5. Anexe `deploy/vps/Caddyfile.edge` a `/opt/dwexpenses/Caddyfile`, valide e
-   recarregue o Caddy:
-
-```bash
-cd /opt/dwexpenses
-docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile
-docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
-```
+O Caddy de borda e `clinicflow-web` devem participar da rede
+`dwexpenses_default`.
 
 ## Verificação
 
@@ -62,28 +70,24 @@ docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 cd /opt/dwexpenses/clinicflow-front
 docker compose ps
 docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q clinicflow-web)"
-curl --fail --show-error --silent https://clinicflow.dwsolucoes.tech/
+curl --fail --show-error https://clinicflow.dwsolucoes.tech/
+curl --fail --show-error https://clinicflow.dwsolucoes.tech/entrar
 ```
 
-Além da página inicial, teste uma rota interna para confirmar o fallback da SPA:
+## Rollback por SHA
 
-```bash
-curl --fail --show-error --silent https://clinicflow.dwsolucoes.tech/entrar
-```
-
-O login só alcançará a API quando o deploy separado do backend estiver saudável em
-`https://clinicflow-api.dwsolucoes.tech/health`.
-
-## Rollback
-
-Aponte `current` para um release anterior e recrie somente o frontend:
+Use uma tag SHA publicada por uma execução anterior bem-sucedida:
 
 ```bash
 cd /opt/dwexpenses/clinicflow-front
-ln -s releases/RELEASE_ANTERIOR current.next
-mv -Tf current.next current
-docker compose up -d --force-recreate clinicflow-web
+CLINICFLOW_FRONT_IMAGE_TAG=SHA docker compose pull clinicflow-web
+CLINICFLOW_FRONT_IMAGE_TAG=SHA docker compose up -d --force-recreate clinicflow-web
 ```
 
-Não use `docker compose down` no diretório compartilhado `/opt/dwexpenses` para
-atualizar o frontend.
+O próximo workflow bem-sucedido volta a implantar `latest`.
+
+## Atualização da infraestrutura
+
+O workflow atualiza a imagem, não o `docker-compose.yml` nem o Caddyfile de borda.
+Quando esses arquivos mudarem, copie-os manualmente para a VPS e valide antes de
+recriar containers.

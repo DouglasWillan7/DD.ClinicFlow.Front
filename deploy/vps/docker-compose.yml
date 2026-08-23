@@ -2,14 +2,10 @@ name: clinicflow-front
 
 services:
   clinicflow-web:
-    image: caddy:2-alpine
+    image: ghcr.io/douglaswillan7/dd.clinicflow.front:${CLINICFLOW_FRONT_IMAGE_TAG:-latest}
     restart: unless-stopped
     init: true
     read_only: true
-    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./current:/srv:ro
     tmpfs:
       - /config:size=1m,mode=0750
       - /data:size=1m,mode=0750
