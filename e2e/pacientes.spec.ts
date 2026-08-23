@@ -421,19 +421,39 @@ test("busca sem resultado mostra estado vazio com cadastro", async ({
   await expect(page).toHaveURL(/\/app\/pacientes\/novo/);
 });
 
-test("cadastro e edição enviam o sexo para referência laboratorial", async ({
+test("cadastro em etapas e edição enviam o sexo para referência laboratorial", async ({
   page,
 }) => {
   await mockPacientes(page);
 
   await page.goto("/app/pacientes/novo");
+  await expect(
+    page.getByRole("list", { name: "Etapas do cadastro do paciente" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Identifique o paciente" }),
+  ).toBeVisible();
   await page.getByLabel("Nome completo").fill("Marina Oliveira");
   await page.getByLabel("WhatsApp").fill("+5511999990000");
   await page.getByLabel("CPF").fill("52998224725");
+  await page.screenshot({
+    path: "test-results/pacientes-09-cadastro-identificacao.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByRole("heading", { name: "Dados clínicos" })).toBeVisible();
   await page
     .getByLabel("Sexo para referência laboratorial")
     .selectOption("Feminino");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Organize o atendimento" }),
+  ).toBeVisible();
   await page.getByLabel("Médico responsável").selectOption(doctorUserId);
+  await page.screenshot({
+    path: "test-results/pacientes-10-cadastro-atendimento.png",
+    fullPage: true,
+  });
   const created = page.waitForRequest(
     (request) => request.url().endsWith("/patients") && request.method() === "POST",
   );
@@ -485,6 +505,33 @@ test.describe("mobile", () => {
     await page.screenshot({
       path: "test-results/pacientes-05-mobile.png",
       fullPage: false,
+    });
+  });
+
+  test("cadastro em etapas permanece íntegro no mobile", async ({ page }) => {
+    await mockPacientes(page);
+    await page.goto("/app/pacientes/novo");
+
+    await expect(
+      page.getByRole("heading", { name: "Identifique o paciente" }),
+    ).toBeVisible();
+    const form = page.locator("form");
+    const formBox = await form.boundingBox();
+    expect(formBox).not.toBeNull();
+    expect(formBox!.x).toBeGreaterThanOrEqual(0);
+    expect(formBox!.x + formBox!.width).toBeLessThanOrEqual(390);
+    expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
+
+    await page.getByLabel("Nome completo").fill("Marina Oliveira");
+    await page.getByLabel("WhatsApp").fill("+5511999990000");
+    await page.getByLabel("CPF").fill("52998224725");
+    await page.getByRole("button", { name: "Continuar" }).click();
+    await page.getByRole("button", { name: "Continuar" }).click();
+    await expect(page.getByLabel("Médico responsável")).toBeVisible();
+
+    await page.screenshot({
+      path: "test-results/pacientes-11-cadastro-mobile.png",
+      fullPage: true,
     });
   });
 });

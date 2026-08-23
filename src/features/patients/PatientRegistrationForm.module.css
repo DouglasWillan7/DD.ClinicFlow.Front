@@ -142,6 +142,8 @@
 .notes textarea {
   min-height: 112px;
   padding-block: 13px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  border-radius: var(--radius-control);
   resize: vertical;
   outline: none;
 }
@@ -313,7 +315,7 @@
 
   .actions {
     align-items: stretch;
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 
   .back,
