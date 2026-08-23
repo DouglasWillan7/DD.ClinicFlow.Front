@@ -397,7 +397,7 @@ test("troca o dia pelo calendário e mantém a data na URL", async () => {
   ).toBeVisible();
 });
 
-test("abre um dia passado e mostra quem o médico atendeu", async () => {
+test("habilita somente dias passados com consultas do médico", async () => {
   window.history.replaceState({}, "", "/app/agenda?date=2000-08-10");
   mockAgenda([historicalAppointment]);
   const user = userEvent.setup();
@@ -406,6 +406,12 @@ test("abre um dia passado e mostra quem o médico atendeu", async () => {
       <AgendaPage />
     </QueryHarness>,
   );
+
+  expect(
+    await screen.findByRole("button", {
+      name: "8 de agosto de 2000, data passada, sem consultas",
+    }),
+  ).toBeDisabled();
 
   const pastDay = await screen.findByRole("button", {
     name: "9 de agosto de 2000, data passada, 1 consulta",

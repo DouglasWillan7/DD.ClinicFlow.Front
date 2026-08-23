@@ -137,7 +137,7 @@ export function AgendaMonthCalendar({
                     availability: availabilityByDate.get(key),
                     clinicToday,
                     selectedDate,
-                    pastDatesSelectable,
+                    pastDatesSelectable: pastDatesSelectable && count > 0,
                   });
                 const summary =
                   count === 0

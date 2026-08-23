@@ -9,7 +9,7 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 - [x] Make Agenda and New appointment use one availability policy for calendar dates.
 - [x] Keep Agenda's appointment-count context without overriding availability state.
 - [x] Load the active doctor's availability for the full displayed Agenda month.
-- [x] Keep past dates disabled for booking and selectable for historical Agenda navigation.
+- [x] Keep past dates disabled for booking and make only dates with appointments selectable for historical Agenda navigation.
 
 ## Out of Scope
 
@@ -25,7 +25,7 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --------------------- | -------------- | --------- | ---------- |
-| Meaning of "same behavior" | Agenda and New appointment share future availability states; only Agenda allows past dates for historical navigation. | The user clarified that Agenda must show who a doctor attended on prior dates. | y |
+| Meaning of "same behavior" | Agenda and New appointment share future availability states; Agenda allows past dates only when that doctor has appointments to inspect. | The user clarified that empty historical dates have no useful Agenda destination. | y |
 | Agenda appointment counts | Preserve the existing marker and accessible count as secondary context. | Counts remain useful and do not replace the authoritative availability state. | y |
 | Invalid clinic time zone | Preserve the current fallback: availability remains authoritative and no local-past classification is added. | This matches New appointment and avoids crashing the calendar. | y |
 
@@ -45,14 +45,14 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 
 1. The frontend SHALL derive date selectability and availability labels in Agenda and New appointment from one shared calendar policy.
 2. IF a date is earlier than today in the clinic time zone THEN New appointment SHALL disable it and label it `data passada`.
-3. IF a date is earlier than today in the clinic time zone THEN Agenda SHALL enable it for historical navigation and label it `data passada` regardless of booking availability.
+3. IF a date is earlier than today in the clinic time zone AND the active doctor has at least one non-canceled appointment on that date THEN Agenda SHALL enable it for historical navigation and label it `data passada`; OTHERWISE Agenda SHALL disable the past date and keep the same label.
 4. IF a non-past date is `Blocked`, `Full`, `NoSchedule`, missing from availability, or `Available` with zero slots THEN both calendars SHALL disable it and expose the corresponding Portuguese availability label.
 5. WHEN a non-past date is `Available` with at least one slot THEN both calendars SHALL enable it.
 6. WHEN Agenda displays a month for an active doctor THEN the frontend SHALL request that doctor's availability from the first through the last date of that month.
 7. WHEN Agenda renders a date with appointments THEN the calendar SHALL preserve its appointment marker and expose the appointment count together with the availability label.
 8. IF Agenda cannot load the active doctor's availability THEN the page SHALL show `Não foi possível carregar a disponibilidade do médico.` with a retry action instead of presenting missing data as authoritative availability.
 
-**Independent Test**: Verify future dates have the same state in both calendars, New appointment rejects a past date, and Agenda opens that past date and displays its appointments.
+**Independent Test**: Verify future dates have the same state in both calendars, New appointment rejects a past date, Agenda opens a past date with appointments, and Agenda disables a past date without appointments.
 
 ---
 
@@ -89,7 +89,7 @@ The new-appointment calendar uses the doctor's authoritative monthly availabilit
 - [x] Agenda and New appointment classify the same non-past availability fixtures identically.
 - [x] Agenda requests one inclusive monthly availability range per active doctor-month.
 - [x] Frontend unit tests, lint, and production build pass without skipped tests.
-- [x] Agenda opens a past date and displays that day's appointments while New appointment keeps the date disabled.
+- [x] Agenda opens a past date with appointments, disables an empty past date, and New appointment keeps every past date disabled.
 
 ## Implicit-Requirement Dimensions
 

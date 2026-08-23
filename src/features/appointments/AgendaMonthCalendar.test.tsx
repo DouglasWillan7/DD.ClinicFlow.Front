@@ -32,6 +32,7 @@ test("aplica disponibilidade compartilhada sem perder contagem de consultas", ()
       timeZoneId="America/Sao_Paulo"
       pastDatesSelectable
       countByDate={new Map([
+        ["2026-08-05", 1],
         ["2026-08-10", 2],
         ["2026-08-12", 1],
       ])}
@@ -49,12 +50,17 @@ test("aplica disponibilidade compartilhada sem perder contagem de consultas", ()
   fireEvent.click(available);
   expect(onDateChange).toHaveBeenCalledWith("2026-08-10");
 
-  const past = screen.getByRole("button", {
+  const emptyPastDay = screen.getByRole("button", {
     name: "1 de agosto de 2026, data passada, sem consultas",
   });
-  expect(past).toBeEnabled();
-  fireEvent.click(past);
-  expect(onDateChange).toHaveBeenNthCalledWith(2, "2026-08-01");
+  expect(emptyPastDay).toBeDisabled();
+
+  const pastDayWithAppointment = screen.getByRole("button", {
+    name: "5 de agosto de 2026, data passada, 1 consulta",
+  });
+  expect(pastDayWithAppointment).toBeEnabled();
+  fireEvent.click(pastDayWithAppointment);
+  expect(onDateChange).toHaveBeenNthCalledWith(2, "2026-08-05");
   expect(
     screen.getByRole("button", {
       name: "11 de agosto de 2026, bloqueado, sem consultas",
