@@ -55,7 +55,7 @@ export function NewPatientPage() {
     members.data?.filter((member) => hasRole(member, "Doctor")) ?? [];
 
   return (
-    <main className={styles.registrationPage}>
+    <div className={styles.registrationPage}>
       {members.isLoading ? (
         <LoadingBlock label="Carregando os médicos…" />
       ) : doctors.length === 0 ? (
@@ -87,6 +87,6 @@ export function NewPatientPage() {
           }
         />
       )}
-    </main>
+    </div>
   );
 }

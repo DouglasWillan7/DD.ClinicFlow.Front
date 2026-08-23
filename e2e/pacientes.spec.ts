@@ -265,6 +265,21 @@ async function mockPacientes(page: Page) {
   });
 }
 
+async function expectVisiblePatientControlsToMeetMinimumTarget(page: Page) {
+  const controls = page
+    .getByRole("main")
+    .locator("button:visible, input:visible, select:visible, textarea:visible");
+  const count = await controls.count();
+  expect(count).toBeGreaterThan(0);
+
+  for (let index = 0; index < count; index += 1) {
+    const box = await controls.nth(index).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+}
+
 test.use({ viewport: { width: 1440, height: 1020 } });
 
 test("lista completa: 9 pacientes em ordem alfabética com resumo", async ({
@@ -447,17 +462,7 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   expect(
     await nameField.evaluate((element) => getComputedStyle(element).boxShadow),
   ).not.toBe("none");
-  for (const control of [
-    nameField,
-    page.getByLabel("WhatsApp"),
-    page.getByLabel("CPF"),
-    page.getByRole("button", { name: "Continuar" }),
-  ]) {
-    const box = await control.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.width).toBeGreaterThanOrEqual(44);
-    expect(box!.height).toBeGreaterThanOrEqual(44);
-  }
+  await expectVisiblePatientControlsToMeetMinimumTarget(page);
 
   await nameField.fill("Marina Oliveira");
   await page.getByLabel("WhatsApp").fill("+5511999990000");
@@ -468,6 +473,7 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   });
   await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByRole("heading", { name: "Dados clínicos" })).toBeVisible();
+  await expectVisiblePatientControlsToMeetMinimumTarget(page);
   await page.getByLabel("Data de nascimento").fill("1984-03-12");
   await page.getByLabel("Tipo sanguíneo").selectOption("ABNegative");
   await page
@@ -480,6 +486,7 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   await expect(stepper.locator('[aria-current="step"]')).toContainText(
     "Atendimento",
   );
+  await expectVisiblePatientControlsToMeetMinimumTarget(page);
   await page.getByLabel("Médico responsável").selectOption(doctorUserId);
   await page.getByLabel("Observações").fill("Retorno em 30 dias");
   await page.screenshot({
@@ -569,27 +576,19 @@ test.describe("mobile", () => {
     expect(formBox!.x).toBeGreaterThanOrEqual(0);
     expect(formBox!.x + formBox!.width).toBeLessThanOrEqual(390);
     expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
-    for (const control of [
-      page.getByLabel("Nome completo"),
-      page.getByLabel("WhatsApp"),
-      page.getByLabel("CPF"),
-      page.getByRole("button", { name: "Continuar" }),
-    ]) {
-      const box = await control.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.width).toBeGreaterThanOrEqual(44);
-      expect(box!.height).toBeGreaterThanOrEqual(44);
-    }
+    await expectVisiblePatientControlsToMeetMinimumTarget(page);
 
     await page.getByLabel("Nome completo").fill("Marina Oliveira");
     await page.getByLabel("WhatsApp").fill("+5511999990000");
     await page.getByLabel("CPF").fill("52998224725");
     await page.getByRole("button", { name: "Continuar" }).click();
+    await expectVisiblePatientControlsToMeetMinimumTarget(page);
     await page.getByRole("button", { name: "Continuar" }).click();
     await expect(page.getByLabel("Médico responsável")).toBeVisible();
     await expect(stepper.locator('[aria-current="step"]')).toContainText(
       "Atendimento",
     );
+    await expectVisiblePatientControlsToMeetMinimumTarget(page);
 
     await page.screenshot({
       path: "test-results/pacientes-11-cadastro-mobile.png",
