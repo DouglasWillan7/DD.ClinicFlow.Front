@@ -124,7 +124,9 @@ function AppRoutes() {
   const [location] = useLocation();
   const path = location.split("?")[0];
 
-  if (path === "/") return <Redirect to="/app/agenda" replace />;
+  if (path === "/") {
+    return <Redirect to={session ? "/app/agenda" : "/entrar"} replace />;
+  }
 
   if (path === "/entrar" || path === "/cadastro") {
     if (session) return <Redirect to="/app/agenda" replace />;
