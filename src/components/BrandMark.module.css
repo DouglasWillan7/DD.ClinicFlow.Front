@@ -1,41 +1,30 @@
 .brand {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
-  gap: 10px;
-  color: var(--color-ink);
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  line-height: 0;
 }
 
-.inverse {
-  color: white;
+.brand img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
-.symbol {
-  position: relative;
-  display: inline-block;
-  width: 27px;
-  height: 27px;
+.full {
+  width: 168px;
 }
 
-.symbol i {
-  position: absolute;
-  width: 12px;
-  height: 20px;
-  border-radius: 5px;
-  background: var(--color-primary);
-  transform: rotate(42deg);
+.compact {
+  width: 38px;
+  aspect-ratio: 1;
 }
 
-.symbol i:first-child {
-  top: 1px;
-  left: 4px;
-}
-
-.symbol i:last-child {
-  right: 3px;
-  bottom: 0;
-  background: #3d63dd;
-  transform: rotate(42deg);
+.inverse.full {
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
 }

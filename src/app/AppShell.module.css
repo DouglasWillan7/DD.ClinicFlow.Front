@@ -52,25 +52,21 @@
   height: 48px;
   flex: 0 0 48px;
   place-items: center;
-  border-radius: 50%;
-  background: var(--color-primary);
 }
 
-.brandLogo [aria-label="ClinicFlow"] i,
-.brandLogo [aria-label="ClinicFlow"] i:last-child {
-  background: var(--color-surface);
+.brandLogo [aria-label="ClinicFlow"] {
+  width: 42px;
 }
 
 .wordmark {
   min-width: 0;
   overflow: hidden;
   color: var(--color-ink);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
   opacity: 0;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   transition: opacity var(--transition-context);
   white-space: nowrap;
 }

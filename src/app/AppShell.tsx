@@ -139,7 +139,7 @@ export function AppShell({ children }: PropsWithChildren) {
       >
         <div className={styles.brandRow}>
           <span className={styles.brandLogo} aria-hidden="true">
-            <BrandMark compact inverse />
+            <BrandMark compact />
           </span>
           <span className={styles.wordmark}>ClinicFlow</span>
 

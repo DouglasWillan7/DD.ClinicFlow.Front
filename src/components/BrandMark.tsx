@@ -9,15 +9,20 @@ export function BrandMark({
   inverse?: boolean;
 }) {
   return (
-    <div
-      className={clsx(styles.brand, inverse && styles.inverse)}
+    <span
+      className={clsx(
+        styles.brand,
+        compact ? styles.compact : styles.full,
+        inverse && styles.inverse,
+      )}
+      role="img"
       aria-label="ClinicFlow"
     >
-      <span className={styles.symbol} aria-hidden="true">
-        <i />
-        <i />
-      </span>
-      {!compact && <span>clinicflow</span>}
-    </div>
+      <img
+        src={compact ? "/clinicflow-icon.png" : "/clinicflow-logo.png"}
+        alt=""
+        draggable={false}
+      />
+    </span>
   );
 }
