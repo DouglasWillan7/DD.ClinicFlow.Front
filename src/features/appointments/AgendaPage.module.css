@@ -128,10 +128,14 @@
   font-weight: 600;
 }
 
+.newAppointmentMenu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .newAppointment {
   display: inline-flex;
   min-height: 44px;
-  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -155,6 +159,107 @@
 
 .newAppointment:active {
   transform: scale(0.98);
+}
+
+.newAppointment:focus-visible,
+.appointmentAction:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.menuChevron {
+  transition: transform var(--transition-fast);
+}
+
+.newAppointment[aria-expanded="true"] .menuChevron {
+  transform: rotate(180deg);
+}
+
+.appointmentActions {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  width: max-content;
+  min-width: 300px;
+  max-width: min(340px, calc(100vw - 32px));
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.appointmentAction {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  color: var(--color-ink);
+  text-align: left;
+  background: transparent;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.appointmentAction:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.appointmentAction:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.appointmentActionIcon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.appointmentAction:disabled .appointmentActionIcon {
+  color: var(--color-text-disabled);
+  background: var(--color-app-background);
+}
+
+.appointmentActionCopy {
+  display: block;
+  min-width: 0;
+}
+
+.appointmentActionCopy strong,
+.appointmentActionCopy span {
+  display: block;
+}
+
+.appointmentActionCopy strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.appointmentActionCopy span {
+  margin-top: 1px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.appointmentAction:disabled .appointmentActionCopy span {
+  color: var(--color-text-disabled);
 }
 
 .successBanner {
@@ -909,8 +1014,11 @@
     padding-inline: 10px;
   }
 
-  .newAppointment {
+  .newAppointmentMenu {
     margin-left: auto;
+  }
+
+  .newAppointment {
     padding-inline: 16px;
   }
 
@@ -953,6 +1061,8 @@
   .calendarDay .dayCircle,
   .monthNavigation,
   .newAppointment,
+  .menuChevron,
+  .appointmentAction,
   .freeSlot,
   .openPatientRecord {
     transition: none;
