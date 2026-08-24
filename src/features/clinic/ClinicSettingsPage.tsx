@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ApiError } from "../../api/client";
 import type { Clinic, ClinicPlan } from "../../api/types";
@@ -9,6 +10,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
 import { Field, SelectField } from "../../components/Field";
+import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
 import styles from "./SettingsLayout.module.css";
@@ -18,8 +20,10 @@ const clinicSchema = z.object({
   phone: z
     .string()
     .trim()
-    .min(10, "Informe o telefone da clínica.")
-    .max(30),
+    .refine(
+      (value) => isPossiblePhoneNumber(value),
+      "Informe um telefone válido para o país selecionado.",
+    ),
   address: z.string().trim().min(5, "Informe o endereço da clínica.").max(300),
   timeZoneId: z.string().min(1),
   defaultAppointmentDurationMinutes: z.number().min(5).max(480),
@@ -38,10 +42,20 @@ export function ClinicSettingsPage() {
   });
   const {
     register,
+    control,
     reset,
     handleSubmit,
     formState: { errors },
-  } = useForm<ClinicForm>({ resolver: zodResolver(clinicSchema) });
+  } = useForm<ClinicForm>({
+    resolver: zodResolver(clinicSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      address: "",
+      timeZoneId: "America/Sao_Paulo",
+      defaultAppointmentDurationMinutes: 30,
+    },
+  });
 
   useEffect(() => {
     if (query.data) {
@@ -116,12 +130,22 @@ export function ClinicSettingsPage() {
                   error={errors.name?.message}
                   {...register("name")}
                 />
-                <Field
-                  label="Telefone"
-                  type="tel"
-                  placeholder="+55 11 3000-0000"
-                  error={errors.phone?.message}
-                  {...register("phone")}
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <InternationalPhoneField
+                      ref={field.ref}
+                      name={field.name}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      label="Telefone"
+                      countrySelectLabel="País ou região do telefone"
+                      hint="Selecione o país e digite o número com DDD."
+                      error={errors.phone?.message}
+                    />
+                  )}
                 />
                 <SelectField
                   label="Fuso horário"
