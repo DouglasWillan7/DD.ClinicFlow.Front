@@ -68,14 +68,14 @@ O cadastro exige que a equipe digite manualmente DDI, DDD e telefone sem formata
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| PHONE-01 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-02 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-03 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-04 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-05 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-06 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-07 | P1: Informar telefone internacional | Execute | Implementing |
-| PHONE-08 | P1: Informar telefone internacional | Execute | Implementing |
+| PHONE-01 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-02 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-03 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-04 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-05 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-06 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-07 | P1: Informar telefone internacional | Execute | Verified |
+| PHONE-08 | P1: Informar telefone internacional | Execute | Verified |
 
 **Coverage:** 8 total, 8 mapped to the implicit execution plan, 0 unmapped.
 
