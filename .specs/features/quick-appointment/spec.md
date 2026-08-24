@@ -73,10 +73,10 @@ A recepção precisa encaixar um atendimento no primeiro horário livre do médi
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| QRAP-01 | P1: Action menu | Execute | Implementing |
-| QRAP-02 | P1: Standard scheduling remains available | Design | Pending |
-| QRAP-03 | P1: Quick route context | Design | Pending |
-| QRAP-04 | P1: Missing doctor | Execute | Implementing |
+| QRAP-01 | P1: Action menu | Execute | Verified |
+| QRAP-02 | P1: Standard scheduling remains available | Execute | Verified |
+| QRAP-03 | P1: Quick route context | Execute | Verified |
+| QRAP-04 | P1: Missing doctor | Execute | Verified |
 | QRAP-05 | P1: Availability window | Design | Pending |
 | QRAP-06 | P1: Earliest slot | Design | Pending |
 | QRAP-07 | P1: Default and editable type | Design | Pending |
@@ -86,12 +86,12 @@ A recepção precisa encaixar um atendimento no primeiro horário livre do médi
 | QRAP-11 | P1: No availability | Design | Pending |
 | QRAP-12 | P1: Availability failure | Design | Pending |
 | QRAP-13 | P1: Conflict recovery | Design | Pending |
-| QRAP-14 | P1: Accessible menu | Execute | Implementing |
+| QRAP-14 | P1: Accessible menu | Execute | Verified |
 | QRAP-15 | Edge: Unordered response | Design | Pending |
 | QRAP-16 | Edge: Patient creation return | Design | Pending |
 | QRAP-17 | Edge: No off-schedule fallback | Design | Pending |
 
-**Coverage:** 17 total, 0 verified, 17 pending.
+**Coverage:** 17 total, 5 verified, 12 pending.
 
 ## Success Criteria
 

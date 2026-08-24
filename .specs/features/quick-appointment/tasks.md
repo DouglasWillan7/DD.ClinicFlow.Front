@@ -90,12 +90,12 @@ T2 → T3 → T4
 
 **Done when**:
 
-- [ ] The trigger exposes expanded state and the menu has two named actions.
-- [ ] Standard action preserves the existing URL.
-- [ ] Quick action includes `mode=quick`, active date, doctor and origin when applicable.
-- [ ] Missing doctor disables quick action with an explicit reason.
-- [ ] Escape closes the menu and restores trigger focus.
-- [ ] Unit gate passes with all menu paths asserted.
+- [x] The trigger exposes expanded state and the menu has two named actions.
+- [x] Standard action preserves the existing URL.
+- [x] Quick action includes `mode=quick`, active date, doctor and origin when applicable.
+- [x] Missing doctor disables quick action with an explicit reason.
+- [x] Escape closes the menu and restores trigger focus.
+- [x] Unit gate passes with all menu paths asserted.
 
 **Tests**: unit in `src/features/appointments/AgendaPage.test.tsx`
 **Gate**: quick

@@ -8,8 +8,14 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
-import { CheckCircle2, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  CalendarPlus,
+  CheckCircle2,
+  ChevronDown,
+  Plus,
+  Zap,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Appointment,
   AvailabilitySlot,
@@ -76,6 +82,9 @@ export function AgendaPage({
   const [showCreated, setShowCreated] = useState(
     () => params.get("created") === "true",
   );
+  const [appointmentMenuOpen, setAppointmentMenuOpen] = useState(false);
+  const appointmentMenuRef = useRef<HTMLDivElement>(null);
+  const appointmentMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const createdId = parseGuid(params.get("appointmentId"));
   // O médico ativo mora na URL: a busca global da topbar escreve `?doctorId=`,
   // a página lê, e um link compartilhado abre exatamente a mesma agenda.
@@ -177,6 +186,34 @@ export function AgendaPage({
     return () => window.clearTimeout(timeout);
   }, [setParams, showCreated]);
 
+  useEffect(() => {
+    if (!appointmentMenuOpen) return;
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        appointmentMenuRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setAppointmentMenuOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setAppointmentMenuOpen(false);
+      appointmentMenuTriggerRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [appointmentMenuOpen]);
+
   const doctorAppointments = useMemo(
     () =>
       (appointments.data ?? []).filter(
@@ -257,9 +294,19 @@ export function AgendaPage({
 
   /** Sem slot, a nova consulta começa no horário em branco; o médico ativo já vai junto. */
   function bookSlot(slot: AvailabilitySlot | null) {
+    setAppointmentMenuOpen(false);
     const booking = new URLSearchParams({ date: day });
     if (doctor) booking.set("doctorId", doctor.userId);
     if (slot) booking.set("time", slot.label);
+    navigate(`/app/agenda/nova?${booking.toString()}`);
+  }
+
+  function bookQuickAppointment() {
+    if (!doctor) return;
+    setAppointmentMenuOpen(false);
+    const booking = new URLSearchParams({ date: day });
+    booking.set("doctorId", doctor.userId);
+    booking.set("mode", "quick");
     navigate(`/app/agenda/nova?${booking.toString()}`);
   }
 
@@ -334,16 +381,72 @@ export function AgendaPage({
           ))}
         </div>
 
-        <button
-          type="button"
-          className={styles.newAppointment}
-          onClick={() => bookSlot(null)}
-        >
-          <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
-          {doctor && !personalAgenda
-            ? `Nova consulta · ${getShortDoctorName(doctor)}`
-            : "Nova consulta"}
-        </button>
+        <div ref={appointmentMenuRef} className={styles.newAppointmentMenu}>
+          <button
+            ref={appointmentMenuTriggerRef}
+            type="button"
+            className={styles.newAppointment}
+            aria-haspopup="menu"
+            aria-expanded={appointmentMenuOpen}
+            aria-controls="new-appointment-actions"
+            onClick={() => setAppointmentMenuOpen((open) => !open)}
+          >
+            <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
+            {doctor && !personalAgenda
+              ? `Nova consulta · ${getShortDoctorName(doctor)}`
+              : "Nova consulta"}
+            <ChevronDown
+              size={15}
+              strokeWidth={1.8}
+              className={styles.menuChevron}
+              aria-hidden="true"
+            />
+          </button>
+
+          {appointmentMenuOpen ? (
+            <div
+              id="new-appointment-actions"
+              className={styles.appointmentActions}
+              role="menu"
+              aria-label="Nova consulta"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.appointmentAction}
+                onClick={() => bookSlot(null)}
+              >
+                <span className={styles.appointmentActionIcon} aria-hidden="true">
+                  <CalendarPlus size={18} strokeWidth={1.8} />
+                </span>
+                <span className={styles.appointmentActionCopy}>
+                  <strong>Agendar consulta</strong>
+                  <span>Escolha paciente, data e horário.</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.appointmentAction}
+                disabled={!doctor}
+                onClick={bookQuickAppointment}
+              >
+                <span className={styles.appointmentActionIcon} aria-hidden="true">
+                  <Zap size={18} strokeWidth={1.8} />
+                </span>
+                <span className={styles.appointmentActionCopy}>
+                  <strong>Consulta rápida</strong>
+                  <span>
+                    {doctor
+                      ? `Use o próximo horário livre de ${getShortDoctorName(doctor)}.`
+                      : "Selecione um médico para usar este atalho."}
+                  </span>
+                </span>
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {showCreated ? (

@@ -222,7 +222,31 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("abre a página dedicada já vinculada ao médico ativo", async () => {
+test("abre o menu e mantém o agendamento completo vinculado ao médico ativo", async () => {
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  const trigger = await screen.findByRole("button", {
+    name: "Nova consulta · Dra. Helena",
+  });
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+  await user.click(trigger);
+
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("menu", { name: "Nova consulta" })).toBeVisible();
+  await user.click(screen.getByRole("menuitem", { name: /Agendar consulta/ }));
+
+  expect(`${window.location.pathname}${window.location.search}`).toBe(
+    `/app/agenda/nova?date=2026-08-10&doctorId=${doctorId}`,
+  );
+});
+
+test("abre a consulta rápida com data e médico ativos", async () => {
   const user = userEvent.setup();
   render(
     <QueryHarness>
@@ -233,10 +257,59 @@ test("abre a página dedicada já vinculada ao médico ativo", async () => {
   await user.click(
     await screen.findByRole("button", { name: "Nova consulta · Dra. Helena" }),
   );
+  await user.click(screen.getByRole("menuitem", { name: /Consulta rápida/ }));
 
   expect(`${window.location.pathname}${window.location.search}`).toBe(
-    `/app/agenda/nova?date=2026-08-10&doctorId=${doctorId}`,
+    `/app/agenda/nova?date=2026-08-10&doctorId=${doctorId}&mode=quick`,
   );
+});
+
+test("fecha o menu com Escape e devolve o foco ao gatilho", async () => {
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  const trigger = await screen.findByRole("button", {
+    name: "Nova consulta · Dra. Helena",
+  });
+  await user.click(trigger);
+  expect(screen.getByRole("menu", { name: "Nova consulta" })).toBeVisible();
+
+  await user.keyboard("{Escape}");
+
+  expect(screen.queryByRole("menu", { name: "Nova consulta" })).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveFocus();
+});
+
+test("desabilita a consulta rápida e explica quando não há médico ativo", async () => {
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return [];
+    if (path.startsWith("/appointments?")) return [];
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Nova consulta" }),
+  );
+
+  expect(
+    screen.getByRole("menuitem", { name: /Consulta rápida/ }),
+  ).toBeDisabled();
+  expect(screen.getByText("Selecione um médico para usar este atalho.")).toBeVisible();
+  expect(
+    screen.getByRole("menuitem", { name: /Agendar consulta/ }),
+  ).toBeEnabled();
 });
 
 test("apresenta o médico ativo com especialidade, dia e horários livres", async () => {
