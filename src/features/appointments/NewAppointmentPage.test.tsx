@@ -239,6 +239,320 @@ test("confirma seleção completa e retorna para a consulta criada", async () =>
   expect(sessionStorage.getItem(draftKey)).toBeNull();
 });
 
+test("consulta rápida busca 62 dias no fuso da clínica e agenda o menor startUtc", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?date=2026-08-10&patientId=${patientId}&doctorId=${doctorId}&mode=quick`,
+  );
+  const quickClinic = {
+    ...clinic,
+    timeZoneId: "Pacific/Kiritimati",
+  };
+  const unorderedAvailability: DoctorAvailability = {
+    ...availability,
+    timeZoneId: quickClinic.timeZoneId,
+    days: [
+      {
+        date: "2026-08-11",
+        status: "Available",
+        slots: [
+          {
+            startUtc: "2026-08-10T22:00:00Z",
+            endUtc: "2026-08-10T22:30:00Z",
+            label: "12:00",
+          },
+        ],
+      },
+      availability.days[0],
+    ],
+  };
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path === "/clinics/current") return quickClinic;
+    if (path === "/clinics/members") return members;
+    if (path === `/patients/${patientId}`) return patient;
+    if (
+      path ===
+      `/doctors/${doctorId}/availability?from=2026-08-07&to=2026-10-07`
+    ) {
+      return unorderedAvailability;
+    }
+    if (path === "/appointments" && init?.method === "POST") {
+      return createdAppointment;
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "Consulta rápida" }),
+  ).toBeVisible();
+  await waitFor(() =>
+    expect(requestMock).toHaveBeenCalledWith(
+      `/doctors/${doctorId}/availability?from=2026-08-07&to=2026-10-07`,
+    ),
+  );
+  expect(
+    screen.getByRole("button", { name: "Presencial", pressed: true }),
+  ).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Teleconsulta" }));
+  expect(
+    screen.getByRole("button", { name: "Teleconsulta", pressed: true }),
+  ).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Presencial" }));
+  expect(screen.queryByRole("table", { name: /Calendário/ })).not.toBeInTheDocument();
+  const summary = screen
+    .getByRole("heading", { name: "Resumo" })
+    .closest("section")!;
+  expect(await within(summary).findByText("10 de agosto de 2026")).toBeVisible();
+  expect(within(summary).getByText("09:00")).toBeVisible();
+
+  await user.click(
+    screen.getByRole("button", { name: "Confirmar agendamento" }),
+  );
+
+  expect(requestMock).toHaveBeenCalledWith("/appointments", {
+    method: "POST",
+    body: JSON.stringify({
+      patientId,
+      doctorUserId: doctorId,
+      startUtc: availability.days[0].slots[0].startUtc,
+      type: "InPerson",
+      notes: null,
+    }),
+  });
+  expect(navigateMock).toHaveBeenCalledWith(
+    `/app/agenda?date=2026-08-10&doctorId=${doctorId}&appointmentId=${appointmentId}&created=true`,
+  );
+});
+
+test("consulta rápida recalcula o primeiro horário ao trocar de médico", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?doctorId=${doctorId}&mode=quick`,
+  );
+  const secondAvailability: DoctorAvailability = {
+    ...availability,
+    doctorUserId: secondDoctorId,
+    days: [
+      {
+        date: "2026-08-09",
+        status: "Available",
+        slots: [
+          {
+            startUtc: "2026-08-09T12:30:00Z",
+            endUtc: "2026-08-09T13:00:00Z",
+            label: "09:30",
+          },
+        ],
+      },
+    ],
+  };
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    if (path.startsWith(`/doctors/${secondDoctorId}/availability`)) {
+      return secondAvailability;
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  const summary = (
+    await screen.findByRole("heading", { name: "Resumo" })
+  ).closest("section")!;
+  expect(await within(summary).findByText("09:00")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: /Dr\. Paulo Nunes/ }));
+
+  expect(await within(summary).findByText("Dr. Paulo Nunes")).toBeVisible();
+  expect(await within(summary).findByText("9 de agosto de 2026")).toBeVisible();
+  expect(within(summary).getByText("09:30")).toBeVisible();
+  expect(within(summary).queryByText("09:00")).not.toBeInTheDocument();
+});
+
+test("consulta rápida não cria encaixe quando faltam horários em 62 dias", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?doctorId=${doctorId}&mode=quick`,
+  );
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) {
+      return { ...availability, days: [] } satisfies DoctorAvailability;
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByText("Nenhum horário livre nos próximos 62 dias."),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Confirmar agendamento" }),
+  ).toBeDisabled();
+  expect(screen.queryByRole("table", { name: /Calendário/ })).not.toBeInTheDocument();
+});
+
+test("consulta rápida recupera a falha ao buscar o próximo horário", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?doctorId=${doctorId}&mode=quick`,
+  );
+  let availabilityAttempts = 0;
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) {
+      availabilityAttempts += 1;
+      if (availabilityAttempts === 1) throw new Error("offline");
+      return availability;
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Não foi possível buscar o próximo horário livre.",
+  );
+  await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+  const summary = screen
+    .getByRole("heading", { name: "Resumo" })
+    .closest("section")!;
+  expect(await within(summary).findByText("09:00")).toBeVisible();
+  expect(availabilityAttempts).toBe(2);
+});
+
+test("consulta rápida atualiza o horário depois de conflito sem sair do modo", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?patientId=${patientId}&doctorId=${doctorId}&mode=quick`,
+  );
+  const nextAvailability: DoctorAvailability = {
+    ...availability,
+    days: [
+      {
+        date: "2026-08-11",
+        status: "Available",
+        slots: [
+          {
+            startUtc: "2026-08-11T13:00:00Z",
+            endUtc: "2026-08-11T13:30:00Z",
+            label: "10:00",
+          },
+        ],
+      },
+    ],
+  };
+  let availabilityRequests = 0;
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path === `/patients/${patientId}`) return patient;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) {
+      availabilityRequests += 1;
+      return availabilityRequests === 1 ? availability : nextAvailability;
+    }
+    if (path === "/appointments" && init?.method === "POST") {
+      throw new ApiError("Horário ocupado", 409);
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Confirmar agendamento" }),
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Horário ocupado");
+  const summary = screen
+    .getByRole("heading", { name: "Resumo" })
+    .closest("section")!;
+  expect(await within(summary).findByText("10:00")).toBeVisible();
+  expect(within(summary).getByText("11 de agosto de 2026")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Consulta rápida" })).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Confirmar agendamento" }),
+  ).toBeEnabled();
+  expect(availabilityRequests).toBe(2);
+  expect(navigateMock).not.toHaveBeenCalled();
+});
+
+test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?patientId=${patientId}&doctorId=${doctorId}&mode=quick`,
+  );
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path === `/patients/${patientId}`) return patient;
+    if (path === "/patients?includeInactive=false") return [patient];
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  await user.click(await screen.findByRole("button", { name: "Trocar paciente" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Cadastrar novo paciente" }),
+  );
+
+  expect(JSON.parse(sessionStorage.getItem(draftKey)!)).toEqual({
+    version: 1,
+    patientId,
+    doctorId,
+    type: "InPerson",
+    date: "2026-08-10",
+  });
+  expect(navigateMock).toHaveBeenCalledWith(
+    "/app/pacientes/novo?returnTo=%2Fapp%2Fagenda%2Fnova%3Fdate%3D2026-08-10%26mode%3Dquick",
+  );
+});
+
 test("retorna ao Início quando a consulta parte da agenda pessoal", async () => {
   activeSession = {
     ...session,

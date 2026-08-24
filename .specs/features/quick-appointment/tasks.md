@@ -115,13 +115,13 @@ T2 → T3 → T4
 
 **Done when**:
 
-- [ ] Query spans the clinic-local current day plus 61 days.
-- [ ] Lowest `startUtc` is selected across unordered days and recalculated per doctor.
-- [ ] Presential starts selected and remains editable.
-- [ ] Calendar and manual slot grid are replaced by a clear next-slot state.
-- [ ] Empty, error, retry and conflict states preserve the quick flow.
-- [ ] Patient creation return preserves `mode=quick`.
-- [ ] Unit gate passes with each quick branch asserted.
+- [x] Query spans the clinic-local current day plus 61 days.
+- [x] Lowest `startUtc` is selected across unordered days and recalculated per doctor.
+- [x] Presential starts selected and remains editable.
+- [x] Calendar and manual slot grid are replaced by a clear next-slot state.
+- [x] Empty, error, retry and conflict states preserve the quick flow.
+- [x] Patient creation return preserves `mode=quick`.
+- [x] Unit gate passes with each quick branch asserted.
 
 **Tests**: unit in `src/features/appointments/NewAppointmentPage.test.tsx`
 **Gate**: quick

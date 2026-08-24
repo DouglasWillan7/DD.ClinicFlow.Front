@@ -4,7 +4,8 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { addDays, endOfMonth, format, startOfMonth } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { Check, ChevronLeft, MapPin, Video } from "lucide-react";
 import {
   useEffect,
@@ -98,12 +99,28 @@ function getErrorMessage(error: unknown) {
     : "Não foi possível criar a consulta. Tente novamente.";
 }
 
+function findEarliestSlot(availability: DoctorAvailability | undefined) {
+  if (!availability) return null;
+
+  return (
+    availability.days
+      .flatMap((day) =>
+        day.slots.map((slot) => ({ date: day.date, slot })),
+      )
+      .sort(
+        (first, second) =>
+          Date.parse(first.slot.startUtc) - Date.parse(second.slot.startUtc),
+      )[0] ?? null
+  );
+}
+
 export function NewAppointmentPage() {
   const { request, session } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const authScope = session ? getAuthScope(session) : "";
+  const quickMode = params.get("mode") === "quick";
   const openedFromHome =
     params.get("origin") === "home" && hasRole(session, "Doctor");
   const [restoredDraft] = useState(() =>
@@ -123,7 +140,7 @@ export function NewAppointmentPage() {
   );
   const [selection, dispatch] = useReducer(selectionReducer, {
     ...emptyNewAppointmentSelection,
-    type: restoredDraft?.type ?? null,
+    type: restoredDraft?.type ?? (quickMode ? "InPerson" : null),
   });
   const selectionRevision = useRef(0);
   const latestSelection = useRef(selection);
@@ -133,6 +150,7 @@ export function NewAppointmentPage() {
     (_current: string | null, next: string | null) => next,
     null,
   );
+  const [quickRefreshPending, setQuickRefreshPending] = useState(false);
   const patientParamGeneration = useRef(requestedPatientId);
   const pendingPatientHydration = useRef(requestedPatientId);
   const restoredDoctor = useRef(false);
@@ -197,16 +215,24 @@ export function NewAppointmentPage() {
 
   const monthFrom = format(startOfMonth(month), "yyyy-MM-dd");
   const monthTo = format(endOfMonth(month), "yyyy-MM-dd");
+  const clinicToday = clinic.data
+    ? formatInTimeZone(new Date(), clinic.data.timeZoneId, "yyyy-MM-dd")
+    : null;
+  const quickTo = clinicToday
+    ? format(addDays(parseDateOnly(clinicToday)!, 61), "yyyy-MM-dd")
+    : null;
+  const availabilityFrom = quickMode ? clinicToday : monthFrom;
+  const availabilityTo = quickMode ? quickTo : monthTo;
   const availabilityKey: QueryKey = [
     "new-appointment",
     authScope,
     "availability",
     selection.doctor?.userId,
-    monthFrom,
-    monthTo,
+    availabilityFrom,
+    availabilityTo,
   ];
-  const availabilityPath = selection.doctor
-    ? `/doctors/${encodeURIComponent(selection.doctor.userId)}/availability?from=${monthFrom}&to=${monthTo}`
+  const availabilityPath = selection.doctor && availabilityFrom && availabilityTo
+    ? `/doctors/${encodeURIComponent(selection.doctor.userId)}/availability?from=${availabilityFrom}&to=${availabilityTo}`
     : null;
   const availability = useQuery({
     queryKey: availabilityKey,
@@ -216,7 +242,7 @@ export function NewAppointmentPage() {
   });
 
   useEffect(() => {
-    if (restoredDate.current || !availability.data) return;
+    if (quickMode || restoredDate.current || !availability.data) return;
     restoredDate.current = true;
     // O dia só vem pronto da URL quando a agenda mandou um horário específico.
     const wantedDate = contextTime ? contextDate : restoredDraft?.date;
@@ -234,11 +260,12 @@ export function NewAppointmentPage() {
     contextDate,
     contextTime,
     dispatchSelection,
+    quickMode,
     restoredDraft,
   ]);
 
   useEffect(() => {
-    if (!selection.slot || !availability.data) return;
+    if (quickMode || !selection.slot || !availability.data) return;
     const stillAvailable = availability.data.days.some((day) =>
       day.slots.some((slot) => slot.startUtc === selection.slot?.startUtc),
     );
@@ -248,7 +275,49 @@ export function NewAppointmentPage() {
         "O horário selecionado não está mais disponível. Escolha outro.",
       );
     }
-  }, [availability.data, dispatchSelection, selection.slot]);
+  }, [availability.data, dispatchSelection, quickMode, selection.slot]);
+
+  const quickSlot = useMemo(
+    () => (quickMode ? findEarliestSlot(availability.data) : null),
+    [availability.data, quickMode],
+  );
+
+  useEffect(() => {
+    if (
+      !quickMode ||
+      !availability.data ||
+      availability.isError ||
+      quickRefreshPending
+    ) {
+      return;
+    }
+
+    if (!quickSlot) {
+      if (selection.date || selection.slot) {
+        dispatchSelection({ type: "date", date: null });
+      }
+      return;
+    }
+
+    if (
+      selection.date === quickSlot.date &&
+      selection.slot?.startUtc === quickSlot.slot.startUtc
+    ) {
+      return;
+    }
+
+    dispatchSelection({ type: "date", date: quickSlot.date });
+    dispatchSelection({ type: "slot", slot: quickSlot.slot });
+  }, [
+    availability.data,
+    availability.isError,
+    dispatchSelection,
+    quickMode,
+    quickRefreshPending,
+    quickSlot,
+    selection.date,
+    selection.slot,
+  ]);
 
   const selectedDay = useMemo(
     () =>
@@ -290,6 +359,7 @@ export function NewAppointmentPage() {
       if (error instanceof ApiError && error.status === 409) {
         if (attemptIsStillActive) {
           dispatchSelection({ type: "slot", slot: null });
+          if (quickMode) setQuickRefreshPending(true);
         }
         void queryClient
           .invalidateQueries({
@@ -305,7 +375,12 @@ export function NewAppointmentPage() {
               staleTime: 0,
             }),
           )
-          .catch(() => undefined);
+          .catch(() => undefined)
+          .finally(() => {
+            if (attemptIsStillActive && quickMode) {
+              setQuickRefreshPending(false);
+            }
+          });
       }
     },
   });
@@ -323,6 +398,7 @@ export function NewAppointmentPage() {
     const returnParams = new URLSearchParams();
     const returnDate = selection.date ?? contextDate;
     if (returnDate) returnParams.set("date", returnDate);
+    if (quickMode) returnParams.set("mode", "quick");
     if (openedFromHome) returnParams.set("origin", "home");
     const returnQuery = returnParams.toString();
     const returnTo = `/app/agenda/nova${returnQuery ? `?${returnQuery}` : ""}`;
@@ -365,7 +441,9 @@ export function NewAppointmentPage() {
         <span className={styles.breadcrumbSeparator} aria-hidden="true">
           ›
         </span>
-        <h1 className={styles.breadcrumbCurrent}>Nova consulta</h1>
+        <h1 className={styles.breadcrumbCurrent}>
+          {quickMode ? "Consulta rápida" : "Nova consulta"}
+        </h1>
       </nav>
 
       {loadingResources ? (
@@ -400,6 +478,7 @@ export function NewAppointmentPage() {
               onSearchChange={setDoctorSearch}
               onDoctorChange={(doctor) => {
                 setConfirmError(null);
+                setQuickRefreshPending(false);
                 dispatchSelection({ type: "doctor", doctor });
               }}
             />
@@ -448,7 +527,46 @@ export function NewAppointmentPage() {
           </div>
 
           <div className={styles.bookingColumn}>
-            {!selection.doctor ? (
+            {quickMode ? (
+              !selection.doctor ? (
+                <section
+                  className={styles.card}
+                  aria-labelledby="quick-slot-title"
+                >
+                  <h2 id="quick-slot-title" className={styles.cardTitle}>
+                    Próximo horário livre
+                  </h2>
+                  <p className={styles.emptyMessage} role="status">
+                    Selecione um médico para buscar o próximo horário livre.
+                  </p>
+                </section>
+              ) : availability.isPending || quickRefreshPending ? (
+                <section className={styles.card} aria-label="Próximo horário livre">
+                  <LoadingBlock label="Buscando o próximo horário livre…" />
+                </section>
+              ) : availability.isError || !availability.data ? (
+                <section className={styles.card} aria-label="Próximo horário livre">
+                  <ErrorBlock
+                    message="Não foi possível buscar o próximo horário livre."
+                    retry={() => void availability.refetch()}
+                  />
+                </section>
+              ) : (
+                <section
+                  className={styles.card}
+                  aria-labelledby="quick-slot-title"
+                >
+                  <h2 id="quick-slot-title" className={styles.cardTitle}>
+                    Próximo horário livre
+                  </h2>
+                  <p className={styles.emptyMessage} role="status">
+                    {quickSlot
+                      ? "O primeiro horário disponível já foi selecionado para você."
+                      : "Nenhum horário livre nos próximos 62 dias."}
+                  </p>
+                </section>
+              )
+            ) : !selection.doctor ? (
               <section className={styles.card} aria-labelledby="date-title">
                 <h2 id="date-title" className={styles.cardTitle}>
                   Data
@@ -482,15 +600,17 @@ export function NewAppointmentPage() {
               />
             )}
 
-            <TimeSlotPicker
-              slots={selectedDay?.slots ?? []}
-              selectedStartUtc={selection.slot?.startUtc ?? null}
-              disabled={!selection.doctor || !selection.date}
-              onChange={(slot) => {
-                setConfirmError(null);
-                dispatchSelection({ type: "slot", slot });
-              }}
-            />
+            {quickMode ? null : (
+              <TimeSlotPicker
+                slots={selectedDay?.slots ?? []}
+                selectedStartUtc={selection.slot?.startUtc ?? null}
+                disabled={!selection.doctor || !selection.date}
+                onChange={(slot) => {
+                  setConfirmError(null);
+                  dispatchSelection({ type: "slot", slot });
+                }}
+              />
+            )}
 
             <AppointmentSummary
               selection={selection}

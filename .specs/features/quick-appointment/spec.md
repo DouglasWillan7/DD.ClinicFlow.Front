@@ -77,21 +77,21 @@ A recepção precisa encaixar um atendimento no primeiro horário livre do médi
 | QRAP-02 | P1: Standard scheduling remains available | Execute | Verified |
 | QRAP-03 | P1: Quick route context | Execute | Verified |
 | QRAP-04 | P1: Missing doctor | Execute | Verified |
-| QRAP-05 | P1: Availability window | Design | Pending |
-| QRAP-06 | P1: Earliest slot | Design | Pending |
-| QRAP-07 | P1: Default and editable type | Design | Pending |
-| QRAP-08 | P1: Doctor recalculation | Design | Pending |
-| QRAP-09 | P1: Existing appointment payload | Design | Pending |
-| QRAP-10 | P1: Success destination | Design | Pending |
-| QRAP-11 | P1: No availability | Design | Pending |
-| QRAP-12 | P1: Availability failure | Design | Pending |
-| QRAP-13 | P1: Conflict recovery | Design | Pending |
+| QRAP-05 | P1: Availability window | Execute | Verified |
+| QRAP-06 | P1: Earliest slot | Execute | Verified |
+| QRAP-07 | P1: Default and editable type | Execute | Verified |
+| QRAP-08 | P1: Doctor recalculation | Execute | Verified |
+| QRAP-09 | P1: Existing appointment payload | Execute | Verified |
+| QRAP-10 | P1: Success destination | Execute | Verified |
+| QRAP-11 | P1: No availability | Execute | Verified |
+| QRAP-12 | P1: Availability failure | Execute | Verified |
+| QRAP-13 | P1: Conflict recovery | Execute | Verified |
 | QRAP-14 | P1: Accessible menu | Execute | Verified |
-| QRAP-15 | Edge: Unordered response | Design | Pending |
-| QRAP-16 | Edge: Patient creation return | Design | Pending |
-| QRAP-17 | Edge: No off-schedule fallback | Design | Pending |
+| QRAP-15 | Edge: Unordered response | Execute | Verified |
+| QRAP-16 | Edge: Patient creation return | Execute | Verified |
+| QRAP-17 | Edge: No off-schedule fallback | Execute | Verified |
 
-**Coverage:** 17 total, 5 verified, 12 pending.
+**Coverage:** 17 total, 17 verified, 0 pending.
 
 ## Success Criteria
 
