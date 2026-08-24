@@ -520,22 +520,37 @@ test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", asy
     "",
     `/app/agenda/nova?patientId=${patientId}&doctorId=${doctorId}&mode=quick`,
   );
-  requestMock = vi.fn(async (path: string) => {
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
     if (path === "/clinics/members") return members;
     if (path === `/patients/${patientId}`) return patient;
+    if (path === `/patients/${secondPatientId}`) return secondPatient;
     if (path === "/patients?includeInactive=false") return [patient];
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    if (path === "/appointments" && init?.method === "POST") {
+      return {
+        ...createdAppointment,
+        patientId: secondPatientId,
+        patientName: secondPatient.name,
+        type: "Teleconsultation",
+      };
+    }
     throw new Error(`Unexpected request: ${path}`);
   });
   const user = userEvent.setup();
 
-  render(
+  const initialView = render(
     <QueryHarness>
       <NewAppointmentPage />
     </QueryHarness>,
   );
 
+  await user.click(
+    await screen.findByRole("button", { name: "Teleconsulta" }),
+  );
+  expect(
+    screen.getByRole("button", { name: "Teleconsulta", pressed: true }),
+  ).toBeVisible();
   await user.click(await screen.findByRole("button", { name: "Trocar paciente" }));
   await user.click(
     await screen.findByRole("button", { name: "Cadastrar novo paciente" }),
@@ -545,11 +560,62 @@ test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", asy
     version: 1,
     patientId,
     doctorId,
-    type: "InPerson",
+    type: "Teleconsultation",
     date: "2026-08-10",
   });
   expect(navigateMock).toHaveBeenCalledWith(
     "/app/pacientes/novo?returnTo=%2Fapp%2Fagenda%2Fnova%3Fdate%3D2026-08-10%26mode%3Dquick",
+  );
+
+  initialView.unmount();
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?date=2026-08-10&mode=quick&patientId=${secondPatientId}`,
+  );
+  navigateMock.mockClear();
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "Consulta rápida" }),
+  ).toBeVisible();
+  expect(
+    await screen.findByRole("button", {
+      name: "Teleconsulta",
+      pressed: true,
+    }),
+  ).toBeVisible();
+  const summary = screen
+    .getByRole("heading", { name: "Resumo" })
+    .closest("section")!;
+  expect(await within(summary).findByText(secondPatient.name)).toBeVisible();
+  expect(within(summary).getByText("Dra. Helena Costa")).toBeVisible();
+  expect(within(summary).getByText("Teleconsulta")).toBeVisible();
+  expect(await within(summary).findByText("09:00")).toBeVisible();
+  expect(within(summary).getByText("10 de agosto de 2026")).toBeVisible();
+
+  const confirm = screen.getByRole("button", {
+    name: "Confirmar agendamento",
+  });
+  expect(confirm).toBeEnabled();
+  await user.click(confirm);
+
+  expect(requestMock).toHaveBeenCalledWith("/appointments", {
+    method: "POST",
+    body: JSON.stringify({
+      patientId: secondPatientId,
+      doctorUserId: doctorId,
+      startUtc: availability.days[0].slots[0].startUtc,
+      type: "Teleconsultation",
+      notes: null,
+    }),
+  });
+  expect(navigateMock).toHaveBeenCalledWith(
+    `/app/agenda?date=2026-08-10&doctorId=${doctorId}&appointmentId=${appointmentId}&created=true`,
   );
 });
 

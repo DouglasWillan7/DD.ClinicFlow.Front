@@ -47,7 +47,7 @@ T1 → T2
 ### Phase 2: Quick scheduling
 
 ```
-T2 → T3 → T4
+T2 → T3 → T4 → T5
 ```
 
 ## Task Breakdown
@@ -150,13 +150,36 @@ T2 → T3 → T4
 **Tests**: e2e in `e2e/agenda.spec.ts`
 **Gate**: build
 
+### T5: Prove patient-registration round-trip restoration
+
+**What**: Extend the quick-mode unit journey through the return from patient registration and final confirmation.
+**Where**: `src/features/appointments/NewAppointmentPage.test.tsx`
+**Depends on**: T4
+**Reuses**: Scoped appointment draft, patient hydration, automatic availability selection, and existing payload assertion pattern.
+**Requirement**: QRAP-16
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `tlc-spec-driven`
+
+**Done when**:
+
+- [x] The test remounts quick mode with the newly created patient ID after registration.
+- [x] The restored doctor, non-default type, and automatic earliest slot are asserted together.
+- [x] Confirmation sends the complete existing payload with the new patient and restored choices.
+- [x] The unit and build gates pass without skipped or deleted tests.
+
+**Tests**: unit in `src/features/appointments/NewAppointmentPage.test.tsx`
+**Gate**: build
+
 ## Phase Execution Map
 
 ```
 Phase 1 → Phase 2
 
 Phase 1: T1 → T2
-Phase 2: T3 → T4
+Phase 2: T3 → T4 → T5
 ```
 
 ## Task Granularity Check
@@ -167,6 +190,7 @@ Phase 2: T3 → T4
 | T2 | One page interaction | ✅ Granular |
 | T3 | One page mode | ✅ Granular |
 | T4 | One E2E journey | ✅ Granular |
+| T5 | One unit round-trip | ✅ Granular |
 
 ## Diagram-Definition Cross-Check
 
@@ -176,6 +200,7 @@ Phase 2: T3 → T4
 | T2 | T1 | T1 → T2 | ✅ Match |
 | T3 | T2 | Phase 1 → Phase 2 and T2 → T3 | ✅ Match |
 | T4 | T3 | T3 → T4 | ✅ Match |
+| T5 | T4 | T4 → T5 | ✅ Match |
 
 ## Test Co-location Validation
 
@@ -185,3 +210,4 @@ Phase 2: T3 → T4
 | T2 | Agenda interaction | unit | unit | ✅ OK |
 | T3 | Quick selection logic | unit | unit | ✅ OK |
 | T4 | Critical scheduling flow | e2e | e2e | ✅ OK |
+| T5 | Quick selection logic | unit | unit | ✅ OK |
