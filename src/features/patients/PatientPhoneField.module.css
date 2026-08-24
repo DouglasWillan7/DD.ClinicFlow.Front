@@ -1,0 +1,114 @@
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.control {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.control:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.invalid {
+  border-color: var(--color-attention);
+}
+
+.countryPicker {
+  position: relative;
+  display: flex;
+  min-width: 108px;
+  align-items: stretch;
+}
+
+.countryValue {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px 0 12px;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.countryValue svg {
+  color: var(--color-text-muted);
+}
+
+.flag {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.countryPicker select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 44px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.divider {
+  width: 1px;
+  margin: 9px 0;
+  background: var(--color-border);
+}
+
+.control input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 13px;
+  border: 0;
+  outline: none;
+  color: var(--color-ink);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.control input::placeholder {
+  color: var(--color-text-body);
+}
+
+.field small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.field .error {
+  color: var(--color-danger-text);
+}
+
+@media (max-width: 430px) {
+  .countryPicker {
+    min-width: 102px;
+  }
+
+  .countryValue {
+    gap: 6px;
+    padding-inline: 9px;
+  }
+}

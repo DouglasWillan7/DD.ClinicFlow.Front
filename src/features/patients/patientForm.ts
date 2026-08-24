@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 import type { BloodType, SexForClinicalUse } from "../../api/types";
 import { normalizeCpf as normalizeCpfDigits } from "./patientFormatters";
 
@@ -20,7 +21,13 @@ function isValidCpf(value: string) {
 
 export const patientSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome completo.").max(120),
-  phone: z.string().trim().regex(/^\+?\d{10,15}$/, "Use somente dígitos, com DDI e DDD."),
+  phone: z
+    .string()
+    .trim()
+    .refine(
+      (value) => /^\+\d{10,15}$/.test(value) && isPossiblePhoneNumber(value),
+      "Informe um WhatsApp válido para o país selecionado.",
+    ),
   cpf: z.string().refine(isValidCpf, "Informe um CPF válido."),
   bloodType: z
     .enum([

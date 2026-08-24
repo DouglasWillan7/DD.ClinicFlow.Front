@@ -23,6 +23,20 @@ describe("patient form contract", () => {
     expect(patientSchema.safeParse({ ...valid, cpf: "11111111111" }).success).toBe(false);
   });
 
+  it("aceita E.164 internacional e rejeita telefone impossível", () => {
+    expect(
+      patientSchema.safeParse({ ...valid, phone: "+351912345678" }).success,
+    ).toBe(true);
+
+    const result = patientSchema.safeParse({ ...valid, phone: "+351123" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Informe um WhatsApp válido para o país selecionado.",
+      );
+    }
+  });
+
   it("normaliza CPF e campos opcionais antes de enviar o payload", () => {
     expect(
       toPatientPayload({
