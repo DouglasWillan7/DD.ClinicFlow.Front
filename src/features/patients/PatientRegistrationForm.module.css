@@ -101,8 +101,8 @@
   font-weight: 500;
 }
 
-.card input,
-.card select,
+.card input:not([data-phone-input]),
+.card select:not([data-phone-country]),
 .card textarea {
   min-height: 52px;
   padding-inline: 18px;
@@ -113,8 +113,8 @@
   font-weight: 400;
 }
 
-.card input:focus,
-.card select:focus,
+.card input:not([data-phone-input]):focus,
+.card select:not([data-phone-country]):focus,
 .card textarea:focus {
   border-color: var(--color-primary);
   background: var(--color-surface);
@@ -124,6 +124,29 @@
 .card input::placeholder,
 .card textarea::placeholder {
   color: var(--color-text-muted);
+}
+
+.registrationPhone [data-phone-control] {
+  min-height: 52px;
+  border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  background: #f7fafc;
+}
+
+.registrationPhone [data-phone-control]:focus-within {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.registrationPhone [data-phone-input] {
+  min-height: 50px;
+  padding-inline: 18px;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.registrationPhone [data-phone-country] {
+  min-height: 52px;
 }
 
 .splitFields {

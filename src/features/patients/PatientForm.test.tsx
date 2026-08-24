@@ -33,7 +33,7 @@ describe("PatientForm", () => {
     );
 
     await user.type(screen.getByLabelText("Nome completo"), "Marina Oliveira");
-    await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+    await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
     await user.selectOptions(screen.getByLabelText("Médico responsável"), "d-1");
     await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
 
@@ -47,7 +47,7 @@ describe("PatientForm", () => {
   test("preenche edição incluindo CPF e tipo sanguíneo", () => {
     const initialValue: PatientFormValue = {
       name: "Marina Oliveira",
-      phone: "+5511999990000",
+      phone: "+351912345678",
       cpf: "52998224725",
       bloodType: "ABNegative",
       sexForClinicalUse: "Feminino",
@@ -68,6 +68,8 @@ describe("PatientForm", () => {
     );
 
     expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
+    expect(screen.getByLabelText("País ou região do WhatsApp")).toHaveValue("PT");
+    expect(screen.getByLabelText("WhatsApp")).toHaveValue("912 345 678");
     expect(screen.getByLabelText("Tipo sanguíneo")).toHaveValue("ABNegative");
     expect(screen.getByLabelText("Sexo para referência laboratorial")).toHaveValue(
       "Feminino",
@@ -90,7 +92,7 @@ describe("PatientForm", () => {
     );
 
     await user.type(screen.getByLabelText("Nome completo"), "Marina Oliveira");
-    await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+    await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
     await user.type(screen.getByLabelText("CPF"), "52998224725");
     await user.selectOptions(screen.getByLabelText("Tipo sanguíneo"), "ABNegative");
     await user.selectOptions(
@@ -147,7 +149,7 @@ describe("PatientForm", () => {
     );
 
     await user.type(screen.getByLabelText("Nome completo"), "Marina Oliveira");
-    await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+    await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
     await user.type(screen.getByLabelText("CPF"), "52998224725");
     await user.selectOptions(screen.getByLabelText("Tipo sanguíneo"), "ABNegative");
     await user.selectOptions(screen.getByLabelText("Tipo sanguíneo"), "");

@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import type { Member } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Field, SelectField } from "../../components/Field";
 import { bloodTypeOptions, formatCpf } from "./patientFormatters";
 import { patientSchema, type PatientFormValue } from "./patientForm";
+import { PatientPhoneField } from "./PatientPhoneField";
 import styles from "./PatientsPage.module.css";
 
 interface PatientFormProps {
@@ -28,6 +29,7 @@ export function PatientForm({
 }: PatientFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     formState: { errors },
@@ -54,14 +56,19 @@ export function PatientForm({
         error={errors.name?.message}
         {...register("name")}
       />
-      <Field
-        label="WhatsApp"
-        type="tel"
-        placeholder="+5511999998888"
-        hint="DDI + DDD + número, sem espaços."
-        autoComplete="tel"
-        error={errors.phone?.message}
-        {...register("phone")}
+      <Controller
+        name="phone"
+        control={control}
+        render={({ field }) => (
+          <PatientPhoneField
+            ref={field.ref}
+            name={field.name}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={errors.phone?.message}
+          />
+        )}
       />
       <Field
         label="CPF"

@@ -465,7 +465,16 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   await expectVisiblePatientControlsToMeetMinimumTarget(page);
 
   await nameField.fill("Marina Oliveira");
-  await page.getByLabel("WhatsApp").fill("+5511999990000");
+  await page
+    .getByLabel("País ou região do WhatsApp")
+    .selectOption("PT");
+  await expect(page.getByText("+351", { exact: true })).toBeVisible();
+  const phoneField = page.getByRole("textbox", {
+    name: "WhatsApp",
+    exact: true,
+  });
+  await phoneField.fill("912345678");
+  await expect(phoneField).toHaveValue("912 345 678");
   await page.getByLabel("CPF").fill("52998224725");
   await page.screenshot({
     path: "test-results/pacientes-09-cadastro-identificacao.png",
@@ -499,7 +508,7 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   await page.getByRole("button", { name: "Salvar paciente" }).click();
   expect((await created).postDataJSON()).toEqual({
     name: "Marina Oliveira",
-    phone: "+5511999990000",
+    phone: "+351912345678",
     cpf: "52998224725",
     bloodType: "ABNegative",
     sexForClinicalUse: "Feminino",
@@ -510,6 +519,10 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
 
   const patient = patients[0];
   await page.goto(`/app/pacientes/${patient.id}/editar`);
+  await expect(page.getByLabel("País ou região do WhatsApp")).toHaveValue("BR");
+  await expect(
+    page.getByRole("textbox", { name: "WhatsApp", exact: true }),
+  ).toHaveValue("(11) 99999-0000");
   await expect(page.getByLabel("Sexo para referência laboratorial")).toHaveValue("");
   await page.getByLabel("CPF").fill("52998224725");
   await page
@@ -579,8 +592,19 @@ test.describe("mobile", () => {
     await expectVisiblePatientControlsToMeetMinimumTarget(page);
 
     await page.getByLabel("Nome completo").fill("Marina Oliveira");
-    await page.getByLabel("WhatsApp").fill("+5511999990000");
+    await expect(page.getByLabel("País ou região do WhatsApp")).toHaveValue("BR");
+    await expect(page.getByText("+55", { exact: true })).toBeVisible();
+    const phoneField = page.getByRole("textbox", {
+      name: "WhatsApp",
+      exact: true,
+    });
+    await phoneField.fill("11999990000");
+    await expect(phoneField).toHaveValue("(11) 99999-0000");
     await page.getByLabel("CPF").fill("52998224725");
+    await page.screenshot({
+      path: "test-results/pacientes-12-telefone-mobile.png",
+      fullPage: true,
+    });
     await page.getByRole("button", { name: "Continuar" }).click();
     await expectVisiblePatientControlsToMeetMinimumTarget(page);
     await page.getByRole("button", { name: "Continuar" }).click();

@@ -74,7 +74,7 @@ test("adiciona patientId ao retorno sem apagar a data existente", async () => {
   );
 
   await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
-  await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
   await user.type(screen.getByLabelText("CPF"), "52998224725");
   await user.click(screen.getByRole("button", { name: "Continuar" }));
   await user.click(screen.getByRole("button", { name: "Continuar" }));
@@ -168,7 +168,7 @@ test("preserva o cadastro quando a API recusa o CPF", async () => {
   );
 
   await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
-  await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
   await user.type(screen.getByLabelText("CPF"), "52998224725");
   await user.click(screen.getByRole("button", { name: "Continuar" }));
   await user.type(screen.getByLabelText("Data de nascimento"), "1984-03-12");
@@ -195,7 +195,8 @@ test("preserva o cadastro quando a API recusa o CPF", async () => {
   );
   await user.click(screen.getByRole("button", { name: "Voltar" }));
   expect(screen.getByLabelText("Nome completo")).toHaveValue("Marina Oliveira");
-  expect(screen.getByLabelText("WhatsApp")).toHaveValue("+5511999990000");
+  expect(screen.getByLabelText("País ou região do WhatsApp")).toHaveValue("BR");
+  expect(screen.getByLabelText("WhatsApp")).toHaveValue("(11) 99999-0000");
   expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
 });
 
@@ -232,7 +233,7 @@ test("conclusão com retorno externo usa a lista de pacientes", async () => {
   );
 
   await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
-  await user.type(screen.getByLabelText("WhatsApp"), "+5511999990000");
+  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
   await user.type(screen.getByLabelText("CPF"), "52998224725");
   await user.click(screen.getByRole("button", { name: "Continuar" }));
   await user.click(screen.getByRole("button", { name: "Continuar" }));
