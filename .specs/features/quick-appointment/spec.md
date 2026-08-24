@@ -6,9 +6,9 @@ A recepção precisa encaixar um atendimento no primeiro horário livre do médi
 
 ## Goals
 
-- [ ] Oferecer `Consulta rápida` dentro da ação `Nova consulta` da Agenda.
-- [ ] Escolher automaticamente o primeiro slot livre futuro do médico selecionado.
-- [ ] Criar a consulta pelo contrato de agendamento existente, sem novo estado ou tipo no backend.
+- [x] Oferecer `Consulta rápida` dentro da ação `Nova consulta` da Agenda.
+- [x] Escolher automaticamente o primeiro slot livre futuro do médico selecionado.
+- [x] Criar a consulta pelo contrato de agendamento existente, sem novo estado ou tipo no backend.
 
 ## Out of Scope
 
@@ -95,7 +95,7 @@ A recepção precisa encaixar um atendimento no primeiro horário livre do médi
 
 ## Success Criteria
 
-- [ ] A consulta rápida pode ser concluída sem escolher data ou horário.
-- [ ] O `startUtc` enviado é o menor slot livre retornado no período de 62 dias.
-- [ ] O agendamento comum continua acessível pela mesma ação da Agenda.
-- [ ] Estados sem médico, sem disponibilidade, erro e conflito permanecem recuperáveis por teclado e mouse.
+- [x] A consulta rápida pode ser concluída sem escolher data ou horário.
+- [x] O `startUtc` enviado é o menor slot livre retornado no período de 62 dias.
+- [x] O agendamento comum continua acessível pela mesma ação da Agenda.
+- [x] Estados sem médico, sem disponibilidade, erro e conflito permanecem recuperáveis por teclado e mouse.

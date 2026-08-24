@@ -470,6 +470,7 @@ test("agenda consulta completa e retorna ao detalhe criado", async ({ page }) =>
   await page.goto("/app/agenda?date=2026-08-10");
 
   await page.getByRole("button", { name: "Nova consulta" }).click();
+  await page.getByRole("menuitem", { name: /Agendar consulta/ }).click();
   await expect(page).toHaveURL(
     `/app/agenda/nova?date=2026-08-10&doctorId=${members[0].userId}`,
   );
@@ -497,6 +498,64 @@ test("agenda consulta completa e retorna ao detalhe criado", async ({ page }) =>
   const timeline = page.getByRole("region", { name: "Dra. Helena Costa" });
   await expect(timeline.getByText("Marina Oliveira")).toBeVisible();
   await expect(timeline.getByText("09:00")).toBeVisible();
+});
+
+test("consulta rápida agenda o primeiro horário e opera o menu por teclado", async ({
+  page,
+}) => {
+  const mock = await mockClinicFlow(page);
+  await page.goto("/app/agenda?date=2026-08-10");
+
+  const trigger = page.getByRole("button", { name: "Nova consulta" });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    page.getByRole("menu", { name: "Nova consulta" }),
+  ).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("menu", { name: "Nova consulta" }),
+  ).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await page.getByRole("menuitem", { name: /Consulta rápida/ }).click();
+  await expect(page).toHaveURL(
+    `/app/agenda/nova?date=2026-08-10&doctorId=${members[0].userId}&mode=quick`,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Consulta rápida" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Presencial" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("table", { name: /Calendário/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "09:00" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Selecionar paciente" }).click();
+  await page.getByRole("searchbox", { name: "Buscar paciente" }).fill("Marina");
+  await page.getByRole("button", { name: /Marina Oliveira/ }).click();
+  await expect(
+    page.getByRole("button", { name: "Confirmar agendamento" }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Confirmar agendamento" }).click();
+
+  await expect(page).toHaveURL(
+    `/app/agenda?date=2026-08-10&doctorId=${members[0].userId}&appointmentId=${createdAppointmentId}&created=true`,
+  );
+  expect(mock.createPayload).toEqual({
+    patientId: patients[0].id,
+    doctorUserId: members[0].userId,
+    startUtc: "2026-08-10T12:00:00Z",
+    type: "InPerson",
+    notes: null,
+  });
+  await expect(page.getByRole("status", { name: "Consulta agendada" }))
+    .toContainText(
+      "Consulta agendada: Dra. Helena Costa, 10 de agosto de 2026 às 09:00 (Presencial)",
+    );
 });
 
 test("preserva o contexto e oferece outro horário após conflito 409", async ({
@@ -845,6 +904,7 @@ test("Agendas abre Minha Agenda para médico sem papel administrativo", async ({
   ).toBeVisible();
 
   await page.getByRole("button", { name: /^Nova consulta$/ }).click();
+  await page.getByRole("menuitem", { name: /Agendar consulta/ }).click();
   await expect(page).toHaveURL(
     `/app/agenda/nova?date=2026-07-28&doctorId=${members[0].userId}`,
   );
@@ -1058,6 +1118,7 @@ for (const viewport of [
 
     const trigger = page.getByRole("button", { name: "Nova consulta" });
     await trigger.click();
+    await page.getByRole("menuitem", { name: /Agendar consulta/ }).click();
 
     await expect(page).toHaveURL(
       /\/app\/agenda\/nova\?date=\d{4}-\d{2}-\d{2}&doctorId=[0-9a-f-]+$/,

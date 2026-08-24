@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/quick-appointment/design.md`
-**Status**: In Progress
+**Status**: Done
 
 ---
 
@@ -141,11 +141,11 @@ T2 → T3 → T4
 
 **Done when**:
 
-- [ ] Browser flow chooses quick mode without touching calendar or slot controls.
-- [ ] Created payload contains the earliest slot and selected patient/type/doctor.
-- [ ] Success navigation identifies the created appointment and its date.
-- [ ] Keyboard opens and dismisses the action menu with focus restored.
-- [ ] Full build gate passes with no skipped or deleted tests.
+- [x] Browser flow chooses quick mode without touching calendar or slot controls.
+- [x] Created payload contains the earliest slot and selected patient/type/doctor.
+- [x] Success navigation identifies the created appointment and its date.
+- [x] Keyboard opens and dismisses the action menu with focus restored.
+- [x] Full build gate passes with no skipped or deleted tests.
 
 **Tests**: e2e in `e2e/agenda.spec.ts`
 **Gate**: build
