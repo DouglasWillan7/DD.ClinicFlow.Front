@@ -519,6 +519,11 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
 
   const patient = patients[0];
   await page.goto(`/app/pacientes/${patient.id}/editar`);
+  await expect(
+    page.getByRole("heading", { name: "Editar cadastro" }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => document.body.scrollWidth)).toBe(1440);
+  await expectVisiblePatientControlsToMeetMinimumTarget(page);
   await expect(page.getByLabel("País ou região do WhatsApp")).toHaveValue("BR");
   await expect(
     page.getByRole("textbox", { name: "WhatsApp", exact: true }),
@@ -618,6 +623,13 @@ test.describe("mobile", () => {
       path: "test-results/pacientes-11-cadastro-mobile.png",
       fullPage: true,
     });
+
+    await page.goto(`/app/pacientes/${patients[0].id}/editar`);
+    await expect(
+      page.getByRole("heading", { name: "Editar cadastro" }),
+    ).toBeVisible();
+    expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
+    await expectVisiblePatientControlsToMeetMinimumTarget(page);
   });
 });
 
