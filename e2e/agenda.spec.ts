@@ -4,7 +4,7 @@ const session = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "ana@clinicavital.com.br",
   clinicId: "22222222-2222-2222-2222-222222222222",
-  roles: ["Admin"],
+  roles: ["Admin", "Secretary"],
   name: "Ana Martins",
   tokens: {
     accessToken: "visual-test-token",
@@ -36,6 +36,38 @@ function toDoctor(member: (typeof members)[number]) {
     slotDurationMinutes: 30,
     healthInsurancePlanIds: [],
     scheduleIntervals: [],
+  };
+}
+
+/** Projeção contextual usada pela gestão de vínculos v2. */
+function toClinicMember(member: (typeof members)[number], index: number) {
+  return {
+    userClinicId: `30000000-0000-4000-8000-00000000000${index + 1}`,
+    userId: member.userId,
+    clinicId: session.clinicId,
+    displayName: member.name,
+    status: "Active",
+    role: "Doctor",
+    isAdmin: false,
+    isOwner: false,
+    email: member.email,
+    phone: `+551198888777${index}`,
+    emailConfirmedAtUtc: "2026-07-01T12:00:00Z",
+    phoneConfirmedAtUtc: null,
+    doctorProfile: {
+      professionalAuthority: "CRM",
+      professionalRegistrationNumber: "123456",
+      professionalRegistrationRegion: "SP",
+      professionalRegistrationCountryCode: "BR",
+      specialty: member.specialty,
+      practiceAreas: null,
+      bio: null,
+      defaultAppointmentDurationMinutes: 30,
+    },
+    defaultAppointmentDurationSource: "Configured",
+    sessionVersion: 1,
+    createdAtUtc: "2026-07-01T12:00:00Z",
+    updatedAtUtc: "2026-07-01T12:00:00Z",
   };
 }
 
@@ -194,6 +226,8 @@ async function mockClinicFlow(
         maxDoctors: null,
         createdAtUtc: "2026-07-01T12:00:00Z",
       };
+    } else if (url.pathname === `/clinics/${currentSession.clinicId}/members`) {
+      body = hasDoctor ? members.map(toClinicMember) : [];
     } else if (url.pathname === "/clinics/members") {
       body = hasDoctor ? members : [];
     } else if (url.pathname === "/clinics/doctors") {
@@ -882,7 +916,7 @@ test("médico administrador separa o Início pessoal das Agendas da clínica", a
   ).toBeVisible();
 });
 
-test("Agendas abre Minha Agenda para médico sem papel administrativo", async ({
+test("médico sem administração acessa a agenda por médico pela hierarquia", async ({
   page,
 }) => {
   await mockClinicFlow(page, {
@@ -896,14 +930,13 @@ test("Agendas abre Minha Agenda para médico sem papel administrativo", async ({
   await expect(
     page.getByRole("link", { name: "Agendas" }),
   ).toHaveAttribute("aria-current", "page");
-  await expect(page.getByText("Minha Agenda", { exact: true })).toBeVisible();
-  await expect(page.getByText("Por médico", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Por médico", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Terça-feira, 28 Jul 2026" })
+    page.getByRole("region", { name: "Dra. Helena Costa" })
       .getByText("Marina Oliveira"),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /^Nova consulta$/ }).click();
+  await page.getByRole("button", { name: /^Nova consulta/ }).click();
   await page.getByRole("menuitem", { name: /Agendar consulta/ }).click();
   await expect(page).toHaveURL(
     `/app/agenda/nova?date=2026-07-28&doctorId=${members[0].userId}`,
@@ -917,20 +950,20 @@ test("Agendas abre Minha Agenda para médico sem papel administrativo", async ({
   await expect(page).toHaveURL("/app/agenda?date=2026-07-28");
 });
 
-test("administrador abre a agenda médica pelo detalhe da equipe", async ({
+test("administrador abre o perfil médico contextual pela equipe", async ({
   page,
 }) => {
-  await mockClinicFlow(page, { roles: ["Admin"] });
+  await mockClinicFlow(page, { roles: ["Admin", "Secretary"] });
   await page.goto("/app/equipe");
 
-  const doctorRow = page.getByRole("button", { name: /Dra\. Helena Costa/ });
+  const doctorRow = page.getByRole("button", {
+    name: "Editar vínculo de Dra. Helena Costa",
+  });
   await expect(doctorRow).toBeVisible();
   await doctorRow.click();
-  await expect(page.getByRole("group", { name: /Dias de atendimento/ })).toBeVisible();
-  // A agenda vive dentro do cadastro: nenhum segundo formulário com Salvar próprio.
-  await expect(
-    page.getByRole("button", { name: /agenda semanal/i }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Editar vínculo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Perfil médico nesta clínica" })).toBeVisible();
+  await expect(page.getByLabel("Duração padrão da consulta")).toHaveValue("30");
 });
 
 test("secretária não configura agenda, mas pode agendar", async ({ page }) => {
@@ -1169,7 +1202,7 @@ test("bloqueia paciente enquanto não existe médico ativo", async ({ page }) =>
 });
 
 test("recepção bloqueia o dia aberto direto na agenda", async ({ page }) => {
-  const mock = await mockClinicFlow(page, { roles: ["Admin"] });
+  const mock = await mockClinicFlow(page, { roles: ["Admin", "Secretary"] });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/app/agenda");
 

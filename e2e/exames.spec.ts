@@ -719,7 +719,7 @@ async function openExams(page: Page, query = "") {
 }
 
 async function attachPdf(page: Page) {
-  const composer = page.getByRole("region", { name: "Anexar laudo" });
+  const composer = page.getByRole("dialog", { name: "Anexar laudo" });
   await composer.getByLabel("Selecionar arquivo PDF").setInputFiles({
     name: "laudo-sintetico.pdf",
     mimeType: "application/pdf",
@@ -851,8 +851,9 @@ test("anexa PDF válido a uma solicitação explícita e inicia processamento", 
   await openExams(page, "?acao=anexar");
   await attachPdf(page);
 
-  await expect(page).toHaveURL(new RegExp(`exame=${requestedId}`));
-  await expect(page.getByText("Laudo recebido. Aguardando o início da extração.")).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", { name: "Extração do laudo em andamento" }),
+  ).toBeVisible();
   expect(state.requests.some((request) => request.path.endsWith("/documents") && request.method === "POST")).toBe(true);
 });
 
@@ -934,7 +935,7 @@ test("descarta laudo falho duplicado e reenvia o mesmo PDF", async ({ page }) =>
   );
   await page.getByRole("button", { name: "Enviar laudo" }).click();
   await expect(
-    page.getByText("Laudo recebido. Aguardando o início da extração."),
+    page.getByRole("progressbar", { name: "Extração do laudo em andamento" }),
   ).toBeVisible();
   expect(
     state.requests.filter((request) => request.path.endsWith("/discard")),
@@ -1065,15 +1066,11 @@ test("conflito stale 409 preserva os campos locais e oferece reload regional", a
 });
 
 for (const role of ["Admin", "Secretary"] as const) {
-  test(`${role} lê e anexa, mas não recebe comandos clínicos`, async ({ page }) => {
+  test(`${role} não acessa exames do prontuário`, async ({ page }) => {
     await mockExams(page, { roles: [role] });
-    await openExams(page, `?exame=${reviewId}`);
-    await expect(page.getByRole("heading", { name: "Perfil lipídico" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Anexar laudo" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Solicitar exame" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Validar laudo" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Descartar exame" })).toHaveCount(0);
-    await expect(page.getByText("Conteúdo disponível somente para revisão médica.")).toBeVisible();
+    await page.goto(`/app/pacientes/${patientId}/exames?exame=${reviewId}`);
+    await expect(page).toHaveURL("/app/agenda");
+    await expect(page.getByRole("navigation", { name: "Seções do paciente" })).toHaveCount(0);
   });
 }
 

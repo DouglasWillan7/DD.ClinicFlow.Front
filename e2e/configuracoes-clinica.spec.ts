@@ -4,7 +4,7 @@ const session = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "ana@clinicavital.com.br",
   clinicId: "22222222-2222-2222-2222-222222222222",
-  roles: ["Admin"],
+  roles: ["Admin", "Secretary"],
   name: "Ana Martins",
   tokens: {
     accessToken: "visual-test-token",

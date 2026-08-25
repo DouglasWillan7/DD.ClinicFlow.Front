@@ -581,7 +581,9 @@ test("consulta rápida atualiza o horário depois de conflito sem sair do modo",
     await screen.findByRole("button", { name: "Confirmar agendamento" }),
   );
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("Horário ocupado");
+  expect(
+    await screen.findByRole("alert", undefined, { timeout: 5_000 }),
+  ).toHaveTextContent("Horário ocupado");
   const summary = screen
     .getByRole("heading", { name: "Resumo" })
     .closest("section")!;

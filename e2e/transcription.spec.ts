@@ -49,6 +49,7 @@ async function openConsultation(page: Page, options: {
   roles?: Array<"Doctor" | "Secretary" | "Admin">;
   processingStatus?: "Available" | "Unavailable";
   initialPoints?: PointFixture[];
+  expectAccess?: boolean;
 }) {
   const roles = options.roles ?? ["Doctor"];
   const state = {
@@ -157,7 +158,11 @@ async function openConsultation(page: Page, options: {
   });
 
   await page.goto(`/app/consultas/${appointmentId}`);
-  await expect(page.getByRole("heading", { name: "Transcrição da consulta" })).toBeVisible();
+  if (options.expectAccess === false) {
+    await expect(page).toHaveURL("/app/agenda");
+  } else {
+    await expect(page.getByRole("heading", { name: "Transcrição da consulta" })).toBeVisible();
+  }
   return state;
 }
 
@@ -219,10 +224,14 @@ test("aceita, salva e reconstrói Saved após recarregar", async ({ page }) => {
 });
 
 test("Secretary não vê painel nem controles clínicos", async ({ page }) => {
-  await openConsultation(page, { width: 960, roles: ["Secretary"] });
+  await openConsultation(page, {
+    width: 960,
+    roles: ["Secretary"],
+    expectAccess: false,
+  });
   await expect(page.getByRole("heading", { name: "Pontos importantes" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Salvar pontos no prontuário" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Identificação das vozes" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Identificação das vozes" })).toHaveCount(0);
 });
 
 test("provider indisponível preserva transcript e controles de voz", async ({ page }) => {

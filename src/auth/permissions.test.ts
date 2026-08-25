@@ -85,6 +85,8 @@ describe("matriz de capacidades do contexto ativo", () => {
 test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(requiredCapabilityForAppPath("/app/agenda")).toBe("ViewSchedule");
   expect(requiredCapabilityForAppPath("/app/agenda/nova")).toBe("ManageSchedule");
+  expect(requiredCapabilityForAppPath("/app/pacientes")).toBe("ManagePatientDemographics");
+  expect(requiredCapabilityForAppPath("/app/pacientes/novo")).toBe("ManagePatientDemographics");
   expect(requiredCapabilityForAppPath("/app/pacientes/abc/editar")).toBe("ManagePatientDemographics");
   expect(requiredCapabilityForAppPath("/app/pacientes/abc")).toBe("ReadClinicalRecord");
   expect(requiredCapabilityForAppPath("/app/pacientes/abc/avaliacoes")).toBe("ReadAssessments");
@@ -94,6 +96,7 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
 
   const secretaryAdmin = session("Secretary", true);
   expect(canAccessAppPath(secretaryAdmin, "/app/equipe")).toBe(true);
+  expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/novo")).toBe(true);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/exames")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/editar")).toBe(true);

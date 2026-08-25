@@ -96,6 +96,9 @@ export function requiredCapabilityForAppPath(
 ): ClinicCapability | undefined {
   const pathname = path.split("?")[0];
 
+  if (pathname === "/app/pacientes" || pathname === "/app/pacientes/novo") {
+    return "ManagePatientDemographics";
+  }
   if (/^\/app\/pacientes\/[^/]+\/editar$/i.test(pathname)) {
     return "ManagePatientDemographics";
   }
@@ -124,10 +127,6 @@ export function requiredCapabilityForAppPath(
   if (pathname === "/app/inicio") return "ReadClinicalRecord";
   if (pathname === "/app/agenda/nova") return "ManageSchedule";
   if (pathname === "/app/agenda") return "ViewSchedule";
-  if (pathname === "/app/pacientes" || pathname === "/app/pacientes/novo") {
-    return "ManagePatientDemographics";
-  }
-
   return undefined;
 }
 
