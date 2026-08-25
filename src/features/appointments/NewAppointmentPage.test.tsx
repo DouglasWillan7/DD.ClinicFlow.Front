@@ -239,6 +239,87 @@ test("confirma seleção completa e retorna para a consulta criada", async () =>
   expect(sessionStorage.getItem(draftKey)).toBeNull();
 });
 
+test("oferece somente planos aceitos pelo médico e envia a relação escolhida", async () => {
+  const acceptedPlanId = "50000000-0000-4000-8000-000000000001";
+  const rejectedPlanId = "50000000-0000-4000-8000-000000000002";
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path === "/healthcare-plans") {
+      return [
+        { id: acceptedPlanId, name: "Unimed" },
+        { id: rejectedPlanId, name: "SulAmérica" },
+      ];
+    }
+    if (path === "/clinics/doctors") {
+      return [
+        {
+          userId: doctorId,
+          slotDurationMinutes: 30,
+          healthInsurancePlanIds: [acceptedPlanId],
+        },
+      ];
+    }
+    if (path === `/patients/${patientId}`) return patient;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    if (path === "/appointments" && init?.method === "POST") {
+      return {
+        ...createdAppointment,
+        status: "AwaitingPatientAction",
+        healthcarePlanId: acceptedPlanId,
+      };
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+  const user = userEvent.setup();
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: /Dra\. Helena Costa/ }),
+  );
+  expect(
+    await screen.findByRole("heading", { name: "Plano de saúde" }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: "Particular" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Unimed" })).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "SulAmérica" }),
+  ).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Unimed" }));
+  await user.click(screen.getByRole("button", { name: "Presencial" }));
+  await user.click(
+    await screen.findByRole("button", {
+      name: "10 de agosto de 2026, disponível",
+    }),
+  );
+  await user.click(screen.getByRole("button", { name: "09:00" }));
+
+  const summary = screen.getByRole("heading", { name: "Resumo" }).closest("section")!;
+  expect(within(summary).getByText("Unimed")).toBeVisible();
+  expect(within(summary).getByText("30 min")).toBeVisible();
+  await user.click(
+    within(summary).getByRole("button", { name: "Confirmar agendamento" }),
+  );
+
+  expect(requestMock).toHaveBeenCalledWith("/appointments", {
+    method: "POST",
+    body: JSON.stringify({
+      patientId,
+      doctorUserId: doctorId,
+      startUtc: availability.days[0].slots[0].startUtc,
+      type: "InPerson",
+      notes: null,
+      healthcarePlanId: acceptedPlanId,
+    }),
+  });
+});
+
 test("consulta rápida busca 62 dias no fuso da clínica e agenda o menor startUtc", async () => {
   window.history.replaceState(
     {},

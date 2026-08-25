@@ -1,8 +1,12 @@
 import clsx from "clsx";
+import { formatInTimeZone } from "date-fns-tz";
 import { Plus, Video } from "lucide-react";
 import type { AvailabilitySlot, Member } from "../../api/types";
 import { appointmentTypeLabels, getInitials } from "./appointmentLabels";
-import { appointmentStatusLabels } from "./appointmentStatus";
+import {
+  appointmentStatusLabels,
+  canOpenClinicalAppointment,
+} from "./appointmentStatus";
 import { formatFreeSlots, getDoctorName } from "./agendaDoctors";
 import type { TimelineRow, TimelineTone } from "./agendaTimeline";
 import styles from "./AgendaPage.module.css";
@@ -16,6 +20,7 @@ export interface DayTimelineProps {
   emptyMessage: string;
   personal?: boolean;
   canOpenConsultation?: boolean;
+  timeZone: string;
   onSelectFreeSlot(slot: AvailabilitySlot): void;
 }
 
@@ -34,6 +39,7 @@ export function DayTimeline({
   emptyMessage,
   personal = false,
   canOpenConsultation = false,
+  timeZone,
   onSelectFreeSlot,
 }: DayTimelineProps) {
   const navigate = useNavigate();
@@ -85,7 +91,8 @@ export function DayTimeline({
                   <span className={clsx(styles.rowTime, styles.rowTimeBooked)}>
                     {row.start}
                   </span>
-                  {canOpenConsultation ? (
+                  {canOpenConsultation &&
+                  canOpenClinicalAppointment(appointment.status) ? (
                     <button
                       type="button"
                       onClick={() => navigate(`/app/consultas/${appointment.id}`)}
@@ -95,7 +102,7 @@ export function DayTimeline({
                         row.durationMinutes >= 60 && styles.long,
                       )}
                     >
-                      <AppointmentCardContent row={row} />
+                      <AppointmentCardContent row={row} timeZone={timeZone} />
                     </button>
                   ) : (
                     <div
@@ -105,7 +112,7 @@ export function DayTimeline({
                         row.durationMinutes >= 60 && styles.long,
                       )}
                     >
-                      <AppointmentCardContent row={row} />
+                      <AppointmentCardContent row={row} timeZone={timeZone} />
                     </div>
                   )}
                 </li>
@@ -165,8 +172,10 @@ export function DayTimeline({
 
 function AppointmentCardContent({
   row,
+  timeZone,
 }: {
   row: Extract<TimelineRow, { kind: "appointment" }>;
+  timeZone: string;
 }) {
   const { appointment } = row;
   const teleconsultation = appointment.type === "Teleconsultation";
@@ -182,6 +191,32 @@ function AppointmentCardContent({
           {appointment.notes?.trim() ? `${appointment.notes.trim()} · ` : ""}
           {row.durationMinutes} min
         </span>
+        {appointment.actualStartUtc ? (
+          <span className={styles.appointmentActualTime}>
+            {appointment.actualEndUtc
+              ? `Atendimento efetivo · ${formatInTimeZone(
+                  appointment.actualStartUtc,
+                  timeZone,
+                  "HH:mm",
+                )}–${formatInTimeZone(
+                  appointment.actualEndUtc,
+                  timeZone,
+                  "HH:mm",
+                )} · ${Math.max(
+                  0,
+                  Math.round(
+                    (Date.parse(appointment.actualEndUtc) -
+                      Date.parse(appointment.actualStartUtc)) /
+                      60_000,
+                  ),
+                )} min`
+              : `Início efetivo · ${formatInTimeZone(
+                  appointment.actualStartUtc,
+                  timeZone,
+                  "HH:mm",
+                )}`}
+          </span>
+        ) : null}
       </span>
       <span className={styles.typeBadge}>
         {teleconsultation ? <Video size={15} aria-hidden="true" /> : null}

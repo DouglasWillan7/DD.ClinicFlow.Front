@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { HealthcarePlan } from "../../api/types";
 import { appointmentTypeLabels, formatDateOnlyLong } from "./appointmentLabels";
 import {
   canConfirm,
@@ -10,6 +11,7 @@ export interface AppointmentSummaryProps {
   selection: NewAppointmentSelection;
   pending: boolean;
   error: string | null;
+  healthcarePlans?: HealthcarePlan[];
   onConfirm(): void;
 }
 
@@ -17,6 +19,7 @@ export function AppointmentSummary({
   selection,
   pending,
   error,
+  healthcarePlans = [],
   onConfirm,
 }: AppointmentSummaryProps) {
   const submissionLocked = useRef(false);
@@ -27,6 +30,7 @@ export function AppointmentSummary({
     selection.type,
     selection.date,
     selection.slot?.startUtc,
+    selection.healthcarePlanId,
   ]);
   const previousSelectionKey = useRef(selectionKey);
   const complete = canConfirm(selection);
@@ -81,6 +85,31 @@ export function AppointmentSummary({
         <div className={styles.summaryRow}>
           <dt>Horário</dt>
           <dd>{selection.slot?.label ?? "—"}</dd>
+        </div>
+        <div className={styles.summaryRow}>
+          <dt>Duração</dt>
+          <dd>
+            {selection.slot
+              ? `${Math.max(
+                  0,
+                  Math.round(
+                    (Date.parse(selection.slot.endUtc) -
+                      Date.parse(selection.slot.startUtc)) /
+                      60_000,
+                  ),
+                )} min`
+              : "—"}
+          </dd>
+        </div>
+        <div className={styles.summaryRow}>
+          <dt>Plano</dt>
+          <dd>
+            {selection.healthcarePlanId
+              ? healthcarePlans.find(
+                  (plan) => plan.id === selection.healthcarePlanId,
+                )?.name ?? "—"
+              : "Particular"}
+          </dd>
         </div>
       </dl>
 

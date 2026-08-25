@@ -7,7 +7,10 @@ import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { appointmentTypeLabels } from "../appointments/appointmentLabels";
-import { appointmentStatusLabels } from "../appointments/appointmentStatus";
+import {
+  appointmentStatusLabels,
+  isAppointmentTerminal,
+} from "../appointments/appointmentStatus";
 import { usePatientClinicalSummary } from "./exams/clinicalReportQueries";
 import { PatientClinicalOverview } from "./PatientClinicalOverview";
 import { PatientHeader } from "./PatientHeader";
@@ -23,7 +26,7 @@ function nextAppointment(items: Appointment[]) {
   return [...items]
     .filter(
       (appointment) =>
-        !["Cancelada", "Realizada", "NoShow"].includes(appointment.status) &&
+        !isAppointmentTerminal(appointment.status) &&
         new Date(appointment.startUtc).getTime() >= now,
     )
     .sort(

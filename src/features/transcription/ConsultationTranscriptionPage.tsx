@@ -10,6 +10,11 @@ import { can } from "../../auth/permissions";
 import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { appointmentTypeLabels } from "../appointments/appointmentLabels";
+import {
+  canOpenClinicalAppointment,
+  canStartAppointment,
+  isAppointmentInProgress,
+} from "../appointments/appointmentStatus";
 import { ImportantPointsPanel } from "./ImportantPointsPanel";
 import type { ConsultationImportantPoint, ImportantPointEvidence } from "./importantPoints";
 import { MicrophoneCaptureService, type CaptureConnectionState } from "./MicrophoneCaptureService";
@@ -38,7 +43,14 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   const { request, session: auth } = useAuth();
   const queryClient = useQueryClient();
   const appointment = useQuery({ queryKey: ["appointments", "detail", appointmentId], queryFn: () => request<Appointment>(`/appointments/${appointmentId}`) });
-  const transcript = useQuery({ queryKey: ["transcription", appointmentId], queryFn: () => request<ConsultationTranscript>(`/consultations/${appointmentId}/transcription`) });
+  const clinicalContentAllowed = appointment.data
+    ? canOpenClinicalAppointment(appointment.data.status)
+    : false;
+  const transcript = useQuery({
+    queryKey: ["transcription", appointmentId],
+    queryFn: () => request<ConsultationTranscript>(`/consultations/${appointmentId}/transcription`),
+    enabled: clinicalContentAllowed,
+  });
   const [liveSession, setSession] = useState<TranscriptionSession | null>(null);
   const [liveSegments, setSegments] = useState<TranscriptSegment[] | null>(null);
   const [partial, setPartial] = useState<TranscriptionEvent | null>(null);
@@ -80,7 +92,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
     return [...detected.values()].sort((a, b) => a.streamNumber - b.streamNumber || a.speakerTag - b.speakerTag);
   }, [display]);
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || !clinicalContentAllowed) return;
     const hub = new HubConnectionBuilder().withUrl(getApiUrl("/hubs/transcription"), { accessTokenFactory: () => auth.tokens.accessToken })
       .withAutomaticReconnect().configureLogging(LogLevel.None).build();
     hub.on("TranscriptionPartial", (event: TranscriptionEvent) => setPartial(event));
@@ -109,7 +121,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
     });
     void hub.start().then(() => hub.invoke("JoinConsultation", appointmentId), () => setError("Eventos ao vivo desconectados. Tentando reconectar…"));
     return () => { void hub.stop(); };
-  }, [appointmentId, auth, queryClient, refetchTranscript, transcript.data?.segments]);
+  }, [appointmentId, auth, clinicalContentAllowed, queryClient, refetchTranscript, transcript.data?.segments]);
 
   useEffect(() => {
     if (!session || session.status === "Completed" || session.status === "Failed") return;
@@ -162,6 +174,20 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   async function start() {
     setError(null);
     try {
+      let activeAppointment = appointment.data;
+      if (!activeAppointment) return;
+      if (canStartAppointment(activeAppointment.status)) {
+        activeAppointment = await request<Appointment>(
+          `/appointments/${appointmentId}/start`,
+          { method: "POST" },
+        );
+        queryClient.setQueryData(
+          ["appointments", "detail", appointmentId],
+          activeAppointment,
+        );
+        if (!canOpenClinicalAppointment(activeAppointment.status)) return;
+      }
+      if (!isAppointmentInProgress(activeAppointment.status)) return;
       const active = await request<TranscriptionSession>(`/consultations/${appointmentId}/transcription/start`, { method: "POST" });
       setSession(active);
       const capture = new MicrophoneCaptureService(active.id, () => auth!.tokens.accessToken, {
@@ -177,7 +203,18 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   async function resume() { if (!session) return; await request(`/transcription-sessions/${session.id}/resume`, { method: "POST" }); await captureRef.current?.resume(); setSession({ ...session, status: "Recording" }); }
   async function finish() {
     if (!session) return; setSession({ ...session, status: "StopRequested" }); await captureRef.current?.stop(); captureRef.current = null;
-    try { await request(`/transcription-sessions/${session.id}/finish`, { method: "POST" }); setSession((value) => value ? { ...value, status: "Completed", endedAtUtc: new Date().toISOString() } : value); }
+    try {
+      await request(`/transcription-sessions/${session.id}/finish`, { method: "POST" });
+      const completedAppointment = await request<Appointment>(
+        `/appointments/${appointmentId}/complete`,
+        { method: "POST" },
+      );
+      queryClient.setQueryData(
+        ["appointments", "detail", appointmentId],
+        completedAppointment,
+      );
+      setSession((value) => value ? { ...value, status: "Completed", endedAtUtc: new Date().toISOString() } : value);
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Não foi possível finalizar."); }
   }
   async function correctSpeaker(streamNumber: number, speakerTag: number, role: Exclude<TranscriptSpeakerRole, "Unknown">) {
@@ -203,11 +240,38 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
     }
   }
 
-  if (appointment.isLoading || transcript.isLoading) return <LoadingBlock label="Abrindo a consulta…" />;
-  if (appointment.isError || transcript.isError || !appointment.data) return <ErrorBlock message="Não foi possível abrir a consulta." retry={() => { void appointment.refetch(); void transcript.refetch(); }} />;
+  if (appointment.isLoading) return <LoadingBlock label="Abrindo a consulta…" />;
+  if (appointment.isError || !appointment.data) return <ErrorBlock message="Não foi possível abrir a consulta." retry={() => { void appointment.refetch(); }} />;
+  if (!clinicalContentAllowed) {
+    const accessRequired = appointment.data.status === "AccessRequired";
+    return (
+      <main className={styles.page}>
+        <section className={styles.accessState} aria-labelledby="access-state-title">
+          <AlertCircle aria-hidden="true" />
+          <div>
+            <h1 id="access-state-title">
+              {accessRequired
+                ? "Acesso aos dados necessário"
+                : "Aguardando confirmação do paciente"}
+            </h1>
+            <p>
+              Esta consulta não pode ser iniciada até que o paciente confirme o
+              agendamento e o compartilhamento dos dados com o médico.
+            </p>
+            <Link to="/app/agenda">Voltar para a agenda</Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+  if (transcript.isLoading) return <LoadingBlock label="Abrindo a consulta…" />;
+  if (transcript.isError) return <ErrorBlock message="Não foi possível abrir a consulta." retry={() => { void transcript.refetch(); }} />;
   const doctorName = auth?.name?.trim() || "Médico";
   const appointmentDate = formatAppointmentDate(appointment.data.startUtc);
   const plannedMinutes = Math.max(0, Math.round((new Date(appointment.data.endUtc).getTime() - new Date(appointment.data.startUtc).getTime()) / 60_000));
+  const actualMinutes = appointment.data.actualStartUtc && appointment.data.actualEndUtc
+    ? Math.max(0, Math.round((new Date(appointment.data.actualEndUtc).getTime() - new Date(appointment.data.actualStartUtc).getTime()) / 60_000))
+    : null;
   const statusState = status === "Recording" && connection !== "degraded" ? "recording"
     : status === "Paused" ? "paused"
       : status === "Completed" ? "completed"
@@ -237,7 +301,16 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
         </nav>
       </div>
       <div className={styles.actions} aria-label="Ações da transcrição">
-        {!session || status === "Failed" ? <Button onClick={() => void start()}><Mic aria-hidden="true" /> Iniciar gravação</Button> : null}
+        {(!session || status === "Failed") &&
+        (canStartAppointment(appointment.data.status) ||
+          isAppointmentInProgress(appointment.data.status)) ? (
+          <Button onClick={() => void start()}>
+            <Mic aria-hidden="true" />
+            {canStartAppointment(appointment.data.status)
+              ? "Iniciar consulta"
+              : "Iniciar gravação"}
+          </Button>
+        ) : null}
         {status === "Recording" ? <Button variant="secondary" onClick={() => void pause()}><Pause aria-hidden="true" /> Pausar</Button> : null}
         {status === "Paused" ? <Button variant="secondary" onClick={() => void resume()}><Play aria-hidden="true" /> Retomar</Button> : null}
         {session && ["Recording", "Paused"].includes(status) ? <Button onClick={() => void finish()}><Square aria-hidden="true" /> Finalizar consulta</Button> : null}
@@ -321,8 +394,11 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
           <h2 id="details-title">Dados da consulta</h2>
           <dl><dt>Paciente</dt><dd>{appointment.data.patientName}</dd>
             <dt>Tipo</dt><dd>{appointmentTypeLabels[appointment.data.type]}</dd>
-            <dt>Início</dt><dd>{appointmentDate}</dd>
-            <dt>Duração prevista</dt><dd>{plannedMinutes} min</dd></dl>
+            <dt>Início agendado</dt><dd>{appointmentDate}</dd>
+            <dt>Duração prevista</dt><dd>{plannedMinutes} min</dd>
+            {appointment.data.actualStartUtc ? <><dt>Início efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualStartUtc)}</dd></> : null}
+            {appointment.data.actualEndUtc ? <><dt>Término efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualEndUtc)}</dd></> : null}
+            {actualMinutes !== null ? <><dt>Duração efetiva</dt><dd>{actualMinutes} min</dd></> : null}</dl>
         </section>
       </aside>
     </div>

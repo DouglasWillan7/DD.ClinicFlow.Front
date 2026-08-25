@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { Appointment, Clinic } from "../../api/types";
+import { parseGuid } from "../../api/identifiers";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
@@ -34,7 +35,16 @@ import {
   getInitials,
   parseDateOnly,
 } from "../appointments/appointmentLabels";
-import { appointmentStatusLabels } from "../appointments/appointmentStatus";
+import {
+  appointmentStatusLabels,
+  canOpenClinicalAppointment,
+  isAppointmentCancelled,
+  isAppointmentCompleted,
+  isAppointmentConfirmed,
+  isAppointmentInProgress,
+  isAppointmentPendingPatientAction,
+  isAppointmentTerminal,
+} from "../appointments/appointmentStatus";
 import { StatusBadge } from "../appointments/StatusBadge";
 import styles from "./DoctorHomePage.module.css";
 
@@ -51,17 +61,16 @@ function shortName(name: string | null, email: string) {
 }
 
 function isTerminal(appointment: Appointment) {
-  return ["Cancelada", "Realizada", "NoShow"].includes(appointment.status);
+  return isAppointmentTerminal(appointment.status);
 }
 
 function isAppointmentActive(appointment: Appointment, now: Date) {
   const start = Date.parse(appointment.startUtc);
   const end = Date.parse(appointment.endUtc);
   const timestamp = now.getTime();
-  return (
-    appointment.status === "Confirmada" &&
-    timestamp >= start &&
-    timestamp < end
+  return isAppointmentInProgress(appointment.status) || (
+    isAppointmentConfirmed(appointment.status) &&
+    timestamp >= start && timestamp < end
   );
 }
 
@@ -86,6 +95,7 @@ export function DoctorHomePage() {
   const [showCreated, setShowCreated] = useState(
     () => params.get("created") === "true",
   );
+  const createdId = parseGuid(params.get("appointmentId"));
   const now = new Date();
   const requestedDay = params.get("date");
   const initialDay =
@@ -124,6 +134,12 @@ export function DoctorHomePage() {
         `/appointments?from=${encodeURIComponent(weekFrom.toISOString())}&to=${encodeURIComponent(weekTo.toISOString())}&doctorId=${encodeURIComponent(session!.userId)}`,
       ),
   });
+  const created = useQuery({
+    queryKey: ["appointments", "detail", createdId],
+    enabled: Boolean(showCreated && createdId),
+    queryFn: () =>
+      request<Appointment>(`/appointments/${encodeURIComponent(createdId!)}`),
+  });
 
   useEffect(() => {
     if (!showCreated) return;
@@ -152,7 +168,7 @@ export function DoctorHomePage() {
   const dayAppointments = weekAppointments.filter(
     (appointment) =>
       formatInTimeZone(appointment.startUtc, timeZone, "yyyy-MM-dd") === day &&
-      appointment.status !== "Cancelada",
+      !isAppointmentCancelled(appointment.status),
   );
   const activeAppointment = dayAppointments.find((appointment) =>
     isAppointmentActive(appointment, now),
@@ -174,22 +190,22 @@ export function DoctorHomePage() {
       ) ?? null
     : null;
   const pendingConfirmations = weekAppointments.filter((appointment) =>
-    ["Agendada", "ConfirmacaoEnviada"].includes(appointment.status),
+    isAppointmentPendingPatientAction(appointment.status),
   );
   const realized = weekAppointments.filter(
-    (appointment) => appointment.status === "Realizada",
+    (appointment) => isAppointmentCompleted(appointment.status),
   ).length;
   const confirmed = weekAppointments.filter(
-    (appointment) => appointment.status === "Confirmada",
+    (appointment) => isAppointmentConfirmed(appointment.status),
   ).length;
   const noShows = weekAppointments.filter(
     (appointment) => appointment.status === "NoShow",
   ).length;
   const dayRealized = dayAppointments.filter(
-    (appointment) => appointment.status === "Realizada",
+    (appointment) => isAppointmentCompleted(appointment.status),
   ).length;
   const dayAwaiting = dayAppointments.filter((appointment) =>
-    ["Agendada", "ConfirmacaoEnviada"].includes(appointment.status),
+    isAppointmentPendingPatientAction(appointment.status),
   ).length;
 
   function changeDay(nextDay: string) {
@@ -267,7 +283,11 @@ export function DoctorHomePage() {
       </header>
 
       {showCreated ? (
-        <SuccessNote>Consulta agendada com sucesso.</SuccessNote>
+        <SuccessNote>
+          {created.data?.status === "AwaitingPatientAction"
+            ? "Aguardando a confirmação do paciente e o compartilhamento dos dados com o médico."
+            : "Consulta agendada com sucesso."}
+        </SuccessNote>
       ) : null}
 
       <div className={styles.dashboardGrid}>
@@ -399,15 +419,17 @@ export function DoctorHomePage() {
                     className={styles.focusPrimary}
                     onClick={() => navigate(`/app/pacientes/${focusAppointment.patientId}`)}
                   >
-                    Abrir consulta
+                    Abrir prontuário
                   </button>
-                  <button
-                    type="button"
-                    className={styles.focusSecondary}
-                    onClick={() => navigate(`/app/consultas/${focusAppointment.id}`)}
-                  >
-                    Transcrever
-                  </button>
+                  {canOpenClinicalAppointment(focusAppointment.status) ? (
+                    <button
+                      type="button"
+                      className={styles.focusSecondary}
+                      onClick={() => navigate(`/app/consultas/${focusAppointment.id}`)}
+                    >
+                      Transcrever
+                    </button>
+                  ) : null}
                 </div>
                 {nextAppointment ? (
                   <p className={styles.nextPatient}>

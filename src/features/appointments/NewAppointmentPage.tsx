@@ -22,7 +22,9 @@ import type {
   Appointment,
   AppointmentType,
   Clinic,
+  Doctor,
   DoctorAvailability,
+  HealthcarePlan,
   Member,
   Patient,
 } from "../../api/types";
@@ -36,6 +38,7 @@ import { AppointmentCalendar } from "./AppointmentCalendar";
 import { AppointmentSummary } from "./AppointmentSummary";
 import { appointmentTypeLabels, parseDateOnly } from "./appointmentLabels";
 import { DoctorPicker } from "./DoctorPicker";
+import { HealthcarePlanPicker } from "./HealthcarePlanPicker";
 import {
   clearDraft,
   emptyNewAppointmentSelection,
@@ -65,6 +68,7 @@ type BookingAttempt = Readonly<{
     startUtc: string;
     type: AppointmentType;
     notes: null;
+    healthcarePlanId?: string;
   }>;
   date: string;
   availabilityKey: QueryKey;
@@ -82,6 +86,8 @@ function selectionMatchesAttempt(
     selection.type === attempt.payload.type &&
     selection.date === attempt.date &&
     selection.slot?.startUtc === attempt.payload.startUtc
+    && (selection.healthcarePlanId ?? null) ===
+      (attempt.payload.healthcarePlanId ?? null)
   );
 }
 
@@ -141,6 +147,7 @@ export function NewAppointmentPage() {
   const [selection, dispatch] = useReducer(selectionReducer, {
     ...emptyNewAppointmentSelection,
     type: restoredDraft?.type ?? (quickMode ? "InPerson" : null),
+    healthcarePlanId: restoredDraft?.healthcarePlanId ?? null,
   });
   const selectionRevision = useRef(0);
   const latestSelection = useRef(selection);
@@ -183,6 +190,16 @@ export function NewAppointmentPage() {
     queryKey: ["new-appointment", authScope, "members"],
     queryFn: () => request<Member[]>("/clinics/members"),
     enabled: Boolean(authScope),
+  });
+  const healthcarePlans = useQuery({
+    queryKey: ["new-appointment", authScope, "healthcare-plans"],
+    queryFn: () => request<HealthcarePlan[]>("/healthcare-plans"),
+    enabled: Boolean(authScope && selection.doctor),
+  });
+  const doctorProfiles = useQuery({
+    queryKey: ["new-appointment", authScope, "doctor-profiles"],
+    queryFn: () => request<Doctor[]>("/clinics/doctors"),
+    enabled: Boolean(authScope && selection.doctor),
   });
   const patient = useQuery({
     queryKey: ["new-appointment", authScope, "patient", requestedPatientId],
@@ -325,6 +342,35 @@ export function NewAppointmentPage() {
       null,
     [availability.data, selection.date],
   );
+  const acceptedHealthcarePlans = useMemo(() => {
+    const acceptedIds = new Set(
+      doctorProfiles.data?.find(
+        (profile) => profile.userId === selection.doctor?.userId,
+      )?.healthInsurancePlanIds ?? [],
+    );
+    return (healthcarePlans.data ?? []).filter((plan) =>
+      acceptedIds.has(plan.id),
+    );
+  }, [doctorProfiles.data, healthcarePlans.data, selection.doctor?.userId]);
+
+  useEffect(() => {
+    if (!selection.healthcarePlanId || healthcarePlans.isPending || doctorProfiles.isPending) {
+      return;
+    }
+    if (
+      !acceptedHealthcarePlans.some(
+        (plan) => plan.id === selection.healthcarePlanId,
+      )
+    ) {
+      dispatchSelection({ type: "healthcarePlan", healthcarePlanId: null });
+    }
+  }, [
+    acceptedHealthcarePlans,
+    dispatchSelection,
+    doctorProfiles.isPending,
+    healthcarePlans.isPending,
+    selection.healthcarePlanId,
+  ]);
 
   const mutation = useMutation({
     mutationFn: (attempt: BookingAttempt) =>
@@ -524,6 +570,17 @@ export function NewAppointmentPage() {
                 })}
               </div>
             </section>
+
+            {selection.doctor ? (
+              <HealthcarePlanPicker
+                plans={acceptedHealthcarePlans}
+                selectedId={selection.healthcarePlanId ?? null}
+                onChange={(healthcarePlanId) => {
+                  setConfirmError(null);
+                  dispatchSelection({ type: "healthcarePlan", healthcarePlanId });
+                }}
+              />
+            ) : null}
           </div>
 
           <div className={styles.bookingColumn}>
@@ -614,6 +671,7 @@ export function NewAppointmentPage() {
 
             <AppointmentSummary
               selection={selection}
+              healthcarePlans={acceptedHealthcarePlans}
               pending={mutation.isPending}
               error={confirmError}
               onConfirm={() => {
@@ -633,6 +691,9 @@ export function NewAppointmentPage() {
                     startUtc: selection.slot.startUtc,
                     type: selection.type,
                     notes: null,
+                    ...(selection.healthcarePlanId
+                      ? { healthcarePlanId: selection.healthcarePlanId }
+                      : {}),
                   },
                   date: selection.date,
                   availabilityKey: [...availabilityKey],

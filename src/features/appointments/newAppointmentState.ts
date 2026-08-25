@@ -15,6 +15,7 @@ export interface NewAppointmentSelection {
   type: AppointmentType | null;
   date: string | null;
   slot: AvailabilitySlot | null;
+  healthcarePlanId?: string | null;
 }
 
 export interface NewAppointmentDraft {
@@ -22,6 +23,7 @@ export interface NewAppointmentDraft {
   doctorId: string | null;
   type: AppointmentType | null;
   date: string | null;
+  healthcarePlanId?: string | null;
 }
 
 interface StoredDraft extends NewAppointmentDraft {
@@ -34,6 +36,7 @@ export const emptyNewAppointmentSelection: NewAppointmentSelection = {
   type: null,
   date: null,
   slot: null,
+  healthcarePlanId: null,
 };
 
 export type NewAppointmentSelectionAction =
@@ -42,6 +45,7 @@ export type NewAppointmentSelectionAction =
   | { type: "appointmentType"; appointmentType: AppointmentType | null }
   | { type: "date"; date: string | null }
   | { type: "slot"; slot: AvailabilitySlot | null }
+  | { type: "healthcarePlan"; healthcarePlanId: string | null }
   | { type: "reset" };
 
 function withoutDateAndSlot(
@@ -67,6 +71,7 @@ export function selectionReducer(
       return {
         ...withoutDateAndSlot(selection),
         doctor: action.doctor,
+        healthcarePlanId: null,
       };
     case "appointmentType":
       if (selection.type === action.appointmentType) return selection;
@@ -76,6 +81,8 @@ export function selectionReducer(
       return { ...selection, date: action.date, slot: null };
     case "slot":
       return { ...selection, slot: action.slot };
+    case "healthcarePlan":
+      return { ...selection, healthcarePlanId: action.healthcarePlanId };
     case "reset":
       return emptyNewAppointmentSelection;
   }
@@ -122,12 +129,19 @@ function isStoredDraft(value: unknown): value is StoredDraft {
   const candidate = value as Record<string, unknown>;
   const expectedKeys = ["date", "doctorId", "patientId", "type", "version"];
   const actualKeys = Object.keys(candidate).sort();
-  return (
+  const expectedKeysWithPlan = [...expectedKeys, "healthcarePlanId"].sort();
+  const hasExpectedKeys =
     actualKeys.length === expectedKeys.length &&
-    actualKeys.every((key, index) => key === expectedKeys[index]) &&
+    actualKeys.every((key, index) => key === expectedKeys[index]);
+  const hasExpectedKeysWithPlan =
+    actualKeys.length === expectedKeysWithPlan.length &&
+    actualKeys.every((key, index) => key === expectedKeysWithPlan[index]);
+  return (
+    (hasExpectedKeys || hasExpectedKeysWithPlan) &&
     candidate.version === DRAFT_VERSION &&
     isSafeId(candidate.patientId) &&
     isSafeId(candidate.doctorId) &&
+    (!hasExpectedKeysWithPlan || isSafeId(candidate.healthcarePlanId)) &&
     isAppointmentType(candidate.type) &&
     isIsoDate(candidate.date)
   );
@@ -151,6 +165,9 @@ export function saveDraft(
     doctorId: selection.doctor?.userId ?? null,
     type: selection.type,
     date: selection.date,
+    ...(selection.healthcarePlanId
+      ? { healthcarePlanId: selection.healthcarePlanId }
+      : {}),
   };
 
   try {
@@ -176,6 +193,9 @@ export function restoreDraft(authScope: string): NewAppointmentDraft | null {
       doctorId: parsed.doctorId,
       type: parsed.type,
       date: parsed.date,
+      ...(parsed.healthcarePlanId
+        ? { healthcarePlanId: parsed.healthcarePlanId }
+        : {}),
     };
   } catch {
     clearDraft(authScope);

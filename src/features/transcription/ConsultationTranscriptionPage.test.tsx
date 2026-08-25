@@ -31,6 +31,15 @@ vi.mock("@microsoft/signalr", () => ({
   LogLevel: { None: 0 },
 }));
 
+vi.mock("./MicrophoneCaptureService", () => ({
+  MicrophoneCaptureService: class {
+    start = vi.fn(() => Promise.resolve());
+    pause = vi.fn(() => Promise.resolve());
+    resume = vi.fn(() => Promise.resolve());
+    stop = vi.fn(() => Promise.resolve());
+  },
+}));
+
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: () => ({
     request: requestMock,
@@ -60,7 +69,13 @@ const importantPoint = {
 };
 
 let transcriptPayload: unknown;
-let pointsPayload: unknown;
+let pointsPayload: {
+  sessionId: string | null;
+  processingStatus: string;
+  waitingForSpeakerCount: number;
+  updatedAtUtc: string | null;
+  points: typeof importantPoint[];
+};
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -113,7 +128,8 @@ beforeEach(() => {
     if (path === `/appointments/${appointmentId}`) return Promise.resolve({
       id: appointmentId, patientId: "33333333-3333-4333-8333-333333333333", patientName: "Marina Oliveira",
       doctorUserId: "11111111-1111-4111-8111-111111111111", startUtc: "2026-08-12T12:00:00Z",
-      endUtc: "2026-08-12T13:00:00Z", type: "InPerson", status: "Realizada", notes: null,
+      endUtc: "2026-08-12T13:00:00Z", type: "InPerson", status: "Completed", notes: null,
+      actualStartUtc: "2026-08-12T12:04:00Z", actualEndUtc: "2026-08-12T12:42:00Z",
       createdAtUtc: "2026-08-10T12:00:00Z",
     });
     if (path === `/consultations/${appointmentId}/transcription`) return Promise.resolve(transcriptPayload);
@@ -148,6 +164,230 @@ test("renderiza Pontos, Vozes e Dados nesta ordem para Doctor", async () => {
   const details = screen.getByRole("heading", { name: "Dados da consulta" }).closest("section")!;
   expect(points.compareDocumentPosition(voices) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(voices.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test("exibe horários agendados e efetivos como informações distintas", async () => {
+  renderPage();
+
+  const details = (await screen.findByRole("heading", {
+    name: "Dados da consulta",
+  })).closest("section")!;
+  expect(details).toHaveTextContent("Início agendado");
+  expect(details).toHaveTextContent("Início efetivo");
+  expect(details).toHaveTextContent("Término efetivo");
+  expect(details).toHaveTextContent("38 min");
+});
+
+test("AccessRequired bloqueia a consulta antes de buscar dados clínicos", async () => {
+  requestMock.mockImplementation((path: string) => {
+    if (path === `/appointments/${appointmentId}`) {
+      return Promise.resolve({
+        id: appointmentId,
+        patientId: "33333333-3333-4333-8333-333333333333",
+        patientName: "Marina Oliveira",
+        doctorUserId: "11111111-1111-4111-8111-111111111111",
+        startUtc: "2026-08-12T12:00:00Z",
+        endUtc: "2026-08-12T13:00:00Z",
+        type: "InPerson",
+        status: "AccessRequired",
+        notes: null,
+        createdAtUtc: "2026-08-10T12:00:00Z",
+      });
+    }
+    return Promise.reject(new Error(`rota inesperada: ${path}`));
+  });
+
+  renderPage();
+
+  expect(
+    await screen.findByRole("heading", { name: "Acesso aos dados necessário" }),
+  ).toBeVisible();
+  expect(screen.getByText(/não pode ser iniciada/)).toBeVisible();
+  expect(requestMock).not.toHaveBeenCalledWith(
+    `/consultations/${appointmentId}/transcription`,
+  );
+  expect(hubMock.start).not.toHaveBeenCalled();
+});
+
+test("inicia o lifecycle antes da transcrição quando o acesso está ativo", async () => {
+  transcriptPayload = { session: null, segments: [] };
+  const confirmed = {
+    id: appointmentId,
+    patientId: "33333333-3333-4333-8333-333333333333",
+    patientName: "Marina Oliveira",
+    doctorUserId: "11111111-1111-4111-8111-111111111111",
+    startUtc: "2026-08-12T12:00:00Z",
+    endUtc: "2026-08-12T13:00:00Z",
+    type: "InPerson",
+    status: "Confirmed",
+    notes: null,
+    createdAtUtc: "2026-08-10T12:00:00Z",
+  };
+  requestMock.mockImplementation((path: string, init?: RequestInit) => {
+    if (path === `/appointments/${appointmentId}`) return Promise.resolve(confirmed);
+    if (path === `/consultations/${appointmentId}/transcription`) {
+      return Promise.resolve(transcriptPayload);
+    }
+    if (path === `/consultations/${appointmentId}/important-points`) {
+      return Promise.resolve({ ...pointsPayload, sessionId: null, points: [] });
+    }
+    if (path === `/appointments/${appointmentId}/start` && init?.method === "POST") {
+      return Promise.resolve({
+        ...confirmed,
+        status: "InProgress",
+        actualStartUtc: "2026-08-12T12:04:00Z",
+      });
+    }
+    if (
+      path === `/consultations/${appointmentId}/transcription/start` &&
+      init?.method === "POST"
+    ) {
+      return Promise.resolve({
+        id: sessionId,
+        appointmentId,
+        startedAtUtc: "2026-08-12T12:04:00Z",
+        endedAtUtc: null,
+        status: "Recording",
+        lastAudioSequence: 0,
+        isDegraded: false,
+      });
+    }
+    return Promise.reject(new Error(`rota inesperada: ${path}`));
+  });
+  const user = userEvent.setup();
+
+  renderPage();
+  await user.click(
+    await screen.findByRole("button", { name: "Iniciar consulta" }),
+  );
+
+  await waitFor(() =>
+    expect(requestMock).toHaveBeenCalledWith(
+      `/consultations/${appointmentId}/transcription/start`,
+      { method: "POST" },
+    ),
+  );
+  const lifecycleCall = requestMock.mock.calls.findIndex(
+    ([path]) => path === `/appointments/${appointmentId}/start`,
+  );
+  const transcriptionCall = requestMock.mock.calls.findIndex(
+    ([path]) => path === `/consultations/${appointmentId}/transcription/start`,
+  );
+  expect(lifecycleCall).toBeGreaterThanOrEqual(0);
+  expect(transcriptionCall).toBeGreaterThan(lifecycleCall);
+});
+
+test("não inicia a transcrição quando o lifecycle detecta perda de acesso", async () => {
+  transcriptPayload = { session: null, segments: [] };
+  const confirmed = {
+    id: appointmentId,
+    patientId: "33333333-3333-4333-8333-333333333333",
+    patientName: "Marina Oliveira",
+    doctorUserId: "11111111-1111-4111-8111-111111111111",
+    startUtc: "2026-08-12T12:00:00Z",
+    endUtc: "2026-08-12T13:00:00Z",
+    type: "InPerson",
+    status: "Confirmed",
+    notes: null,
+    createdAtUtc: "2026-08-10T12:00:00Z",
+  };
+  requestMock.mockImplementation((path: string, init?: RequestInit) => {
+    if (path === `/appointments/${appointmentId}`) return Promise.resolve(confirmed);
+    if (path === `/consultations/${appointmentId}/transcription`) {
+      return Promise.resolve(transcriptPayload);
+    }
+    if (path === `/consultations/${appointmentId}/important-points`) {
+      return Promise.resolve({ ...pointsPayload, sessionId: null, points: [] });
+    }
+    if (path === `/appointments/${appointmentId}/start` && init?.method === "POST") {
+      return Promise.resolve({ ...confirmed, status: "AccessRequired" });
+    }
+    return Promise.reject(new Error(`rota inesperada: ${path}`));
+  });
+  const user = userEvent.setup();
+
+  renderPage();
+  await user.click(
+    await screen.findByRole("button", { name: "Iniciar consulta" }),
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "Acesso aos dados necessário" }),
+  ).toBeVisible();
+  expect(requestMock).not.toHaveBeenCalledWith(
+    `/consultations/${appointmentId}/transcription/start`,
+    { method: "POST" },
+  );
+});
+
+test("finaliza o lifecycle depois de drenar a transcrição", async () => {
+  const inProgress = {
+    id: appointmentId,
+    patientId: "33333333-3333-4333-8333-333333333333",
+    patientName: "Marina Oliveira",
+    doctorUserId: "11111111-1111-4111-8111-111111111111",
+    startUtc: "2026-08-12T12:00:00Z",
+    endUtc: "2026-08-12T13:00:00Z",
+    type: "InPerson",
+    status: "InProgress",
+    notes: null,
+    actualStartUtc: "2026-08-12T12:04:00Z",
+    actualEndUtc: null,
+    createdAtUtc: "2026-08-10T12:00:00Z",
+  };
+  transcriptPayload = {
+    session: {
+      id: sessionId,
+      appointmentId,
+      startedAtUtc: "2026-08-12T12:04:00Z",
+      endedAtUtc: null,
+      status: "Recording",
+      lastAudioSequence: 10,
+      isDegraded: false,
+    },
+    segments: [],
+  };
+  requestMock.mockImplementation((path: string, init?: RequestInit) => {
+    if (path === `/appointments/${appointmentId}`) return Promise.resolve(inProgress);
+    if (path === `/consultations/${appointmentId}/transcription`) {
+      return Promise.resolve(transcriptPayload);
+    }
+    if (path === `/consultations/${appointmentId}/important-points`) {
+      return Promise.resolve({ ...pointsPayload, points: [] });
+    }
+    if (path === `/transcription-sessions/${sessionId}/finish` && init?.method === "POST") {
+      return Promise.resolve(undefined);
+    }
+    if (path === `/appointments/${appointmentId}/complete` && init?.method === "POST") {
+      return Promise.resolve({
+        ...inProgress,
+        status: "Completed",
+        actualEndUtc: "2026-08-12T12:42:00Z",
+      });
+    }
+    return Promise.reject(new Error(`rota inesperada: ${path}`));
+  });
+  const user = userEvent.setup();
+
+  renderPage();
+  await user.click(
+    await screen.findByRole("button", { name: "Finalizar consulta" }),
+  );
+
+  await waitFor(() =>
+    expect(requestMock).toHaveBeenCalledWith(
+      `/appointments/${appointmentId}/complete`,
+      { method: "POST" },
+    ),
+  );
+  const finishCall = requestMock.mock.calls.findIndex(
+    ([path]) => path === `/transcription-sessions/${sessionId}/finish`,
+  );
+  const completeCall = requestMock.mock.calls.findIndex(
+    ([path]) => path === `/appointments/${appointmentId}/complete`,
+  );
+  expect(completeCall).toBeGreaterThan(finishCall);
+  expect(await screen.findByText("Consulta finalizada")).toBeVisible();
 });
 
 test("não consulta nem renderiza pontos clínicos para Secretary", async () => {

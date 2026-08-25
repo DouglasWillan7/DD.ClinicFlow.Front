@@ -51,6 +51,10 @@ import {
 import { AgendaMonthCalendar } from "./AgendaMonthCalendar";
 import { DayTimeline } from "./DayTimeline";
 import { NextAppointmentCard } from "./NextAppointmentCard";
+import {
+  isAppointmentCancelled,
+  isAppointmentConfirmed,
+} from "./appointmentStatus";
 import styles from "./AgendaPage.module.css";
 
 const typeFilters: Array<{ value: TypeFilter; label: string }> = [
@@ -223,7 +227,7 @@ export function AgendaPage({
   const countByDate = useMemo(() => {
     const counts = new Map<string, number>();
     for (const appointment of doctorAppointments) {
-      if (appointment.status === "Cancelada") continue;
+      if (isAppointmentCancelled(appointment.status)) continue;
       const date = formatInTimeZone(
         appointment.startUtc,
         timeZone,
@@ -262,7 +266,7 @@ export function AgendaPage({
   const freeSlots = countFreeSlots(rows);
   const nextAppointment = personalAgenda
     ? dayAppointments
-        .filter((appointment) => appointment.status === "Confirmada")
+        .filter((appointment) => isAppointmentConfirmed(appointment.status))
         .sort(
           (first, second) =>
             Date.parse(first.startUtc) - Date.parse(second.startUtc),
@@ -451,11 +455,20 @@ export function AgendaPage({
         <div
           className={styles.successBanner}
           role="status"
-          aria-label="Consulta agendada"
+          aria-label={
+            created.data?.status === "AwaitingPatientAction"
+              ? "Agendamento aguardando paciente"
+              : "Consulta agendada"
+          }
           aria-live="polite"
         >
           <CheckCircle2 size={19} aria-hidden="true" />
-          {created.data ? (
+          {created.data?.status === "AwaitingPatientAction" ? (
+            <span>
+              Aguardando a confirmação do paciente e o compartilhamento dos
+              dados com o médico. A consulta ficará disponível após essa ação.
+            </span>
+          ) : created.data ? (
             <span>
               Consulta agendada:{" "}
               {members.data?.find(
@@ -609,6 +622,7 @@ export function AgendaPage({
             emptyMessage={emptyMessage}
             personal={personalAgenda}
             canOpenConsultation={can(session, "ReadTranscription")}
+            timeZone={timeZone}
             onSelectFreeSlot={bookSlot}
           />
         )}

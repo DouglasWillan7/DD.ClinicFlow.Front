@@ -839,6 +839,15 @@
   line-height: 1.4;
 }
 
+.appointmentActualTime {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .typeBadge {
   display: inline-flex;
   flex: 0 0 auto;

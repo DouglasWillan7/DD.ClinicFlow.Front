@@ -140,6 +140,30 @@ const completedAppointment: Appointment = {
   notes: "Acompanhamento",
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
+const awaitingPatientAppointment: Appointment = {
+  ...appointment,
+  id: "40000000-0000-4000-8000-000000000007",
+  status: "AwaitingPatientAction" as Appointment["status"],
+};
+const accessRequiredAppointment: Appointment = {
+  ...appointment,
+  id: "40000000-0000-4000-8000-000000000008",
+  patientName: "Paciente sem acesso",
+  startUtc: "2026-08-10T15:00:00Z",
+  endUtc: "2026-08-10T15:30:00Z",
+  status: "AccessRequired" as Appointment["status"],
+};
+const inProgressAppointment: Appointment = {
+  ...appointment,
+  id: "40000000-0000-4000-8000-000000000009",
+  patientName: "Paciente em atendimento",
+  startUtc: "2026-08-10T16:00:00Z",
+  endUtc: "2026-08-10T16:30:00Z",
+  status: "InProgress" as Appointment["status"],
+  notes: null,
+  actualStartUtc: "2026-08-10T16:05:00Z",
+  actualEndUtc: null,
+};
 const availability: DoctorAvailability = {
   doctorUserId: doctorId,
   timeZoneId: "America/Sao_Paulo",
@@ -355,6 +379,58 @@ test("monta a linha do tempo com consultas, horários livres e intervalo", async
   expect(within(timeline).getByText("Intervalo · 10:00 – 10:30")).toBeVisible();
 });
 
+test("mantém estados sem acesso visíveis, mas sem ação para abrir consulta", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    roles: ["Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  mockAgenda([awaitingPatientAppointment, accessRequiredAppointment]);
+
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  const timeline = await findTimeline();
+  expect(
+    within(timeline).getByText("Aguardando confirmação do paciente"),
+  ).toBeVisible();
+  expect(within(timeline).getByText("Acesso necessário")).toBeVisible();
+  expect(
+    within(timeline).queryByRole("button", { name: /Abrir consulta/ }),
+  ).not.toBeInTheDocument();
+});
+
+test("exibe o início efetivo sem substituir a janela agendada", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    roles: ["Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  mockAgenda([inProgressAppointment]);
+
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  const timeline = await findTimeline();
+  expect(within(timeline).getByText("30 min")).toBeVisible();
+  expect(
+    within(timeline).getByText("Início efetivo · 13:05"),
+  ).toBeVisible();
+  expect(
+    within(timeline).getByRole("button", {
+      name: "Abrir consulta de Paciente em atendimento",
+    }),
+  ).toBeVisible();
+});
+
 test("resume o dia sem contar canceladas e conta os horários livres", async () => {
   mockAgenda([appointment, teleconsultation, canceled]);
   render(
@@ -402,9 +478,14 @@ test.each([
   expect(personalTimeline).toBeVisible();
   expect(
     within(personalTimeline).getByRole("button", {
-      name: "Abrir consulta de Marina Oliveira",
+      name: "Abrir consulta de Carlos Souza",
     }),
   ).toBeVisible();
+  expect(
+    within(personalTimeline).queryByRole("button", {
+      name: "Abrir consulta de Marina Oliveira",
+    }),
+  ).not.toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: /^Nova consulta$/ }),
   ).toBeVisible();
@@ -706,6 +787,38 @@ test("anuncia a consulta criada e remove somente o marcador com replace", async 
   expect(
     screen.queryByRole("status", { name: "Consulta agendada" }),
   ).not.toBeInTheDocument();
+});
+
+test("explica que o novo agendamento aguarda confirmação e compartilhamento", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda?date=2026-08-10&appointmentId=${awaitingPatientAppointment.id}&created=true`,
+  );
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path.startsWith("/appointments?")) return [awaitingPatientAppointment];
+    if (path === `/appointments/${awaitingPatientAppointment.id}`) {
+      return awaitingPatientAppointment;
+    }
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    throw new Error(`Unexpected request: ${path}`);
+  });
+
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByRole("status", {
+      name: "Agendamento aguardando paciente",
+    }),
+  ).toHaveTextContent(
+    "Aguardando a confirmação do paciente e o compartilhamento dos dados com o médico",
+  );
 });
 
 test.each(["nao-e-guid", "%2Fadmin%2Fsegredo"])(

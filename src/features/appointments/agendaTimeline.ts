@@ -5,6 +5,12 @@ import type {
   AppointmentType,
   AvailabilitySlot,
 } from "../../api/types";
+import {
+  isAppointmentCancelled,
+  isAppointmentCompleted,
+  isAppointmentConfirmed,
+  isAppointmentInProgress,
+} from "./appointmentStatus";
 
 export type TimelineTone = "confirmed" | "pending" | "done" | "canceled";
 export type TypeFilter = "all" | AppointmentType;
@@ -12,9 +18,11 @@ export type TypeFilter = "all" | AppointmentType;
 export function appointmentTimelineTone(
   status: AppointmentStatus,
 ): TimelineTone {
-  if (status === "Confirmada") return "confirmed";
-  if (status === "Realizada") return "done";
-  if (status === "Cancelada" || status === "NoShow") return "canceled";
+  if (isAppointmentConfirmed(status) || isAppointmentInProgress(status)) {
+    return "confirmed";
+  }
+  if (isAppointmentCompleted(status)) return "done";
+  if (isAppointmentCancelled(status)) return "canceled";
   return "pending";
 }
 

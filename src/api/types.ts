@@ -206,10 +206,13 @@ export interface Doctor {
   scheduleIntervals: DoctorScheduleInterval[];
 }
 
-export interface HealthInsurancePlan {
+export interface HealthcarePlan {
   id: string;
   name: string;
 }
+
+/** @deprecated Use `HealthcarePlan`; kept only for legacy doctor forms. */
+export type HealthInsurancePlan = HealthcarePlan;
 
 /** O token só volta uma vez, na resposta que emite o convite. */
 export interface DoctorAccessInvite {
@@ -244,6 +247,12 @@ export interface CurrentUser {
 }
 
 export type AppointmentStatus =
+  | "AwaitingPatientAction"
+  | "Confirmed"
+  | "AccessRequired"
+  | "InProgress"
+  | "Completed"
+  | "Cancelled"
   | "Agendada"
   | "ConfirmacaoEnviada"
   | "Confirmada"
@@ -262,6 +271,11 @@ export interface Appointment {
   status: AppointmentStatus;
   notes: string | null;
   createdAtUtc: string;
+  healthcarePlanId?: string | null;
+  checkInAtUtc?: string | null;
+  actualStartUtc?: string | null;
+  actualEndUtc?: string | null;
+  version?: number;
 }
 
 export type TranscriptionSessionStatus = "Starting" | "Recording" | "Paused" | "StopRequested" | "Draining" | "Recovering" | "Completed" | "Failed";

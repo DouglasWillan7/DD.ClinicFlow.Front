@@ -178,3 +178,37 @@ test("oferece nova tentativa quando a agenda falha", async () => {
   );
   expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeVisible();
 });
+
+test("não oferece transcrição quando o acesso do paciente é necessário", async () => {
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path.startsWith("/appointments?")) {
+      return [
+        appointment({
+          id: "40000000-0000-4000-8000-000000000010",
+          patientName: "Paciente sem acesso",
+          startUtc: "2026-08-10T12:00:00Z",
+          endUtc: "2026-08-10T12:40:00Z",
+          status: "AccessRequired",
+        }),
+      ];
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+
+  render(
+    <Harness>
+      <DoctorHomePage />
+    </Harness>,
+  );
+
+  expect(
+    await screen.findByRole("region", { name: "Paciente sem acesso" }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Transcrever" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Abrir prontuário" }),
+  ).toBeVisible();
+});
