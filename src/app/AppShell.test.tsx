@@ -6,7 +6,11 @@ import { beforeEach, expect, test, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
 const { authState, logout, navigate, request, routerState, switchClinic } = vi.hoisted(() => ({
-  authState: { roles: ["Doctor", "Admin"] as Array<"Admin" | "Doctor" | "Nurse" | "Secretary"> },
+  authState: {
+    clinicRole: "Doctor" as "Doctor" | "Nurse" | "Secretary",
+    isAdmin: true,
+    roles: ["Doctor", "Admin"] as Array<"Admin" | "Doctor" | "Nurse" | "Secretary">,
+  },
   logout: vi.fn(),
   navigate: vi.fn(),
   request: vi.fn(async () => []),
@@ -38,8 +42,8 @@ vi.mock("../auth/AuthProvider", () => ({
       clinicId: "c-1",
       clinicName: "Clínica Centro",
       userClinicId: "uc-1",
-      clinicRole: "Doctor",
-      isAdmin: true,
+      clinicRole: authState.clinicRole,
+      isAdmin: authState.isAdmin,
       availableClinics: [
         {
           userClinicId: "uc-1",
@@ -101,6 +105,8 @@ vi.mock("./navigation", async (importOriginal) => ({
 const railStore = new Map<string, string>();
 
 beforeEach(() => {
+  authState.clinicRole = "Doctor";
+  authState.isAdmin = true;
   authState.roles = ["Doctor", "Admin"];
   logout.mockClear();
   navigate.mockClear();
@@ -140,6 +146,7 @@ test("rail expõe destinos e usuário sem depender de ícones", () => {
 });
 
 test("médico usa o Início pessoal e mantém o acesso a Agendas", () => {
+  authState.isAdmin = false;
   authState.roles = ["Doctor"];
   renderShell("/app/inicio");
 
@@ -165,6 +172,32 @@ test("médico administrador mantém Início e também recebe Agendas", () => {
     "href",
     "/app/agenda",
   );
+});
+
+test("admin de secretaria administra a clínica sem receber navegação clínica", () => {
+  authState.clinicRole = "Secretary";
+  authState.isAdmin = true;
+  // Um array legado conflitante não pode ampliar o contexto v2.
+  authState.roles = ["Doctor", "Admin"];
+  renderShell("/app/agenda");
+
+  expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Agendas" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Equipe" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Clínica" })).toBeVisible();
+});
+
+test("enfermagem herda operação sem receber prontuário ou administração", () => {
+  authState.clinicRole = "Nurse";
+  authState.isAdmin = false;
+  authState.roles = ["Admin"];
+  renderShell("/app/agenda");
+
+  expect(screen.getByRole("link", { name: "Agendas" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Pacientes" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Equipe" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Configuração")).not.toBeInTheDocument();
 });
 
 // A busca em si é coberta em features/search/GlobalSearch.test.tsx; aqui só

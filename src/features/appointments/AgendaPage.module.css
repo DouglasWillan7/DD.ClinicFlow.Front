@@ -792,6 +792,17 @@
 .appointmentCard:active { transform: scale(.99); }
 .appointmentCard:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 
+.appointmentCardStatic {
+  cursor: default;
+  transition: none;
+}
+
+.appointmentCardStatic:hover { background: var(--color-primary-subtle); }
+.appointmentCardStatic:active { transform: none; }
+.pending .appointmentCardStatic:hover { background: var(--neutral-soft); }
+.done .appointmentCardStatic:hover { background: var(--done-soft); }
+.canceled .appointmentCardStatic:hover { background: var(--canceled-soft); }
+
 .appointmentAvatar {
   display: grid;
   width: 44px;

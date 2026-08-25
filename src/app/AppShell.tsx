@@ -22,7 +22,8 @@ import {
   useState,
 } from "react";
 import { useAuth } from "../auth/AuthProvider";
-import { formatRoles, hasRole, roleLabels } from "../auth/roles";
+import { can, getAppStart } from "../auth/permissions";
+import { formatRoles, roleLabels } from "../auth/roles";
 import { getAuthScope } from "../auth/sessionScope";
 import { BrandMark } from "../components/BrandMark";
 import { ClinicContextSelector } from "../features/clinic-context/ClinicContextSelector";
@@ -88,34 +89,36 @@ export function AppShell({ children }: PropsWithChildren) {
   );
   // O hover é a expansão padrão do handoff; o teclado precisa do mesmo gatilho.
   const railExpanded = railPinned || railHovered || railFocused;
-  const isDoctor = hasRole(session, "Doctor");
-  const doctorNav = [
-    { to: "/app/inicio", label: "Início", icon: House },
-    { to: "/app/pacientes", label: "Pacientes", icon: UsersRound },
-    { to: "/app/agenda", label: "Agendas", icon: CalendarDays },
-    { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus },
+  const primaryNav = [
+    can(session, "ReadClinicalRecord")
+      ? { to: "/app/inicio", label: "Início", icon: House }
+      : undefined,
+    can(session, "ManagePatientDemographics")
+      ? { to: "/app/pacientes", label: "Pacientes", icon: UsersRound }
+      : undefined,
+    can(session, "ViewSchedule")
+      ? { to: "/app/agenda", label: "Agendas", icon: CalendarDays }
+      : undefined,
+    can(session, "ManageClinicMemberships")
+      ? { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus }
+      : undefined,
     { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
-  ];
-  const operationalNav = [
-    { to: "/app/agenda", label: "Agendas", icon: CalendarDays },
-    { to: "/app/pacientes", label: "Pacientes", icon: UsersRound },
-    { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus },
-    { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
-  ];
-  const primaryNav = isDoctor ? doctorNav : operationalNav;
+  ].filter((item) => item !== undefined);
   const adminNav = [
-    { to: "/app/onboarding", label: "Primeiros passos", icon: Stethoscope },
-    {
+    can(session, "ManageClinicSettings")
+      ? { to: "/app/onboarding", label: "Primeiros passos", icon: Stethoscope }
+      : undefined,
+    can(session, "ManageClinicSettings") ? {
       to: "/app/configuracoes/clinica",
       label: "Clínica",
       icon: Building2,
-    },
-    {
+    } : undefined,
+    can(session, "ManageClinicSettings") ? {
       to: "/app/configuracoes/whatsapp",
       label: "WhatsApp",
       icon: MessageCircleMore,
-    },
-  ];
+    } : undefined,
+  ].filter((item) => item !== undefined);
 
   function toggleRailPin() {
     setRailPinned((pinned) => {
@@ -140,7 +143,7 @@ export function AppShell({ children }: PropsWithChildren) {
     try {
       const next = await switchClinic(userClinicId);
       setUserMenuOpen(false);
-      navigate(hasRole(next, "Doctor") ? "/app/inicio" : "/app/agenda", {
+      navigate(getAppStart(next), {
         replace: true,
       });
     } catch {
@@ -215,7 +218,7 @@ export function AppShell({ children }: PropsWithChildren) {
         >
           {primaryNav.map(renderLink)}
 
-          {hasRole(session, "Admin") ? (
+          {adminNav.length > 0 ? (
             <>
               <span className={styles.navLabel}>Configuração</span>
               {adminNav.map(renderLink)}

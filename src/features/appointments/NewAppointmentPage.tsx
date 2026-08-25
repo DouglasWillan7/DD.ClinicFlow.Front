@@ -28,7 +28,7 @@ import type {
 } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { hasRole } from "../../auth/roles";
+import { can } from "../../auth/permissions";
 import { getAuthScope } from "../../auth/sessionScope";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { onboardingKey } from "../onboarding/onboarding";
@@ -122,7 +122,7 @@ export function NewAppointmentPage() {
   const authScope = session ? getAuthScope(session) : "";
   const quickMode = params.get("mode") === "quick";
   const openedFromHome =
-    params.get("origin") === "home" && hasRole(session, "Doctor");
+    params.get("origin") === "home" && can(session, "ReadClinicalRecord");
   const [restoredDraft] = useState(() =>
     authScope ? restoreDraft(authScope) : null,
   );

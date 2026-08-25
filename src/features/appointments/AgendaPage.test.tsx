@@ -345,6 +345,11 @@ test("monta a linha do tempo com consultas, horários livres e intervalo", async
   expect(within(timeline).getByText("Carlos Souza")).toBeVisible();
   expect(within(timeline).getByText("Paula Ramos")).toBeVisible();
   expect(
+    within(timeline).queryByRole("button", {
+      name: "Abrir consulta de Marina Oliveira",
+    }),
+  ).not.toBeInTheDocument();
+  expect(
     within(timeline).getAllByRole("button", { name: /disponível — agendar/ }),
   ).toHaveLength(2);
   expect(within(timeline).getByText("Intervalo · 10:00 – 10:30")).toBeVisible();
@@ -393,7 +398,13 @@ test.each([
   const timelineTitle = await screen.findByRole("heading", {
     name: "Segunda-feira, 10 Ago 2026",
   });
-  expect(timelineTitle.closest("section")).toBeVisible();
+  const personalTimeline = timelineTitle.closest("section")!;
+  expect(personalTimeline).toBeVisible();
+  expect(
+    within(personalTimeline).getByRole("button", {
+      name: "Abrir consulta de Marina Oliveira",
+    }),
+  ).toBeVisible();
   expect(
     screen.getByRole("button", { name: /^Nova consulta$/ }),
   ).toBeVisible();

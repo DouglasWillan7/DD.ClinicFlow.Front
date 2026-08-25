@@ -6,7 +6,8 @@ import { z } from "zod";
 import { ApiError } from "../../api/client";
 import type { CurrentUser } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
-import { formatRoles, hasRole } from "../../auth/roles";
+import { can } from "../../auth/permissions";
+import { formatRoles } from "../../auth/roles";
 import { Button } from "../../components/Button";
 import {
   ErrorBlock,
@@ -27,7 +28,7 @@ type ProfileForm = z.infer<typeof profileSchema>;
 const profileKey = ["user", "me"] as const;
 
 export function ProfileSettingsPage() {
-  const { request, updateSessionName } = useAuth();
+  const { request, session, updateSessionName } = useAuth();
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
   const query = useQuery({
@@ -70,7 +71,7 @@ export function ProfileSettingsPage() {
     },
   });
 
-  const isDoctor = hasRole(query.data, "Doctor");
+  const isDoctor = can(session, "ReadClinicalRecord");
 
   return (
     <>

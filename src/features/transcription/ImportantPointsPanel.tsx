@@ -3,6 +3,7 @@ import { AlertCircle, ArrowUpRight, Check, Pencil, Sparkles, X } from "lucide-re
 import { useRef, useState } from "react";
 import { ApiError } from "../../api/client";
 import { useAuth } from "../../auth/AuthProvider";
+import { can } from "../../auth/permissions";
 import { Button } from "../../components/Button";
 import {
   ConsultationPointConflictError,
@@ -40,12 +41,12 @@ export function ImportantPointsPanel(props: ImportantPointsPanelProps) {
   const [reviewFeedback, setReviewFeedback] = useState<{ pointId: string; message: string } | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<{ kind: "error" | "success"; message: string } | null>(null);
   const saveRequestIdRef = useRef<string | null>(null);
-  const isDoctor = session?.roles.includes("Doctor") ?? false;
+  const canWriteClinicalRecord = can(session, "WriteClinicalRecord");
   const queryKey = consultationImportantPointsQueryKey(appointmentId);
   const pointsQuery = useQuery({
     queryKey,
     queryFn: () => getConsultationImportantPoints(request, appointmentId),
-    enabled: isDoctor,
+    enabled: canWriteClinicalRecord,
   });
 
   const replacePoint = (nextPoint: ConsultationImportantPoint) => {
@@ -121,7 +122,7 @@ export function ImportantPointsPanel(props: ImportantPointsPanelProps) {
     },
   });
 
-  if (!isDoctor) return null;
+  if (!canWriteClinicalRecord) return null;
 
   const snapshot = pointsQuery.data;
   const points = snapshot?.points ?? [];

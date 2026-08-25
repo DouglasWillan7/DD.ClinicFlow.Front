@@ -6,7 +6,7 @@ import type { Appointment, ConsultationTranscript, TranscriptSegment, Transcript
 import { getApiUrl } from "../../api/client";
 import { Link } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { hasRole } from "../../auth/roles";
+import { can } from "../../auth/permissions";
 import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { appointmentTypeLabels } from "../appointments/appointmentLabels";
@@ -214,7 +214,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
         : status === "Failed" ? "failed"
           : status === "idle" ? "idle" : "processing";
   const voiceNumberByKey = new Map(voices.map((voice, index) => [voice.key, index + 1]));
-  const isDoctor = hasRole(auth, "Doctor");
+  const canWriteClinicalRecord = can(auth, "WriteClinicalRecord");
   const unknownSegmentCount = segments.filter((item) => item.speakerRole === "Unknown").length;
 
   const displayNameFor = (role: TranscriptSpeakerRole, streamNumber: number, tag: number | null) => {
@@ -288,7 +288,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
       </section>
 
       <aside className={styles.sideColumn} aria-label="Contexto da transcrição">
-        {isDoctor ? <div className={styles.pointsSlot}>
+        {canWriteClinicalRecord ? <div className={styles.pointsSlot}>
           <ImportantPointsPanel
             appointmentId={appointmentId}
             sessionId={session?.id ?? null}

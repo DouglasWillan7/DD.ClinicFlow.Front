@@ -15,6 +15,7 @@ export interface DayTimelineProps {
   rows: TimelineRow[];
   emptyMessage: string;
   personal?: boolean;
+  canOpenConsultation?: boolean;
   onSelectFreeSlot(slot: AvailabilitySlot): void;
 }
 
@@ -32,6 +33,7 @@ export function DayTimeline({
   rows,
   emptyMessage,
   personal = false,
+  canOpenConsultation = false,
   onSelectFreeSlot,
 }: DayTimelineProps) {
   const navigate = useNavigate();
@@ -75,7 +77,6 @@ export function DayTimeline({
           {rows.map((row) => {
             if (row.kind === "appointment") {
               const { appointment } = row;
-              const teleconsultation = appointment.type === "Teleconsultation";
               return (
                 <li
                   key={row.key}
@@ -84,39 +85,29 @@ export function DayTimeline({
                   <span className={clsx(styles.rowTime, styles.rowTimeBooked)}>
                     {row.start}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/app/consultas/${appointment.id}`)}
-                    aria-label={`Abrir consulta de ${appointment.patientName}`}
-                    className={clsx(
-                      styles.appointmentCard,
-                      row.durationMinutes >= 60 && styles.long,
-                    )}
-                  >
-                    <span className={styles.appointmentAvatar} aria-hidden="true">
-                      {getInitials(appointment.patientName)}
-                    </span>
-                    <span className={styles.appointmentIdentity}>
-                      <span className={styles.appointmentName}>
-                        {appointment.patientName}
-                      </span>
-                      <span className={styles.appointmentMeta}>
-                        {appointment.notes?.trim()
-                          ? `${appointment.notes.trim()} · `
-                          : ""}
-                        {row.durationMinutes} min
-                      </span>
-                    </span>
-                    <span className={styles.typeBadge}>
-                      {teleconsultation ? (
-                        <Video size={15} aria-hidden="true" />
-                      ) : null}
-                      {appointmentTypeLabels[appointment.type]}
-                    </span>
-                    <span className={styles.statusLabel}>
-                      {appointmentStatusLabels[appointment.status]}
-                    </span>
-                  </button>
+                  {canOpenConsultation ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/app/consultas/${appointment.id}`)}
+                      aria-label={`Abrir consulta de ${appointment.patientName}`}
+                      className={clsx(
+                        styles.appointmentCard,
+                        row.durationMinutes >= 60 && styles.long,
+                      )}
+                    >
+                      <AppointmentCardContent row={row} />
+                    </button>
+                  ) : (
+                    <div
+                      className={clsx(
+                        styles.appointmentCard,
+                        styles.appointmentCardStatic,
+                        row.durationMinutes >= 60 && styles.long,
+                      )}
+                    >
+                      <AppointmentCardContent row={row} />
+                    </div>
+                  )}
                 </li>
               );
             }
@@ -169,5 +160,36 @@ export function DayTimeline({
         </p>
       )}
     </section>
+  );
+}
+
+function AppointmentCardContent({
+  row,
+}: {
+  row: Extract<TimelineRow, { kind: "appointment" }>;
+}) {
+  const { appointment } = row;
+  const teleconsultation = appointment.type === "Teleconsultation";
+
+  return (
+    <>
+      <span className={styles.appointmentAvatar} aria-hidden="true">
+        {getInitials(appointment.patientName)}
+      </span>
+      <span className={styles.appointmentIdentity}>
+        <span className={styles.appointmentName}>{appointment.patientName}</span>
+        <span className={styles.appointmentMeta}>
+          {appointment.notes?.trim() ? `${appointment.notes.trim()} · ` : ""}
+          {row.durationMinutes} min
+        </span>
+      </span>
+      <span className={styles.typeBadge}>
+        {teleconsultation ? <Video size={15} aria-hidden="true" /> : null}
+        {appointmentTypeLabels[appointment.type]}
+      </span>
+      <span className={styles.statusLabel}>
+        {appointmentStatusLabels[appointment.status]}
+      </span>
+    </>
   );
 }

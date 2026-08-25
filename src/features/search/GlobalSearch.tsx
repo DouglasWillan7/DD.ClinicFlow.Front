@@ -13,7 +13,7 @@ import {
 } from "react";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { hasRole } from "../../auth/roles";
+import { can } from "../../auth/permissions";
 import { getAuthScope } from "../../auth/sessionScope";
 import {
   searchEntries,
@@ -79,8 +79,8 @@ export function GlobalSearch() {
   const { session } = useAuth();
   const index = useGlobalSearchIndex();
   const scope = session ? getAuthScope(session) : "";
-  const canSearchDoctors =
-    hasRole(session, "Admin") || hasRole(session, "Secretary");
+  const canSearchDoctors = can(session, "ViewSchedule");
+  const canReadClinicalRecord = can(session, "ReadClinicalRecord");
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -152,7 +152,7 @@ export function GlobalSearch() {
     setRecents(rememberRecent(scope, { kind, id, label }));
     navigate(
       kind === "patient"
-        ? `/app/pacientes/${encodeURIComponent(id)}`
+        ? `/app/pacientes/${encodeURIComponent(id)}${canReadClinicalRecord ? "" : "/editar"}`
         : `/app/agenda?doctorId=${encodeURIComponent(id)}`,
     );
   }
@@ -192,7 +192,7 @@ export function GlobalSearch() {
         highlight: hit.highlight,
         subtitle: hit.entry.subtitle,
         initials: hit.entry.initials,
-        chip: "Ficha",
+        chip: canReadClinicalRecord ? "Ficha" : "Cadastro",
         ariaLabel: `Paciente ${hit.entry.title}. ${hit.entry.subtitle}`,
         action: {
           type: "open",

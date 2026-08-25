@@ -15,6 +15,9 @@ const session: AuthResponse = {
   userId: "u-1",
   email: "recepcao@example.test",
   clinicId: "c-1",
+  userClinicId: "uc-1",
+  clinicRole: "Secretary",
+  isAdmin: false,
   roles: ["Secretary"],
   name: "Camila Duarte",
   tokens: {
@@ -123,7 +126,7 @@ test("agrupa pacientes e médicos e destaca o trecho digitado", async () => {
     name: /Paciente Mariana Souza Almeida/,
   });
   expect(patientOption).toHaveTextContent("36 anos");
-  expect(patientOption).toHaveTextContent("Ficha");
+  expect(patientOption).toHaveTextContent("Cadastro");
   expect(screen.getByText("Pacientes")).toBeVisible();
 
   await user.clear(search);
@@ -135,7 +138,7 @@ test("agrupa pacientes e médicos e destaca o trecho digitado", async () => {
   expect(screen.getByText("Médicos")).toBeVisible();
 });
 
-test("abre a ficha do paciente e passa a oferecê-lo em Recentes", async () => {
+test("secretaria abre o cadastro demográfico e passa a oferecê-lo em Recentes", async () => {
   const user = userEvent.setup();
   const search = renderSearch();
 
@@ -144,7 +147,7 @@ test("abre a ficha do paciente e passa a oferecê-lo em Recentes", async () => {
     await screen.findByRole("option", { name: /Mariana Souza Almeida/ }),
   );
 
-  expect(navigate).toHaveBeenCalledWith("/app/pacientes/p1");
+  expect(navigate).toHaveBeenCalledWith("/app/pacientes/p1/editar");
   expect(search).toHaveValue("");
 
   await user.click(search);
@@ -165,17 +168,21 @@ test("escolher o médico abre a agenda dele", async () => {
   expect(navigate).toHaveBeenCalledWith("/app/agenda?doctorId=d1");
 });
 
-test("médico sem acesso administrativo não recebe agendas de colegas", async () => {
-  activeSession = { ...session, roles: ["Doctor"] };
+test("médico sem acesso administrativo também encontra agendas de colegas", async () => {
+  activeSession = {
+    ...session,
+    clinicRole: "Doctor",
+    roles: ["Doctor"],
+  };
   const user = userEvent.setup();
   const search = renderSearch();
 
   await user.type(search, "cardio");
 
   expect(
-    screen.queryByRole("option", { name: /Médico Dra\. Helena Costa/ }),
-  ).not.toBeInTheDocument();
-  expect(screen.queryByText("Médicos")).not.toBeInTheDocument();
+    await screen.findByRole("option", { name: /Médico Dra\. Helena Costa/ }),
+  ).toBeVisible();
+  expect(screen.getByText("Médicos")).toBeVisible();
 });
 
 test("sem paciente correspondente, oferece o cadastro com o nome preenchido", async () => {
@@ -216,7 +223,7 @@ test("teclado percorre os resultados e o Enter abre o destacado", async () => {
   );
 
   await user.keyboard("{Enter}");
-  expect(navigate).toHaveBeenCalledWith("/app/pacientes/p1");
+  expect(navigate).toHaveBeenCalledWith("/app/pacientes/p1/editar");
 });
 
 test("Esc fecha o dropdown sem apagar o termo", async () => {

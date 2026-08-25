@@ -5,14 +5,24 @@ import { beforeEach, expect, test, vi } from "vitest";
 import type { Clinic, PatientListItem } from "../../api/types";
 import { PatientsPage } from "./PatientsPage";
 
-const { requestMock, navigateMock, routerState } = vi.hoisted(() => ({
+const { authState, requestMock, navigateMock, routerState } = vi.hoisted(() => ({
+  authState: { clinicRole: "Doctor" as "Doctor" | "Nurse" | "Secretary", isAdmin: false },
   requestMock: vi.fn(),
   navigateMock: vi.fn(),
   routerState: { search: "" },
 }));
 
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({ request: requestMock }),
+  useAuth: () => ({
+    request: requestMock,
+    session: {
+      clinicId: "c-1",
+      userClinicId: "uc-1",
+      clinicRole: authState.clinicRole,
+      isAdmin: authState.isAdmin,
+      roles: [authState.clinicRole],
+    },
+  }),
 }));
 vi.mock("../../app/navigation", () => ({
   useNavigate: () => navigateMock,
@@ -90,6 +100,8 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  authState.clinicRole = "Doctor";
+  authState.isAdmin = false;
   requestMock.mockReset();
   navigateMock.mockReset();
   routerState.search = "";
@@ -175,6 +187,24 @@ test("clique na linha abre os detalhes do paciente", async () => {
 
   const fernanda = patients[1];
   expect(navigateMock).toHaveBeenCalledWith(`/app/pacientes/${fernanda.id}`);
+});
+
+test("secretaria administradora abre somente os dados demográficos", async () => {
+  authState.clinicRole = "Secretary";
+  authState.isAdmin = true;
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(
+    await screen.findByRole("button", {
+      name: "Editar dados de Fernanda Costa",
+    }),
+  );
+
+  const fernanda = patients[1];
+  expect(navigateMock).toHaveBeenCalledWith(
+    `/app/pacientes/${fernanda.id}/editar`,
+  );
 });
 
 test("erro na listagem oferece tentar novamente", async () => {

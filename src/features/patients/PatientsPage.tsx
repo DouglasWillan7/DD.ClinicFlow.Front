@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { Clinic, PatientListItem } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
+import { can } from "../../auth/permissions";
 import { ErrorBlock } from "../../components/Feedback";
 import { getInitials } from "../appointments/appointmentLabels";
 import { formatCpf, formatMedicalRecord, getAge } from "./patientFormatters";
@@ -25,13 +26,14 @@ const situationBadgeClass: Record<PatientListItem["situation"], string> = {
 };
 
 export function PatientsPage() {
-  const { request } = useAuth();
+  const { request, session } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   // Filtro desta lista, não a busca global da topbar (que navega para a ficha).
   // A URL continua sendo a fonte única do termo, então o link é compartilhável.
   const search = params.get("search") ?? "";
   const [filter, setFilter] = useState<SituationFilter>("todos");
+  const canReadClinicalRecord = can(session, "ReadClinicalRecord");
 
   const clinic = useQuery({
     queryKey: ["clinic", "current"],
@@ -156,8 +158,12 @@ export function PatientsPage() {
                   <button
                     type="button"
                     className={styles.row}
-                    onClick={() => navigate(`/app/pacientes/${patient.id}`)}
-                    aria-label={`Abrir detalhes de ${patient.name}`}
+                    onClick={() =>
+                      navigate(
+                        `/app/pacientes/${patient.id}${canReadClinicalRecord ? "" : "/editar"}`,
+                      )
+                    }
+                    aria-label={`${canReadClinicalRecord ? "Abrir detalhes" : "Editar dados"} de ${patient.name}`}
                   >
                     <span className={styles.identity}>
                       <span className={styles.avatar} aria-hidden="true">

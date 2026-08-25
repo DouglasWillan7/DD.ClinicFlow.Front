@@ -27,7 +27,7 @@ import type {
 import { parseGuid } from "../../api/identifiers";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { hasRole } from "../../auth/roles";
+import { can } from "../../auth/permissions";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { OnboardingChecklist } from "../onboarding/OnboardingChecklist";
 import { DoctorBlocksCard } from "./DoctorBlocksCard";
@@ -100,7 +100,7 @@ export function AgendaPage({
   });
   const onboarding = useQuery({
     queryKey: onboardingKey,
-    enabled: hasRole(session, "Admin"),
+    enabled: can(session, "ManageClinicSettings"),
     queryFn: () => request<OnboardingStatus>("/onboarding/status"),
   });
 
@@ -136,9 +136,7 @@ export function AgendaPage({
   const doctor = personal
     ? doctors.find((candidate) => candidate.userId === session?.userId) ?? null
     : resolveActiveDoctor(doctors, requestedDoctorId, session?.userId);
-  const personalAgenda = Boolean(
-    personal && hasRole(session, "Doctor"),
-  );
+  const personalAgenda = Boolean(personal && can(session, "ReadClinicalRecord"));
 
   const availabilityFrom = format(startOfMonth(month), "yyyy-MM-dd");
   const availabilityTo = format(endOfMonth(month), "yyyy-MM-dd");
@@ -554,7 +552,9 @@ export function AgendaPage({
               doctorName={getDoctorName(doctor)}
               selectedDate={day}
               canEdit={
-                hasRole(session, "Admin") || doctor.userId === session?.userId
+                can(session, "ManageClinicMemberships") ||
+                (can(session, "ReadClinicalRecord") &&
+                  doctor.userId === session?.userId)
               }
             />
           ) : null}
@@ -608,6 +608,7 @@ export function AgendaPage({
             rows={rows}
             emptyMessage={emptyMessage}
             personal={personalAgenda}
+            canOpenConsultation={can(session, "ReadTranscription")}
             onSelectFreeSlot={bookSlot}
           />
         )}

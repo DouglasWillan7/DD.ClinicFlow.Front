@@ -3,7 +3,7 @@ import { lazy, Suspense } from "react";
 import { Redirect, useLocation } from "wouter";
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import { LoadingBlock } from "../components/Feedback";
-import { hasRole } from "../auth/roles";
+import { canAccessAppPath, getAppStart } from "../auth/permissions";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppShell } from "./AppShell";
 import { NotFoundPage } from "./NotFoundPage";
@@ -123,9 +123,7 @@ function AppRoutes() {
   const { session } = useAuth();
   const [location] = useLocation();
   const path = location.split("?")[0];
-  const appStart = hasRole(session, "Doctor") ? "/app/inicio" : "/app/agenda";
-  const canViewClinicAgendas =
-    hasRole(session, "Admin") || hasRole(session, "Secretary");
+  const appStart = getAppStart(session);
 
   if (path === "/") {
     return <Redirect to={session ? appStart : "/entrar"} replace />;
@@ -150,13 +148,13 @@ function AppRoutes() {
     if (!session) return <Redirect to="/entrar" replace />;
     if (path === "/app") return <Redirect to={appStart} replace />;
 
-    if (path === "/app/inicio" && !hasRole(session, "Doctor")) {
-      return <Redirect to="/app/agenda" replace />;
-    }
-
     // Equipe saiu de Configuração e virou destino próprio; o link antigo continua funcionando.
     if (path === "/app/configuracoes/equipe") {
       return <Redirect to="/app/equipe" replace />;
+    }
+
+    if (!canAccessAppPath(session, path)) {
+      return <Redirect to={appStart} replace />;
     }
 
     const adminRoutes: Record<string, React.ReactNode> = {
@@ -167,21 +165,13 @@ function AppRoutes() {
     };
     const commonRoutes: Record<string, React.ReactNode> = {
       "/app/inicio": <DoctorHomePage />,
-      "/app/agenda": canViewClinicAgendas ? (
-        <AgendaPage />
-      ) : (
-        <AgendaPage personal />
-      ),
+      "/app/agenda": <AgendaPage />,
       "/app/agenda/nova": <NewAppointmentPage />,
       "/app/pacientes": <PatientsPage />,
       "/app/pacientes/novo": <NewPatientPage />,
       "/app/equipe": <TeamPage />,
       "/app/configuracoes/perfil": <ProfileSettingsPage />,
     };
-
-    if (path in adminRoutes && !hasRole(session, "Admin")) {
-      return <Redirect to={appStart} replace />;
-    }
 
     // Só hexadecimal, então /equipe/novo nunca cai aqui.
     const doctorDetailMatch = path.match(/^\/app\/equipe\/([0-9a-f-]+)$/i);

@@ -8,7 +8,7 @@ import type {
 } from "../../api/types";
 import { Link, useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { hasRole } from "../../auth/roles";
+import { can } from "../../auth/permissions";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { onboardingKey } from "../onboarding/onboarding";
 import { AccessInviteNote } from "./AccessInviteNote";
@@ -31,9 +31,9 @@ export function DoctorDetailPage({ doctorId }: { doctorId: string }) {
   const { request, session } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isAdmin = hasRole(session, "Admin");
+  const canManageMemberships = can(session, "ManageClinicMemberships");
   // Médico ajusta o próprio cadastro em Meu perfil; aqui a edição é da administração.
-  const canEdit = isAdmin;
+  const canEdit = canManageMemberships;
   const [saved, setSaved] = useState(false);
   const [invite, setInvite] = useState<DoctorAccessInvite>();
 
@@ -140,7 +140,8 @@ export function DoctorDetailPage({ doctorId }: { doctorId: string }) {
             : current.hasPendingInvitation
               ? "Reenviar convite de acesso"
               : "Enviar convite de acesso",
-          disabled: !isAdmin || current.hasAccess || sendInvite.isPending,
+          disabled:
+            !canManageMemberships || current.hasAccess || sendInvite.isPending,
           onClick: () => sendInvite.mutate(),
         }}
         onSubmit={(value, intent) => {
