@@ -107,6 +107,11 @@ const PatientExamsPage = lazy(() =>
 const ConsultationTranscriptionPage = lazy(() =>
   import("../features/transcription/ConsultationTranscriptionPage").then((module) => ({ default: module.ConsultationTranscriptionPage })),
 );
+const PublicPatientActionPage = lazy(() =>
+  import("../features/public-patient-action/PublicPatientActionPage").then(
+    (module) => ({ default: module.PublicPatientActionPage }),
+  ),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,6 +129,17 @@ function AppRoutes() {
   const [location] = useLocation();
   const path = location.split("?")[0];
   const appStart = getAppStart(session);
+
+  const publicActionMatch = path.match(/^\/acao-paciente\/([^/]+)$/i);
+  if (publicActionMatch) {
+    let reference: string;
+    try {
+      reference = decodeURIComponent(publicActionMatch[1]);
+    } catch {
+      reference = "";
+    }
+    return <PublicPatientActionPage reference={reference} />;
+  }
 
   if (path === "/") {
     return <Redirect to={session ? appStart : "/entrar"} replace />;

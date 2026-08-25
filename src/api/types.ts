@@ -333,6 +333,28 @@ export interface DoctorAccessStatusView {
   latestAction: PatientActionStatusView | null;
 }
 
+export interface PatientActionPublicSnapshot {
+  action?: string;
+  clinicName?: string;
+  doctorName?: string;
+  scheduledStartUtc?: string;
+  scheduledEndUtc?: string;
+  timeZoneId?: string;
+  sharedData?: string[];
+  dataSharing?: string;
+  [key: string]: unknown;
+}
+
+export interface PatientActionPublicView {
+  actionType: PatientActionType;
+  status: PatientActionStatus;
+  termsVersion: string;
+  snapshot: PatientActionPublicSnapshot;
+  requestedAtUtc: string;
+  expiresAtUtc: string;
+  challengeStatus: ChallengeStatus;
+}
+
 export type TranscriptionSessionStatus = "Starting" | "Recording" | "Paused" | "StopRequested" | "Draining" | "Recovering" | "Completed" | "Failed";
 export type TranscriptSpeakerRole = "Unknown" | "Doctor" | "Patient";
 export interface TranscriptionSession {

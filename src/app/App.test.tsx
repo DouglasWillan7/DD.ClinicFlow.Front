@@ -57,6 +57,34 @@ describe("App routing", () => {
     expect(window.location.pathname).toBe("/entrar");
   });
 
+  test("abre a ação pública sem exigir sessão", async () => {
+    window.history.replaceState({}, "", "/acao-paciente/opaque-reference");
+    apiRequest.mockResolvedValue({
+      actionType: "AppointmentWithDataSharing",
+      status: "Pending",
+      termsVersion: "appointment-with-data-sharing-v1",
+      snapshot: {
+        clinicName: "Clínica Horizonte",
+        doctorName: "Dra. Helena Costa",
+        scheduledStartUtc: "2026-08-27T12:00:00Z",
+        dataSharing: "Dados necessários ao atendimento.",
+      },
+      requestedAtUtc: "2026-08-25T12:00:00Z",
+      expiresAtUtc: "2099-08-27T12:00:00Z",
+      challengeStatus: "Sent",
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Confirme sua consulta" }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe("/acao-paciente/opaque-reference");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/public/patient-actions/opaque-reference",
+    );
+  });
+
   test("admin de secretaria não entra em rota clínica profunda", async () => {
     sessionStorage.setItem(
       "clinicflow.session",
