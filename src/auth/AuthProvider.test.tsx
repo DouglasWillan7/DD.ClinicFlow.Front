@@ -5,7 +5,11 @@ import {
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { AuthResponse } from "../api/types";
+import type {
+  AccountRecoveryOptions,
+  AuthResponse,
+  AuthV2LoginOutcome,
+} from "../api/types";
 import { AuthProvider, useAuth } from "./AuthProvider";
 
 const { apiBlobRequestMock, apiRequestMock } = vi.hoisted(() => ({
@@ -16,6 +20,9 @@ const { apiBlobRequestMock, apiRequestMock } = vi.hoisted(() => ({
 let latestRefreshPromise: Promise<AuthResponse> | null = null;
 let latestRequestPromise: Promise<unknown> | null = null;
 let latestBlobPromise: Promise<Blob> | null = null;
+let latestV2LoginPromise: Promise<AuthV2LoginOutcome> | null = null;
+let latestRecoveryOptionsPromise: Promise<AccountRecoveryOptions> | null = null;
+let latestRecoveryChallengePromise: Promise<void> | null = null;
 
 vi.mock("../api/client", () => ({
   apiBlobRequest: apiBlobRequestMock,
@@ -98,11 +105,62 @@ function AuthControls() {
   );
 }
 
+function V2AuthControls() {
+  const {
+    getRecoveryOptions,
+    loginWithDocument,
+    requestRecoveryChallenge,
+    selectClinic,
+    session,
+  } = useAuth();
+
+  return (
+    <>
+      <output aria-label="Sessão v2">{session ? JSON.stringify(session) : "sem sessão"}</output>
+      <button type="button" onClick={() => {
+        latestV2LoginPromise = loginWithDocument({
+          countryCode: "BR",
+          documentType: "CPF",
+          document: "123.456.789-01",
+          password: "Senha123!",
+          rememberConnection: false,
+        });
+        void latestV2LoginPromise.catch(() => undefined);
+      }}>Entrar com documento</button>
+      <button type="button" onClick={() => {
+        void selectClinic("selection-secret", "uc-1", false);
+      }}>Selecionar clínica v2</button>
+      <button type="button" onClick={() => {
+        latestRecoveryOptionsPromise = getRecoveryOptions({
+          countryCode: "BR",
+          documentType: "CPF",
+          document: "123.456.789-01",
+        });
+        void latestRecoveryOptionsPromise.catch(() => undefined);
+      }}>Buscar recuperação</button>
+      <button type="button" onClick={() => {
+        latestRecoveryChallengePromise = requestRecoveryChallenge("opaque-selection");
+        void latestRecoveryChallengePromise.catch(() => undefined);
+      }}>Enviar recuperação</button>
+    </>
+  );
+}
+
 function renderAuth(client: QueryClient) {
   return render(
     <QueryClientProvider client={client}>
       <AuthProvider>
         <AuthControls />
+      </AuthProvider>
+    </QueryClientProvider>,
+  );
+}
+
+function renderV2Auth(client: QueryClient) {
+  return render(
+    <QueryClientProvider client={client}>
+      <AuthProvider>
+        <V2AuthControls />
       </AuthProvider>
     </QueryClientProvider>,
   );
@@ -553,5 +611,166 @@ describe("AuthProvider query isolation", () => {
     await expect(newOperation).resolves.toMatchObject({
       tokens: { accessToken: "sensitive-token-refreshed" },
     });
+  });
+});
+
+describe("AuthProvider identity v2", () => {
+  const authenticatedV2 = {
+    kind: "authenticated" as const,
+    accessToken: "access-v2",
+    refreshToken: "refresh-v2",
+    accessTokenExpiresAtUtc: "2099-01-01T00:00:00Z",
+    user: { id: "user-v2", name: "Ana" },
+    clinicContext: {
+      userClinicId: "uc-1",
+      clinicId: "clinic-v2",
+      clinicName: "Clínica Centro",
+      role: "Doctor" as const,
+      isAdmin: true,
+      email: "a***@exemplo.com",
+      phone: "+55******1234",
+    },
+  };
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    latestV2LoginPromise = null;
+    latestRecoveryOptionsPromise = null;
+    latestRecoveryChallengePromise = null;
+    apiBlobRequestMock.mockReset();
+    apiRequestMock.mockReset();
+  });
+
+  function storedV2Session(accessToken = "access-v2-old"): AuthResponse {
+    return {
+      userId: "user-v2",
+      name: "Ana",
+      email: "a***@exemplo.com",
+      phone: "+55******1234",
+      clinicId: "clinic-v2",
+      clinicName: "Clínica Centro",
+      userClinicId: "uc-1",
+      clinicRole: "Doctor",
+      isAdmin: true,
+      roles: ["Doctor", "Admin"],
+      tokens: {
+        accessToken,
+        refreshToken: "refresh-v2-old",
+        accessTokenExpiresAtUtc: "2099-01-01T00:00:00Z",
+      },
+    };
+  }
+
+  test("mantém seleção intermediária fora da sessão e normaliza o contexto escolhido", async () => {
+    const client = new QueryClient();
+    const user = userEvent.setup();
+    apiRequestMock.mockImplementation((path: string) => {
+      if (path === "/auth/v2/login") return Promise.resolve({
+        kind: "clinic_selection_required",
+        selectionToken: "selection-secret",
+        expiresAtUtc: "2099-01-01T00:05:00Z",
+        clinics: [{
+          userClinicId: "uc-1", clinicId: "clinic-v2", clinicName: "Clínica Centro",
+          role: "Doctor", isAdmin: true,
+        }],
+      });
+      if (path === "/auth/v2/select-clinic") return Promise.resolve(authenticatedV2);
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    renderV2Auth(client);
+
+    await user.click(screen.getByRole("button", { name: "Entrar com documento" }));
+    await expect(latestV2LoginPromise).resolves.toMatchObject({
+      kind: "clinic_selection_required",
+    });
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/login", {
+      method: "POST",
+      body: JSON.stringify({
+        countryCode: "BR", documentType: "CPF", document: "123.456.789-01",
+        password: "Senha123!", rememberConnection: false,
+      }),
+    });
+    expect(screen.getByRole("status", { name: "Sessão v2" })).toHaveTextContent("sem sessão");
+    expect(sessionStorage.getItem("clinicflow.session")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Selecionar clínica v2" }));
+
+    await waitFor(() => expect(screen.getByRole("status", { name: "Sessão v2" })).toHaveTextContent("user-v2"));
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/select-clinic", {
+      method: "POST",
+      body: JSON.stringify({ selectionToken: "selection-secret", userClinicId: "uc-1" }),
+    });
+    const stored = JSON.parse(sessionStorage.getItem("clinicflow.session")!) as AuthResponse;
+    expect(stored).toMatchObject({
+      userId: "user-v2",
+      userClinicId: "uc-1",
+      clinicId: "clinic-v2",
+      clinicRole: "Doctor",
+      isAdmin: true,
+      roles: ["Doctor", "Admin"],
+    });
+    expect(JSON.stringify(stored)).not.toContain("selection-secret");
+  });
+
+  test("consulta somente destinos mascarados e envia apenas a seleção opaca", async () => {
+    const client = new QueryClient();
+    const user = userEvent.setup();
+    apiRequestMock.mockImplementation((path: string) => {
+      if (path === "/auth/v2/recovery/options") return Promise.resolve({
+        destinations: [{ kind: "sms", masked: "+55 ******1234", selection: "opaque-selection" }],
+        supportRequired: false,
+      });
+      if (path === "/auth/v2/recovery/challenges") return Promise.resolve(undefined);
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    renderV2Auth(client);
+
+    await user.click(screen.getByRole("button", { name: "Buscar recuperação" }));
+    await expect(latestRecoveryOptionsPromise).resolves.toMatchObject({ supportRequired: false });
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/recovery/options", {
+      method: "POST",
+      body: JSON.stringify({
+        countryCode: "BR", documentType: "CPF", document: "123.456.789-01",
+      }),
+    });
+
+    await user.click(screen.getByRole("button", { name: "Enviar recuperação" }));
+    await expect(latestRecoveryChallengePromise).resolves.toBeUndefined();
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/recovery/challenges", {
+      method: "POST",
+      body: JSON.stringify({ selection: "opaque-selection" }),
+    });
+  });
+
+  test("renova e encerra a sessão contextual pelos endpoints v2", async () => {
+    const client = new QueryClient();
+    const user = userEvent.setup();
+    sessionStorage.setItem("clinicflow.session", JSON.stringify(storedV2Session()));
+    apiRequestMock.mockImplementation((path: string) => {
+      if (path === "/auth/v2/refresh") return Promise.resolve({
+        ...authenticatedV2,
+        accessToken: "access-v2-renewed",
+        refreshToken: "refresh-v2-renewed",
+      });
+      if (path === "/auth/v2/logout") return Promise.resolve(undefined);
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    renderAuth(client);
+
+    await user.click(screen.getByRole("button", { name: "Atualizar token" }));
+    await expect(latestRefreshPromise).resolves.toMatchObject({
+      tokens: { accessToken: "access-v2-renewed" },
+    });
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: "refresh-v2-old" }),
+    });
+
+    await user.click(screen.getByRole("button", { name: "Sair" }));
+    expect(screen.getByRole("status", { name: "Sessão atual" })).toHaveTextContent("sem sessão");
+    await waitFor(() => expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/logout", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: "refresh-v2-renewed" }),
+    }));
   });
 });

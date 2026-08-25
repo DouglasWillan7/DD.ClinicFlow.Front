@@ -7,11 +7,29 @@ test("mantém o acesso íntegro em viewport mobile", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Acesse sua conta" }),
   ).toBeVisible();
-  await expect(page.getByLabel("E-mail")).toBeVisible();
+  await expect(page.getByLabel("Documento", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("E-mail")).toHaveCount(0);
+
+  const documentInput = page.getByLabel("Documento", { exact: true });
+  const loginButton = page.getByRole("button", { name: "Entrar" });
+  const inputBox = await documentInput.boundingBox();
+  const buttonBox = await loginButton.boundingBox();
+  expect(inputBox!.height).toBeGreaterThanOrEqual(44);
+  expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
+
+  await documentInput.focus();
+  expect(await documentInput.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
+
+  const recoveryButton = page.getByRole("button", { name: "Esqueci minha senha" });
+  await recoveryButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Recuperar acesso" })).toBeVisible();
+  await expect(page.getByLabel("Documento", { exact: true })).toBeFocused();
 
   const formBox = await page.locator("form").boundingBox();
   expect(formBox).not.toBeNull();
   expect(formBox!.x + formBox!.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
 
   await page.screenshot({
     path: "/private/tmp/clinicflow-login-mobile.png",

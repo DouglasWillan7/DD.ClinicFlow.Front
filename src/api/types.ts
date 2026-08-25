@@ -1,4 +1,5 @@
-export type UserRole = "Admin" | "Secretary" | "Doctor";
+export type ClinicRole = "Secretary" | "Nurse" | "Doctor";
+export type UserRole = "Admin" | ClinicRole;
 export type ClinicPlan = "Solo" | "Clinic";
 export type BloodType =
   | "APositive"
@@ -33,7 +34,80 @@ export interface AuthResponse {
   roles: UserRole[];
   tokens: TokenPair;
   name: string | null;
+  /** Contexto v2. Ausente somente em sessões legadas durante o rollout. */
+  userClinicId?: string;
+  clinicName?: string;
+  clinicRole?: ClinicRole;
+  isAdmin?: boolean;
+  phone?: string;
 }
+
+export interface AuthV2LoginRequest {
+  countryCode: string;
+  documentType: string;
+  document: string;
+  password: string;
+  rememberConnection: boolean;
+}
+
+export interface AuthV2User {
+  id: string;
+  name: string;
+}
+
+export interface AuthV2ClinicContext {
+  userClinicId: string;
+  clinicId: string;
+  clinicName: string;
+  role: ClinicRole;
+  isAdmin: boolean;
+  email: string;
+  phone: string;
+}
+
+export interface AuthV2ClinicOption {
+  userClinicId: string;
+  clinicId: string;
+  clinicName: string;
+  role: ClinicRole;
+  isAdmin: boolean;
+}
+
+export interface AuthV2Authenticated {
+  kind: "authenticated";
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresAtUtc: string;
+  user: AuthV2User;
+  clinicContext: AuthV2ClinicContext;
+}
+
+export interface AuthV2ClinicSelectionRequired {
+  kind: "clinic_selection_required";
+  selectionToken: string;
+  expiresAtUtc: string;
+  clinics: AuthV2ClinicOption[];
+}
+
+export type AuthV2LoginOutcome =
+  | AuthV2Authenticated
+  | AuthV2ClinicSelectionRequired;
+
+export interface AccountRecoveryDestination {
+  kind: "email" | "sms";
+  masked: string;
+  selection: string;
+}
+
+export interface AccountRecoveryOptions {
+  destinations: AccountRecoveryDestination[];
+  supportRequired: boolean;
+}
+
+export type AccountRecoveryIdentity = Pick<
+  AuthV2LoginRequest,
+  "countryCode" | "documentType" | "document"
+>;
 
 export interface Clinic {
   id: string;

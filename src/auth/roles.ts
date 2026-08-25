@@ -7,11 +7,12 @@ interface WithRoles {
 export const roleLabels: Record<UserRole, string> = {
   Admin: "Administração",
   Doctor: "Médico",
+  Nurse: "Enfermagem",
   Secretary: "Secretaria",
 };
 
 function isUserRole(value: unknown): value is UserRole {
-  return value === "Admin" || value === "Doctor" || value === "Secretary";
+  return value === "Admin" || value === "Doctor" || value === "Nurse" || value === "Secretary";
 }
 
 export function getRoles(subject: WithRoles | null | undefined): UserRole[] {

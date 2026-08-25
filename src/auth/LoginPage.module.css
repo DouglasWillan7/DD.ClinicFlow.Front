@@ -1,253 +1,101 @@
 .page {
   display: grid;
   min-height: 100vh;
-  place-items: center;
   padding: 28px;
+  place-items: center;
   background: var(--color-app-background);
 }
 
 .shell {
   display: grid;
-  width: min(1240px, 100%);
+  width: min(1160px, 100%);
   min-height: min(720px, calc(100vh - 56px));
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  grid-template-columns: minmax(340px, 0.86fr) minmax(480px, 1.14fr);
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
   box-shadow: var(--shadow-floating);
 }
 
 .showcase {
-  position: relative;
   display: flex;
   min-width: 0;
   flex-direction: column;
-  overflow: hidden;
-  padding: 52px 56px 40px;
-  background: linear-gradient(160deg, #e4f1f6 0%, #d5e9f1 55%, #cbe4ee 100%);
-}
-
-.glow {
-  position: absolute;
-  top: -160px;
-  right: -120px;
-  width: 480px;
-  height: 480px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(53, 183, 205, 0.2), transparent 68%);
-  pointer-events: none;
-}
-
-.logo {
-  position: relative;
-  z-index: 1;
-  width: auto;
-  height: 52px;
-  align-self: flex-start;
-  object-fit: contain;
-}
-
-.showcase h1 {
-  position: relative;
-  z-index: 1;
-  max-width: 410px;
-  margin: 38px 0 0;
-  font-size: 32px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-}
-
-.featureStack {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 22px;
-}
-
-.featureCard {
-  display: flex;
-  align-items: center;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-floating);
-}
-
-.patientCard {
-  width: min(360px, 100%);
-  min-height: 80px;
-  gap: 14px;
-  align-self: flex-start;
-  padding: 16px 18px;
-  border-radius: 16px;
-  animation: float 7s ease-in-out infinite;
-}
-
-.avatar {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 14px;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.featureText {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.featureText strong,
-.transcriptionCard strong {
+  padding: 48px;
   color: var(--color-ink);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.featureText small {
-  margin-top: 3px;
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  line-height: 1.35;
-}
-
-.confirmed {
-  flex: 0 0 auto;
-  padding: 5px 10px;
-  border-radius: var(--radius-pill);
-  color: var(--color-success-text);
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.transcriptionCard {
-  gap: 10px;
-  align-self: flex-end;
-  padding: 11px 18px;
-  border-radius: var(--radius-pill);
-  animation: float 8s 0.9s ease-in-out infinite;
-}
-
-.transcriptionCard strong {
-  font-size: 13px;
-}
-
-.recordingDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-danger);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-.equalizer {
-  display: flex;
-  height: 16px;
-  gap: 3px;
-  align-items: center;
-}
-
-.equalizer i {
-  width: 3px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--color-primary);
-  animation: wave 0.9s ease-in-out infinite alternate;
-}
-
-.equalizer i:nth-child(2) { animation-delay: 150ms; }
-.equalizer i:nth-child(3) { animation-delay: 300ms; }
-.equalizer i:nth-child(4) { animation-delay: 450ms; }
-
-.reportCard {
-  display: grid;
-  width: min(372px, calc(100% - 16px));
-  grid-template-columns: 44px 1fr;
-  gap: 0 14px;
-  align-self: flex-start;
-  margin-left: 16px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  animation: float 9s 1.8s ease-in-out infinite;
-}
-
-.documentIcon {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border-radius: 14px;
-  color: var(--color-primary);
   background: var(--color-primary-subtle);
 }
 
-.chips {
-  display: flex;
-  grid-column: 1 / -1;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+.logo,
+.mobileLogo img {
+  width: auto;
+  height: 48px;
+  object-fit: contain;
 }
 
-.chips span {
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  color: #c92f3a;
-  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
-  font-size: 12px;
-  font-weight: 600;
+.showcaseContent {
+  margin: auto 0;
 }
 
-.chips span:nth-child(2) {
-  color: var(--color-success-text);
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
-}
-
-.chips span:nth-child(3) {
-  color: #6d36d3;
-  background: rgba(139, 92, 246, 0.12);
-}
-
-.chips span:nth-child(4) {
-  color: var(--color-text-body);
-  background: rgba(22, 40, 58, 0.06);
-}
-
-.agendaCard {
-  gap: 9px;
-  align-self: flex-end;
-  margin-right: 40px;
-  padding: 12px 18px;
-  border-radius: 16px;
+.eyebrow,
+.stepLabel {
+  margin: 0 0 12px;
   color: var(--color-primary);
-  animation: float 8.5s 2.6s ease-in-out infinite;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.agendaCard strong {
-  color: var(--color-ink);
-  font-size: 26px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  line-height: 1;
+.showcase h1 {
+  max-width: 430px;
+  margin: 0;
+  font-size: clamp(30px, 3.2vw, 42px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
-.agendaCard span {
-  max-width: 155px;
+.intro {
+  max-width: 420px;
+  margin: 20px 0 0;
+  color: var(--color-text-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.benefits {
+  display: grid;
+  gap: 14px;
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.benefits li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--color-text-body);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.4;
+}
+
+.benefits svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  stroke-width: 1.8;
+}
+
+.showcaseNote {
+  max-width: 390px;
+  margin: 32px 0 0;
   color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .formPanel {
@@ -255,28 +103,31 @@
   min-width: 0;
   padding: 48px 72px;
   place-items: center;
-  background: var(--color-surface);
 }
 
 .formContent {
-  width: min(400px, 100%);
+  width: min(440px, 100%);
 }
 
 .formContent header {
-  margin-bottom: 34px;
+  margin-bottom: 28px;
 }
 
 .formContent h2 {
-  margin-bottom: 8px;
+  margin: 0 0 9px;
+  color: var(--color-ink);
   font-size: 30px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
 }
 
-.formContent header p {
+.formContent header p:not(.stepLabel),
+.successState header p {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 15px;
+  line-height: 1.5;
 }
 
 .mobileLogo {
@@ -286,42 +137,56 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 17px;
+}
+
+.identityGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 12px;
 }
 
 .field {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   color: var(--color-text-body);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .field input,
+.field select,
 .passwordInput input {
   width: 100%;
-  height: 52px;
-  padding: 0 18px;
-  border: 1px solid rgba(22, 40, 58, 0.12);
+  min-height: 48px;
+  padding: 0 15px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
   border-radius: var(--radius-control);
   outline: 0;
   color: var(--color-ink);
-  background: #f7fafc;
+  background: var(--color-surface);
+  font: inherit;
   font-size: 15px;
-  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+  font-weight: 450;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.field select {
+  cursor: pointer;
 }
 
 .field input::placeholder,
 .passwordInput input::placeholder {
-  color: var(--color-text-muted);
+  color: var(--color-text-disabled);
 }
 
-.field input:focus,
-.passwordInput input:focus {
+.field input:focus-visible,
+.field select:focus-visible,
+.passwordInput input:focus-visible {
   border-color: var(--color-primary);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 4px rgba(59, 91, 254, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
 }
 
 .field input[aria-invalid="true"],
@@ -332,7 +197,7 @@
 .passwordField {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .fieldHeading {
@@ -342,21 +207,38 @@
   justify-content: space-between;
   color: var(--color-text-body);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.fieldHeading button {
-  min-height: 24px;
-  padding: 0;
+.fieldHeading button,
+.backButton {
+  display: inline-flex;
+  min-height: 44px;
+  gap: 7px;
+  align-items: center;
+  padding: 0 6px;
   border: 0;
+  border-radius: 10px;
   color: var(--color-primary);
   background: transparent;
+  font: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.fieldHeading button:hover {
+.fieldHeading button:hover,
+.backButton:hover {
   color: var(--color-ink);
+  background: var(--color-primary-subtle);
+}
+
+.backButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+header > .backButton {
+  margin: -12px 0 14px -6px;
 }
 
 .passwordInput {
@@ -364,36 +246,42 @@
 }
 
 .passwordInput input {
-  padding-right: 92px;
+  padding-right: 94px;
 }
 
 .passwordInput button {
   position: absolute;
-  top: 6px;
-  right: 8px;
-  min-width: 72px;
-  height: 40px;
+  top: 2px;
+  right: 4px;
+  min-width: 80px;
+  min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 13px;
   color: var(--color-text-muted);
   background: transparent;
+  font: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .passwordInput button:hover {
   color: var(--color-ink);
-  background: var(--color-app-background);
+  background: var(--color-primary-subtle);
 }
 
 .errorBanner {
-  padding: 11px 14px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
   border-radius: 14px;
   color: var(--color-danger-text);
-  background: rgba(232, 64, 74, 0.08);
+  background: var(--color-danger-tint);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.form .errorBanner {
+  margin-bottom: 0;
 }
 
 .remember {
@@ -421,11 +309,16 @@
   height: 22px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(22, 40, 58, 0.25);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 28%, transparent);
   border-radius: 7px;
   color: transparent;
   background: var(--color-surface);
-  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.checkbox svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.4;
 }
 
 .remember input:checked + .checkbox {
@@ -442,49 +335,37 @@
 .submit {
   display: inline-flex;
   width: 100%;
-  height: 54px;
-  gap: 9px;
+  min-height: 52px;
   align-items: center;
   justify-content: center;
   padding: 0 20px;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   color: white;
   background: var(--color-primary);
-  box-shadow: 0 6px 18px rgba(59, 91, 254, 0.28);
-  font-size: 16px;
-  font-weight: 600;
-  transition: background var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
 }
 
 .submit[data-incomplete="true"] {
-  opacity: 0.55;
+  opacity: 0.62;
 }
 
 .submit:hover:not(:disabled) {
   background: #2f4be0;
 }
 
-.submit:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.submit:disabled {
+.submit:disabled,
+.clinicOption:disabled,
+.recoveryChoices button:disabled {
   cursor: wait;
-  opacity: 0.72;
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  opacity: 0.7;
 }
 
 .footer {
-  margin: 28px 0 0;
+  margin: 24px 0 0;
   color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.5;
@@ -493,33 +374,138 @@
 
 .footer a {
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 650;
 }
 
-.footer a:hover {
+.clinicList,
+.recoveryChoices {
+  display: grid;
+  gap: 10px;
+}
+
+.clinicOption,
+.recoveryChoices button {
+  display: flex;
+  width: 100%;
+  min-height: 72px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
   color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+.clinicOption:hover:not(:disabled),
+.recoveryChoices button:hover:not(:disabled) {
+  border-color: var(--color-primary-soft);
+  background: var(--color-primary-subtle);
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+.clinicIcon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
 }
 
-@keyframes wave {
-  from { transform: scaleY(0.35); }
-  to { transform: scaleY(1); }
+.clinicIcon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.clinicCopy,
+.recoveryChoices button > span:nth-child(2) {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
 }
 
-@media (max-width: 980px) {
+.clinicCopy strong,
+.recoveryChoices strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clinicCopy small,
+.recoveryChoices small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.optionAction {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.clinicList + .backButton {
+  margin-top: 18px;
+}
+
+.recoveryChoices > p {
+  margin: 0 0 4px;
+  color: var(--color-text-body);
+  font-size: 14px;
+}
+
+.supportMessage {
+  margin: 18px 0 0;
+  padding: 14px;
+  border-radius: 14px;
+  color: var(--color-text-body);
+  background: var(--color-primary-subtle);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.successState {
+  text-align: center;
+}
+
+.successIcon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  place-items: center;
+  border-radius: 18px;
+  color: var(--color-success-text);
+  background: var(--color-success-tint);
+}
+
+.successIcon svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2;
+}
+
+.successState header {
+  margin-bottom: 26px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 34%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 920px) {
   .page {
     padding: 20px;
   }
@@ -536,18 +522,13 @@
 
   .formPanel {
     align-content: center;
-    padding: 44px 56px;
+    padding: 42px 56px;
   }
 
   .mobileLogo {
     display: block;
-    width: min(400px, 100%);
-    margin: 0 auto 56px;
-  }
-
-  .mobileLogo img {
-    width: auto;
-    height: 48px;
+    width: min(440px, 100%);
+    margin: 0 auto 44px;
   }
 }
 
@@ -567,11 +548,11 @@
 
   .formPanel {
     display: block;
-    padding: 28px 22px 36px;
+    padding: 26px 22px 36px;
   }
 
   .mobileLogo {
-    margin-bottom: 54px;
+    margin-bottom: 40px;
   }
 
   .mobileLogo img {
@@ -582,23 +563,20 @@
     margin: 0 auto;
   }
 
-  .formContent header {
-    margin-bottom: 30px;
-  }
-
   .formContent h2 {
     font-size: 28px;
+  }
+
+  .identityGrid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .patientCard,
-  .transcriptionCard,
-  .reportCard,
-  .agendaCard,
-  .recordingDot,
-  .equalizer i,
-  .spinner {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
