@@ -278,6 +278,61 @@ export interface Appointment {
   version?: number;
 }
 
+export type PatientActionType =
+  | "AppointmentWithDataSharing"
+  | "DoctorAccess";
+export type PatientActionStatus =
+  | "Pending"
+  | "Completed"
+  | "Declined"
+  | "Expired"
+  | "Cancelled";
+export type PatientActionCompletionMethod =
+  | "StaffToken"
+  | "PatientLink"
+  | "AuthenticatedPortal";
+export type ChallengeType = "Token" | "Link" | "AuthenticatedAction";
+export type ChallengeChannel =
+  | "Push"
+  | "WhatsApp"
+  | "Sms"
+  | "Email"
+  | "Portal";
+export type ChallengeStatus =
+  | "Issued"
+  | "Sent"
+  | "Used"
+  | "Expired"
+  | "Cancelled";
+
+export interface PatientActionChallengeView {
+  challengeId: string;
+  type: ChallengeType;
+  channel: ChallengeChannel;
+  status: ChallengeStatus;
+  attemptNumber: number;
+  expiresAtUtc: string;
+  retryAtUtc: string | null;
+}
+
+export interface PatientActionStatusView {
+  actionId: string;
+  actionType: PatientActionType;
+  status: PatientActionStatus;
+  requestedAtUtc: string;
+  expiresAtUtc: string;
+  completedAtUtc: string | null;
+  completionMethod: PatientActionCompletionMethod | null;
+  latestChallenge: PatientActionChallengeView | null;
+}
+
+export interface DoctorAccessStatusView {
+  doctorUserId: string;
+  doctorName: string;
+  hasActiveAccess: boolean;
+  latestAction: PatientActionStatusView | null;
+}
+
 export type TranscriptionSessionStatus = "Starting" | "Recording" | "Paused" | "StopRequested" | "Draining" | "Recovering" | "Completed" | "Failed";
 export type TranscriptSpeakerRole = "Unknown" | "Doctor" | "Patient";
 export interface TranscriptionSession {

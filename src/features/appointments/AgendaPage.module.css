@@ -788,6 +788,37 @@
   transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
+.appointmentStack {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.patientActionButton {
+  display: inline-flex;
+  min-height: 44px;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.patientActionButton:hover {
+  background: var(--color-primary-subtle);
+}
+
+.patientActionButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .appointmentCard:hover { background: var(--color-primary-soft); }
 .appointmentCard:active { transform: scale(.99); }
 .appointmentCard:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }

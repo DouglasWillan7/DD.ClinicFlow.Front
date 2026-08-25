@@ -3,9 +3,11 @@ import { ApiError } from "../../api/client";
 import type { Member, Patient } from "../../api/types";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
+import { can } from "../../auth/permissions";
 import { hasRole } from "../../auth/roles";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { PageHeader } from "../../components/PageHeader";
+import { DoctorAccessPanel } from "../patient-actions/DoctorAccessPanel";
 import { PatientForm } from "./PatientForm.tsx";
 import { formatMedicalRecord } from "./patientFormatters";
 import { toPatientPayload, type PatientFormValue } from "./patientForm";
@@ -25,7 +27,7 @@ function toPatientFormValue(patient: Patient): PatientFormValue {
 }
 
 export function EditPatientPage({ patientId }: { patientId: string }) {
-  const { request } = useAuth();
+  const { request, session } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const patient = useQuery({
@@ -96,6 +98,10 @@ export function EditPatientPage({ patientId }: { patientId: string }) {
             }
           />
         </section>
+        {can(session, "ManageClinicMemberships") ||
+        can(session, "ReadClinicalRecord") ? (
+          <DoctorAccessPanel patientId={patientId} />
+        ) : null}
       </div>
     </>
   );

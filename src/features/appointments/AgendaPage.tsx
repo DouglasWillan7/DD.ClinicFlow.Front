@@ -30,6 +30,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { OnboardingChecklist } from "../onboarding/OnboardingChecklist";
+import { AppointmentPatientActionDialog } from "../patient-actions/AppointmentPatientActionDialog";
 import { DoctorBlocksCard } from "./DoctorBlocksCard";
 import { onboardingKey } from "../onboarding/onboarding";
 import {
@@ -87,6 +88,8 @@ export function AgendaPage({
     () => params.get("created") === "true",
   );
   const [appointmentMenuOpen, setAppointmentMenuOpen] = useState(false);
+  const [patientActionAppointment, setPatientActionAppointment] =
+    useState<Appointment | null>(null);
   const appointmentMenuRef = useRef<HTMLDivElement>(null);
   const appointmentMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const createdId = parseGuid(params.get("appointmentId"));
@@ -622,11 +625,26 @@ export function AgendaPage({
             emptyMessage={emptyMessage}
             personal={personalAgenda}
             canOpenConsultation={can(session, "ReadTranscription")}
+            canManagePatientAction={can(
+              session,
+              "ManageAppointmentConfirmation",
+            )}
             timeZone={timeZone}
             onSelectFreeSlot={bookSlot}
+            onManagePatientAction={setPatientActionAppointment}
           />
         )}
       </div>
+      {patientActionAppointment ? (
+        <AppointmentPatientActionDialog
+          appointment={patientActionAppointment}
+          onClose={() => setPatientActionAppointment(null)}
+          onUpdated={async () => {
+            await appointments.refetch();
+            if (createdId) await created.refetch();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

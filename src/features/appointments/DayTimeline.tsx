@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { formatInTimeZone } from "date-fns-tz";
-import { Plus, Video } from "lucide-react";
-import type { AvailabilitySlot, Member } from "../../api/types";
+import { Plus, ShieldCheck, Video } from "lucide-react";
+import type { Appointment, AvailabilitySlot, Member } from "../../api/types";
 import { appointmentTypeLabels, getInitials } from "./appointmentLabels";
 import {
   appointmentStatusLabels,
@@ -20,8 +20,10 @@ export interface DayTimelineProps {
   emptyMessage: string;
   personal?: boolean;
   canOpenConsultation?: boolean;
+  canManagePatientAction?: boolean;
   timeZone: string;
   onSelectFreeSlot(slot: AvailabilitySlot): void;
+  onManagePatientAction?(appointment: Appointment): void;
 }
 
 const toneClass: Record<TimelineTone, string | undefined> = {
@@ -39,8 +41,10 @@ export function DayTimeline({
   emptyMessage,
   personal = false,
   canOpenConsultation = false,
+  canManagePatientAction = false,
   timeZone,
   onSelectFreeSlot,
+  onManagePatientAction,
 }: DayTimelineProps) {
   const navigate = useNavigate();
   const hasAppointments = rows.some((row) => row.kind === "appointment");
@@ -91,30 +95,44 @@ export function DayTimeline({
                   <span className={clsx(styles.rowTime, styles.rowTimeBooked)}>
                     {row.start}
                   </span>
-                  {canOpenConsultation &&
-                  canOpenClinicalAppointment(appointment.status) ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/app/consultas/${appointment.id}`)}
-                      aria-label={`Abrir consulta de ${appointment.patientName}`}
-                      className={clsx(
-                        styles.appointmentCard,
-                        row.durationMinutes >= 60 && styles.long,
-                      )}
-                    >
-                      <AppointmentCardContent row={row} timeZone={timeZone} />
-                    </button>
-                  ) : (
-                    <div
-                      className={clsx(
-                        styles.appointmentCard,
-                        styles.appointmentCardStatic,
-                        row.durationMinutes >= 60 && styles.long,
-                      )}
-                    >
-                      <AppointmentCardContent row={row} timeZone={timeZone} />
-                    </div>
-                  )}
+                  <div className={styles.appointmentStack}>
+                    {canOpenConsultation &&
+                    canOpenClinicalAppointment(appointment.status) ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/app/consultas/${appointment.id}`)}
+                        aria-label={`Abrir consulta de ${appointment.patientName}`}
+                        className={clsx(
+                          styles.appointmentCard,
+                          row.durationMinutes >= 60 && styles.long,
+                        )}
+                      >
+                        <AppointmentCardContent row={row} timeZone={timeZone} />
+                      </button>
+                    ) : (
+                      <div
+                        className={clsx(
+                          styles.appointmentCard,
+                          styles.appointmentCardStatic,
+                          row.durationMinutes >= 60 && styles.long,
+                        )}
+                      >
+                        <AppointmentCardContent row={row} timeZone={timeZone} />
+                      </div>
+                    )}
+                    {canManagePatientAction &&
+                    appointment.status === "AwaitingPatientAction" ? (
+                      <button
+                        type="button"
+                        className={styles.patientActionButton}
+                        aria-label={`Confirmar ação de ${appointment.patientName}`}
+                        onClick={() => onManagePatientAction?.(appointment)}
+                      >
+                        <ShieldCheck size={17} aria-hidden="true" />
+                        Confirmar com token
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               );
             }

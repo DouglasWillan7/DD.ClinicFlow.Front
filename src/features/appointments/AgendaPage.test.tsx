@@ -404,6 +404,84 @@ test("mantém estados sem acesso visíveis, mas sem ação para abrir consulta",
   ).not.toBeInTheDocument();
 });
 
+test("permite à secretaria concluir a ação única sem expor dados clínicos no diálogo", async () => {
+  activeSession = {
+    ...session,
+    userClinicId: "50000000-0000-4000-8000-000000000001",
+    clinicRole: "Secretary",
+    isAdmin: false,
+  };
+  const pendingAppointment = {
+    ...awaitingPatientAppointment,
+    notes: null,
+  };
+  const action = {
+    actionId: "60000000-0000-4000-8000-000000000001",
+    actionType: "AppointmentWithDataSharing",
+    status: "Pending",
+    requestedAtUtc: "2026-08-06T12:00:00Z",
+    expiresAtUtc: "2026-08-10T12:00:00Z",
+    completedAtUtc: null,
+    completionMethod: null,
+    latestChallenge: {
+      challengeId: "70000000-0000-4000-8000-000000000001",
+      type: "Token",
+      channel: "WhatsApp",
+      status: "Sent",
+      attemptNumber: 1,
+      expiresAtUtc: "2026-08-10T12:00:00Z",
+      retryAtUtc: null,
+    },
+  } as const;
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === "/clinics/members") return members;
+    if (path.startsWith("/appointments?")) return [pendingAppointment];
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    if (path === `/patient-actions/appointments/${pendingAppointment.id}`) {
+      return action;
+    }
+    if (
+      path ===
+      `/patient-actions/challenges/${action.latestChallenge.challengeId}/complete-token`
+    ) {
+      return { status: "Completed" };
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+
+  const user = userEvent.setup();
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  await user.click(
+    await screen.findByRole("button", {
+      name: "Confirmar ação de Marina Oliveira",
+    }),
+  );
+
+  const dialog = screen.getByRole("dialog", { name: "Confirmação do paciente" });
+  expect(within(dialog).queryByText(/exame|diagnóstico|prontuário/i)).not.toBeInTheDocument();
+  await user.type(within(dialog).getByLabelText("Código de confirmação"), "12a3456");
+  await user.click(within(dialog).getByRole("button", { name: "Confirmar código" }));
+
+  await waitFor(() =>
+    expect(requestMock).toHaveBeenCalledWith(
+      `/patient-actions/challenges/${action.latestChallenge.challengeId}/complete-token`,
+      {
+        method: "POST",
+        body: JSON.stringify({ token: "123456" }),
+      },
+    ),
+  );
+  expect(within(dialog).getByRole("status")).toHaveTextContent(
+    "Ação confirmada",
+  );
+});
+
 test("exibe o início efetivo sem substituir a janela agendada", async () => {
   activeSession = {
     ...session,
