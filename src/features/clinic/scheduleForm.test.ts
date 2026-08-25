@@ -63,6 +63,17 @@ describe("schedule form", () => {
     });
   });
 
+  test("rejeita período cujo fim é igual ao início", () => {
+    const draft = emptyScheduleDraft();
+    draft.Thursday = [
+      { id: "zero-length", startLocal: "10:00", endLocal: "10:00" },
+    ];
+
+    expect(buildScheduleRequest(draft, 30)).toEqual({
+      error: "Em Quinta-feira, o horário final deve ser posterior ao inicial.",
+    });
+  });
+
   test("permite agenda vazia e sugere o primeiro período sem persistir", () => {
     expect(buildScheduleRequest(emptyScheduleDraft(), 30).request?.intervals).toEqual([]);
     expect(suggestedInterval([], 30)).toMatchObject({
