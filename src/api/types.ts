@@ -794,6 +794,15 @@ export interface DoctorSchedule {
   blocks: DoctorScheduleBlock[];
 }
 
+export interface UpdateDoctorScheduleRequest {
+  defaultAppointmentDurationMinutes: number;
+  intervals: Array<{
+    dayOfWeek: ScheduleDay;
+    startLocal: string;
+    endLocal: string;
+  }>;
+}
+
 export interface AvailabilitySlot {
   startUtc: string;
   endUtc: string;
