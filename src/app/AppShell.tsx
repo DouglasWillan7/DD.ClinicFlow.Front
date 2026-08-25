@@ -93,13 +93,13 @@ export function AppShell({ children }: PropsWithChildren) {
     { to: "/app/inicio", label: "Início", icon: House },
     { to: "/app/pacientes", label: "Pacientes", icon: UsersRound },
     { to: "/app/agenda", label: "Agendas", icon: CalendarDays },
-    { to: "/app/equipe", label: "Equipe médica", icon: UserRoundPlus },
+    { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus },
     { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
   ];
   const operationalNav = [
     { to: "/app/agenda", label: "Agendas", icon: CalendarDays },
     { to: "/app/pacientes", label: "Pacientes", icon: UsersRound },
-    { to: "/app/equipe", label: "Equipe médica", icon: UserRoundPlus },
+    { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus },
     { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
   ];
   const primaryNav = isDoctor ? doctorNav : operationalNav;

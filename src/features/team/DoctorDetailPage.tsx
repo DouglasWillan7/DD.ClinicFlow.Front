@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError } from "../../api/client";
 import type {
-  Clinic,
   Doctor,
   DoctorAccessInvite,
   HealthInsurancePlan,
@@ -10,15 +9,10 @@ import type {
 import { Link, useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { hasRole } from "../../auth/roles";
-import {
-  ErrorBlock,
-  LoadingBlock,
-  SuccessNote,
-} from "../../components/Feedback";
+import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { onboardingKey } from "../onboarding/onboarding";
 import { AccessInviteNote } from "./AccessInviteNote";
 import { DoctorForm } from "./DoctorForm";
-import { MemberRolesEditor } from "./MemberRolesEditor";
 import {
   toDoctorFormValue,
   toDoctorPayload,
@@ -42,10 +36,6 @@ export function DoctorDetailPage({ doctorId }: { doctorId: string }) {
   const canEdit = isAdmin;
   const [saved, setSaved] = useState(false);
   const [invite, setInvite] = useState<DoctorAccessInvite>();
-  const [roleFeedback, setRoleFeedback] = useState<{
-    message?: string;
-    warning?: string;
-  }>({});
 
   const doctor = useQuery({
     queryKey: doctorKey(doctorId),
@@ -55,12 +45,6 @@ export function DoctorDetailPage({ doctorId }: { doctorId: string }) {
     queryKey: healthInsurancePlansKey,
     queryFn: () => request<HealthInsurancePlan[]>("/health-insurance-plans"),
     staleTime: 60 * 60 * 1000,
-  });
-  // Só o Admin edita funções, e a trava do plano Individual depende da clínica.
-  const clinic = useQuery({
-    queryKey: ["clinic", "current"],
-    queryFn: () => request<Clinic>("/clinics/current"),
-    enabled: isAdmin,
   });
 
   const save = useMutation({
@@ -132,7 +116,7 @@ export function DoctorDetailPage({ doctorId }: { doctorId: string }) {
         key={current.userId}
         breadcrumb={
           <nav className={styles.breadcrumb} aria-label="Trilha">
-            <Link to="/app/equipe">Equipe médica</Link>
+            <Link to="/app/equipe">Equipe</Link>
             <span aria-hidden="true">›</span>
             <strong aria-current="page">{getDoctorName(current)}</strong>
             <span
@@ -198,35 +182,6 @@ export function DoctorDetailPage({ doctorId }: { doctorId: string }) {
           </>
         }
       />
-
-      {isAdmin && clinic.data ? (
-        <section className={styles.panel} aria-labelledby="doctor-roles">
-          <h2 id="doctor-roles">Funções na clínica</h2>
-          <p className={styles.panelHint}>
-            Remover a função Médico tira este profissional da agenda e dos
-            pacientes, mas mantém a conta na clínica.
-          </p>
-          {roleFeedback.message ? (
-            <SuccessNote>{roleFeedback.message}</SuccessNote>
-          ) : null}
-          {roleFeedback.warning ? (
-            <p className={styles.inlineError} role="alert">
-              {roleFeedback.warning}
-            </p>
-          ) : null}
-          <MemberRolesEditor
-            member={{
-              userId: current.userId,
-              email: current.email,
-              name: current.name,
-              roles: current.roles,
-              isCreator: current.isCreator,
-            }}
-            plan={clinic.data.plan}
-            onSaved={setRoleFeedback}
-          />
-        </section>
-      ) : null}
 
     </div>
   );

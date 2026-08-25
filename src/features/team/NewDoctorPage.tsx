@@ -108,7 +108,7 @@ export function NewDoctorPage() {
         key={saved?.userId ?? "novo"}
         breadcrumb={
           <nav className={styles.breadcrumb} aria-label="Trilha">
-            <Link to="/app/equipe">Equipe médica</Link>
+            <Link to="/app/equipe">Equipe</Link>
             <span aria-hidden="true">›</span>
             <strong aria-current="page">
               {saved ? "Editar médico" : "Novo médico"}

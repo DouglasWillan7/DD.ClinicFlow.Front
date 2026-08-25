@@ -133,6 +133,44 @@ export interface Member {
   specialty: string | null;
 }
 
+export type UserClinicStatus = "Pending" | "Active" | "Suspended" | "Inactive";
+export type AppointmentDurationSource =
+  | "Configured"
+  | "DoctorProfile"
+  | "ClinicLegacyFallback";
+
+export interface DoctorMembershipProfile {
+  professionalAuthority: string | null;
+  professionalRegistrationNumber: string | null;
+  professionalRegistrationRegion: string | null;
+  professionalRegistrationCountryCode: string | null;
+  specialty: string | null;
+  practiceAreas: string | null;
+  bio: string | null;
+  defaultAppointmentDurationMinutes: number | null;
+}
+
+/** Vínculo contextual retornado pela administração de equipe v2. */
+export interface ClinicMember {
+  userClinicId: string;
+  userId: string;
+  clinicId: string;
+  displayName: string | null;
+  status: UserClinicStatus;
+  role: ClinicRole;
+  isAdmin: boolean;
+  isOwner: boolean;
+  email: string | null;
+  phone: string | null;
+  emailConfirmedAtUtc: string | null;
+  phoneConfirmedAtUtc: string | null;
+  doctorProfile: DoctorMembershipProfile | null;
+  defaultAppointmentDurationSource: AppointmentDurationSource | null;
+  sessionVersion: number;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
 export interface Invitation {
   id: string;
   email: string;

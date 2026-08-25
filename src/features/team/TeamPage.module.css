@@ -457,3 +457,445 @@
     padding: 20px;
   }
 }
+
+/* ------------------------------------------------ Gestão por membership v2 --- */
+
+.teamHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-top: 4px;
+}
+
+.teamHeader h1 {
+  margin: 3px 0 0;
+  color: var(--color-ink);
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.teamHeader p,
+.directoryHeader p,
+.lifecycle p,
+.emptyDirectory p {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.overline {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.addMember {
+  flex: 0 0 auto;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.metrics article {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 18px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.metricIcon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.metricIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.metrics article > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.metrics strong {
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.metrics small {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.editorPanel,
+.directory {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.editorPanel {
+  background: var(--color-app-background);
+}
+
+.lifecycle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 20px 22px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.lifecycle h3,
+.directoryHeader h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 18px;
+}
+
+.lifecycleNote {
+  max-width: 360px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-align: right;
+}
+
+.directoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchField {
+  display: flex;
+  min-width: min(280px, 36vw);
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  background: var(--color-app-background);
+}
+
+.searchField:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.searchField input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--color-ink);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+}
+
+.roleFilter select {
+  min-height: 44px;
+  padding: 0 34px 0 13px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
+  color: var(--color-text-body);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.memberList > li {
+  display: grid;
+  min-height: 82px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 10px;
+  border-top: 1px solid var(--color-border-hairline);
+  grid-template-columns: auto minmax(180px, 1.25fr) minmax(220px, 1fr) auto;
+}
+
+.memberList > li:first-child {
+  border-top: 0;
+}
+
+.memberAvatar {
+  display: inline-flex;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.memberIdentity {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.memberIdentity > strong,
+.memberIdentity > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberIdentity > strong {
+  font-size: 15px;
+}
+
+.memberIdentity > small {
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.contactState,
+.contactState > span,
+.membershipBadges,
+.adminBadge,
+.statusBadge {
+  display: flex;
+  align-items: center;
+}
+
+.contactState {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.contactState > span {
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.contactState svg,
+.adminBadge svg,
+.statusBadge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.membershipBadges {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.roleBadge,
+.adminBadge,
+.ownerBadge,
+.statusBadge {
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.roleBadge {
+  color: var(--color-text-body);
+  background: var(--color-app-background);
+}
+
+.adminBadge {
+  gap: 4px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.ownerBadge {
+  color: var(--color-text-body);
+  border: 1px solid var(--color-border-hairline);
+}
+
+.statusBadge {
+  gap: 4px;
+}
+
+.statusActive {
+  color: var(--color-success-text);
+  background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface));
+}
+
+.statusPending,
+.statusSuspended,
+.statusInactive {
+  color: var(--color-text-muted);
+  background: var(--color-app-background);
+}
+
+.editMember {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-body);
+  background: var(--color-surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.editMember:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.emptyDirectory {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.emptyDirectory > svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 12px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 980px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .memberList > li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .membershipBadges {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .teamHeader,
+  .directoryHeader,
+  .lifecycle {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .addMember {
+    width: 100%;
+  }
+
+  .filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchField {
+    min-width: 0;
+  }
+
+  .lifecycleNote {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media (max-width: 520px) {
+  .content {
+    padding-inline: 16px;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .metrics article {
+    padding: 14px;
+  }
+
+  .metricIcon {
+    display: none;
+  }
+
+  .directory,
+  .editorPanel {
+    padding: 18px;
+  }
+
+  .memberList > li {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .membershipBadges,
+  .editMember {
+    grid-column: 2;
+  }
+
+  .editMember {
+    width: 100%;
+  }
+}

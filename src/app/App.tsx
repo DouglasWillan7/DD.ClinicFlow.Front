@@ -34,11 +34,6 @@ const TeamPage = lazy(() =>
     default: module.TeamPage,
   })),
 );
-const NewDoctorPage = lazy(() =>
-  import("../features/team/NewDoctorPage").then((module) => ({
-    default: module.NewDoctorPage,
-  })),
-);
 const DoctorDetailPage = lazy(() =>
   import("../features/team/DoctorDetailPage").then((module) => ({
     default: module.DoctorDetailPage,
@@ -166,7 +161,7 @@ function AppRoutes() {
 
     const adminRoutes: Record<string, React.ReactNode> = {
       "/app/onboarding": <OnboardingPage />,
-      "/app/equipe/novo": <NewDoctorPage />,
+      "/app/equipe/novo": <TeamPage initialMode="create" initialRole="Doctor" />,
       "/app/configuracoes/clinica": <ClinicSettingsPage />,
       "/app/configuracoes/whatsapp": <WhatsAppSettingsPage />,
     };
