@@ -158,6 +158,10 @@ test("médico usa o Início pessoal e mantém o acesso a Agendas", () => {
     "href",
     "/app/agenda",
   );
+  expect(screen.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
+    "href",
+    "/app/configuracoes/agenda",
+  );
 });
 
 test("médico administrador mantém Início e também recebe Agendas", () => {
@@ -185,6 +189,7 @@ test("admin de secretaria administra a clínica sem receber navegação clínica
   expect(screen.getByRole("link", { name: "Agendas" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Equipe" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Clínica" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Disponibilidade" })).toBeVisible();
 });
 
 test("enfermagem herda operação sem receber prontuário ou administração", () => {
@@ -197,6 +202,7 @@ test("enfermagem herda operação sem receber prontuário ou administração", (
   expect(screen.getByRole("link", { name: "Pacientes" })).toBeVisible();
   expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Equipe" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Disponibilidade" })).not.toBeInTheDocument();
   expect(screen.queryByText("Configuração")).not.toBeInTheDocument();
 });
 

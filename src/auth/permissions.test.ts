@@ -44,6 +44,7 @@ const matrix: Array<{
 }> = [
   { capability: "ViewSchedule", secretary: true, nurse: true, doctor: true, admin: false },
   { capability: "ManageSchedule", secretary: true, nurse: true, doctor: true, admin: false },
+  { capability: "ConfigureDoctorSchedule", secretary: false, nurse: false, doctor: true, admin: true },
   { capability: "ManageAppointmentConfirmation", secretary: true, nurse: true, doctor: true, admin: false },
   { capability: "ManagePatientDemographics", secretary: true, nurse: true, doctor: true, admin: false },
   { capability: "PerformPatientCheckIn", secretary: false, nurse: true, doctor: true, admin: false },
@@ -93,6 +94,7 @@ describe("matriz de capacidades do contexto ativo", () => {
 test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(requiredCapabilityForAppPath("/app/agenda")).toBe("ViewSchedule");
   expect(requiredCapabilityForAppPath("/app/agenda/nova")).toBe("ManageSchedule");
+  expect(requiredCapabilityForAppPath("/app/configuracoes/agenda")).toBe("ConfigureDoctorSchedule");
   expect(requiredCapabilityForAppPath("/app/pacientes")).toBe("ManagePatientDemographics");
   expect(requiredCapabilityForAppPath("/app/pacientes/novo")).toBe("ManagePatientDemographics");
   expect(requiredCapabilityForAppPath("/app/pacientes/abc/editar")).toBe("ManagePatientDemographics");
@@ -104,10 +106,13 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
 
   const secretaryAdmin = session("Secretary", true);
   expect(canAccessAppPath(secretaryAdmin, "/app/equipe")).toBe(true);
+  expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/agenda")).toBe(true);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/novo")).toBe(true);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/exames")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/editar")).toBe(true);
   expect(getAppStart(secretaryAdmin)).toBe("/app/agenda");
   expect(getAppStart(session("Doctor"))).toBe("/app/inicio");
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/agenda")).toBe(true);
+  expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/agenda")).toBe(false);
 });

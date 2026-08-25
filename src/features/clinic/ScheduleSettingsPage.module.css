@@ -306,6 +306,11 @@
     flex-direction: column;
   }
 
+  .headerFields > * {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
   .period {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;

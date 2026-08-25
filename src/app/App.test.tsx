@@ -144,4 +144,55 @@ describe("App routing", () => {
 
     await waitFor(() => expect(window.location.pathname).toBe("/app/agenda"));
   });
+
+  test("médico abre a configuração de disponibilidade da clínica atual", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Doctor", false, ["Doctor"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/agenda");
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path === "/clinics/current") {
+        return {
+          id: "clinic-1",
+          name: "Clínica Centro",
+          timeZoneId: "America/Sao_Paulo",
+          phone: "+551130000000",
+          address: "Rua das Flores, 100",
+          plan: "Clinic",
+          subscriptionStatus: "Active",
+          maxDoctors: 10,
+          createdAtUtc: "2026-08-01T12:00:00Z",
+        };
+      }
+      if (path === "/doctors/user-1/schedule") {
+        return {
+          doctorUserId: "user-1",
+          slotDurationMinutes: 30,
+          intervals: [],
+          blocks: [],
+        };
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe("/app/configuracoes/agenda");
+  });
+
+  test("enfermagem sem administração não abre configuração de disponibilidade", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Nurse", false, ["Nurse"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/agenda");
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe("/app/agenda"));
+  });
 });

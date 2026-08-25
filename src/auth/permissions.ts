@@ -3,6 +3,7 @@ import type { ClinicRole, UserRole } from "../api/types";
 export type ClinicCapability =
   | "ViewSchedule"
   | "ManageSchedule"
+  | "ConfigureDoctorSchedule"
   | "ManageAppointmentConfirmation"
   | "ManagePatientDemographics"
   | "PerformPatientCheckIn"
@@ -68,6 +69,9 @@ export function can(
   const role = subject.clinicRole;
   const isAdmin = subject.isAdmin ?? false;
 
+  if (capability === "ConfigureDoctorSchedule") {
+    return isAdmin || role === "Doctor";
+  }
   if (administrativeCapabilities.has(capability)) return isAdmin;
   const requiredRole = minimumRole[capability];
   return Boolean(role && requiredRole && roleLevel[role] >= roleLevel[requiredRole]);
@@ -109,6 +113,9 @@ export function requiredCapabilityForAppPath(
     pathname === "/app/configuracoes/whatsapp"
   ) {
     return "ManageClinicSettings";
+  }
+  if (pathname === "/app/configuracoes/agenda") {
+    return "ConfigureDoctorSchedule";
   }
   if (pathname === "/app/inicio") return "ReadClinicalRecord";
   if (pathname === "/app/agenda/nova") return "ManageSchedule";

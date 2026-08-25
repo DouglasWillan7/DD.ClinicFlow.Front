@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import {
   Building2,
+  CalendarClock,
   CalendarDays,
   ChevronDown,
   House,
@@ -104,7 +105,14 @@ export function AppShell({ children }: PropsWithChildren) {
       : undefined,
     { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
   ].filter((item) => item !== undefined);
-  const adminNav = [
+  const configurationNav = [
+    can(session, "ConfigureDoctorSchedule")
+      ? {
+          to: "/app/configuracoes/agenda",
+          label: "Disponibilidade",
+          icon: CalendarClock,
+        }
+      : undefined,
     can(session, "ManageClinicSettings")
       ? { to: "/app/onboarding", label: "Primeiros passos", icon: Stethoscope }
       : undefined,
@@ -218,10 +226,10 @@ export function AppShell({ children }: PropsWithChildren) {
         >
           {primaryNav.map(renderLink)}
 
-          {adminNav.length > 0 ? (
+          {configurationNav.length > 0 ? (
             <>
               <span className={styles.navLabel}>Configuração</span>
-              {adminNav.map(renderLink)}
+              {configurationNav.map(renderLink)}
             </>
           ) : null}
         </nav>
