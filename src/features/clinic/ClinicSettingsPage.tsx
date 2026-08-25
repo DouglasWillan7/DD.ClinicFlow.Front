@@ -26,7 +26,6 @@ const clinicSchema = z.object({
     ),
   address: z.string().trim().min(5, "Informe o endereço da clínica.").max(300),
   timeZoneId: z.string().min(1),
-  defaultAppointmentDurationMinutes: z.number().min(5).max(480),
 });
 
 type ClinicForm = z.infer<typeof clinicSchema>;
@@ -53,7 +52,6 @@ export function ClinicSettingsPage() {
       phone: "",
       address: "",
       timeZoneId: "America/Sao_Paulo",
-      defaultAppointmentDurationMinutes: 30,
     },
   });
 
@@ -64,8 +62,6 @@ export function ClinicSettingsPage() {
         phone: query.data.phone ?? "",
         address: query.data.address ?? "",
         timeZoneId: query.data.timeZoneId,
-        defaultAppointmentDurationMinutes:
-          query.data.defaultAppointmentDurationMinutes,
       });
     }
   }, [query.data, reset]);
@@ -166,18 +162,6 @@ export function ClinicSettingsPage() {
                   placeholder="Rua, número, complemento, bairro e cidade"
                   error={errors.address?.message}
                   {...register("address")}
-                />
-                <Field
-                  label="Duração padrão da consulta"
-                  type="number"
-                  min={5}
-                  max={480}
-                  step={5}
-                  hint="Em minutos. Pode ser ajustada ao agendar."
-                  error={errors.defaultAppointmentDurationMinutes?.message}
-                  {...register("defaultAppointmentDurationMinutes", {
-                    valueAsNumber: true,
-                  })}
                 />
                 <div className={styles.actions}>
                   {saved ? <SuccessNote>Dados atualizados.</SuccessNote> : null}

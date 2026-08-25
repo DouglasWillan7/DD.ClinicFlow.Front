@@ -12,16 +12,17 @@ function patient(
   overrides: Partial<PatientListItem> & Pick<PatientListItem, "id" | "name">,
 ): PatientListItem {
   return {
-    cpf: "12345678901",
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "12345678901",
     medicalRecordNumber: 1024,
     bloodType: null,
     sexForClinicalUse: null,
     phone: "+5511988887777",
+    email: null,
     birthDate: "1990-03-10",
     notes: null,
-    doctorUserId: "doctor",
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-01-01T12:00:00Z",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
@@ -33,11 +34,12 @@ function patient(
 
 function member(overrides: Partial<Member> & Pick<Member, "userId">): Member {
   return {
-    email: `${overrides.userId}@example.test`,
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Médico",
+    userClinicId: `uc-${overrides.userId}`,
+    displayName: "Médico",
+    role: "Doctor",
+    isAdmin: false,
     specialty: null,
+    defaultAppointmentDurationMinutes: 30,
     ...overrides,
   };
 }
@@ -47,21 +49,21 @@ const marcos = patient({
   id: "p2",
   name: "Marcos Vinícius Teles",
   medicalRecordNumber: 88,
-  cpf: "98765432100",
+  document: "98765432100",
   phone: "+5511977776666",
 });
 const amaral = patient({ id: "p3", name: "Bruno Amarante" });
 const patients = buildPatientEntries([mariana, marcos, amaral], today);
 
 const doctors = buildDoctorEntries([
-  member({ userId: "d1", name: "Dra. Helena Costa", specialty: "Cardiologia" }),
-  member({ userId: "d2", name: "Dr. Paulo Nunes", specialty: "Neurologia" }),
-  member({ userId: "camila", name: "Camila Duarte", roles: ["Secretary"] }),
+  member({ userId: "d1", displayName: "Dra. Helena Costa", specialty: "Cardiologia" }),
+  member({ userId: "d2", displayName: "Dr. Paulo Nunes", specialty: "Neurologia" }),
+  member({ userId: "camila", displayName: "Camila Duarte", role: "Secretary" }),
 ]);
 
 describe("buildPatientEntries", () => {
   test("descreve o paciente com idade, prontuário e final do CPF", () => {
-    expect(patients[0].subtitle).toBe("36 anos · Pront. 1.024 · CPF final 89-01");
+    expect(patients[0].subtitle).toBe("36 anos · Pront. 1.024 · CPF final 8901");
     expect(patients[0].initials).toBe("MA");
   });
 
@@ -78,7 +80,7 @@ describe("buildPatientEntries", () => {
       [patient({ id: "p5", name: "Ana Teixeira", birthDate: null })],
       today,
     );
-    expect(semData.subtitle).toBe("Pront. 1.024 · CPF final 89-01");
+    expect(semData.subtitle).toBe("Pront. 1.024 · CPF final 8901");
   });
 });
 
@@ -86,7 +88,7 @@ describe("buildDoctorEntries", () => {
   test("mantém só quem atende e nomeia a especialidade ausente", () => {
     expect(doctors.map((entry) => entry.id)).toEqual(["d1", "d2"]);
     const [semEspecialidade] = buildDoctorEntries([
-      member({ userId: "d3", name: "Dr. Novo" }),
+      member({ userId: "d3", displayName: "Dr. Novo" }),
     ]);
     expect(semEspecialidade.subtitle).toBe("Sem especialidade");
   });

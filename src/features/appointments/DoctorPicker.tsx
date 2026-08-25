@@ -46,7 +46,7 @@ export function DoctorPicker({
         <div className={styles.doctorList} aria-label="Médicos disponíveis">
           {doctors.map((doctor) => {
             const selected = doctor.userId === doctorId;
-            const name = doctor.name?.trim() || doctor.email;
+            const name = doctor.displayName.trim();
             return (
               <button
                 key={doctor.userId}

@@ -11,9 +11,21 @@ const patientId = "30000000-0000-4000-8000-000000000001";
 const session: AuthResponse = {
   userId: doctorId,
   email: "helena@example.test",
+  phone: "+5511999999999",
   clinicId: "10000000-0000-4000-8000-000000000001",
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-doctor-1",
+  clinicRole: "Doctor",
+  isAdmin: false,
   roles: ["Doctor"],
   name: "Dra. Helena Costa",
+  availableClinics: [{
+    userClinicId: "uc-doctor-1",
+    clinicId: "10000000-0000-4000-8000-000000000001",
+    clinicName: "Clínica Vital",
+    role: "Doctor",
+    isAdmin: false,
+  }],
   tokens: {
     accessToken: "token",
     refreshToken: "refresh",
@@ -33,7 +45,6 @@ const clinic: Clinic = {
   timeZoneId: "America/Sao_Paulo",
   phone: "+551130000000",
   address: "Unidade Paulista · consultório 3",
-  defaultAppointmentDurationMinutes: 30,
   plan: "Clinic",
   subscriptionStatus: "Active",
   maxDoctors: null,
@@ -59,7 +70,7 @@ const appointments: Appointment[] = [
     patientName: "Marina Lopes Castro",
     startUtc: "2026-08-10T11:00:00Z",
     endUtc: "2026-08-10T11:30:00Z",
-    status: "Realizada",
+    status: "Completed",
     notes: "Retorno com exames recentes",
   }),
   appointment({
@@ -67,7 +78,7 @@ const appointments: Appointment[] = [
     patientName: "Roberto Nunes Vidal",
     startUtc: "2026-08-10T12:00:00Z",
     endUtc: "2026-08-10T12:40:00Z",
-    status: "Confirmada",
+    status: "Confirmed",
     notes: "Dor epigástrica há 3 meses",
   }),
   appointment({
@@ -75,7 +86,7 @@ const appointments: Appointment[] = [
     patientName: "Helena Braga Ferreira",
     startUtc: "2026-08-10T13:00:00Z",
     endUtc: "2026-08-10T13:30:00Z",
-    status: "ConfirmacaoEnviada",
+    status: "AwaitingPatientAction",
     type: "Teleconsultation",
   }),
 ];

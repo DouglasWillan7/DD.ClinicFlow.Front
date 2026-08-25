@@ -7,12 +7,13 @@ export const bloodTypeOptions = Object.entries(bloodTypeLabels) as Array<
   [BloodType, string]
 >;
 
-export function normalizeCpf(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-export function formatCpf(value: string) {
-  const digits = normalizeCpf(value).slice(0, 11);
+export function formatPatientDocument(
+  countryCode: string,
+  documentType: string,
+  value: string,
+) {
+  if (countryCode !== "BR" || documentType !== "CPF") return value;
+  const digits = value.replace(/\D/g, "").slice(0, 11);
   return digits
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d)/, "$1.$2")

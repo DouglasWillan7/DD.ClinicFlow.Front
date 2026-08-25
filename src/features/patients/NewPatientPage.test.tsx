@@ -3,35 +3,26 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { ApiError } from "../../api/client";
-import type { Member, Patient } from "../../api/types";
+import type { Patient } from "../../api/types";
 import { NewPatientPage } from "./NewPatientPage";
 
 let requestMock = vi.fn();
 let navigateMock = vi.fn();
 
-const doctorId = "20000000-0000-4000-8000-000000000001";
-const patientId = "30000000-0000-4000-8000-000000000001";
-const doctor: Member = {
-  userId: doctorId,
-  email: "helena@example.test",
-  roles: ["Doctor"],
-  isCreator: false,
-  name: "Dra. Helena Costa",
-  specialty: "Cardiologia",
-};
 const createdPatient: Patient = {
-  id: patientId,
-  name: "Marina Oliveira",
-  phone: "+5511999990000",
-  cpf: "52998224725",
+  id: "patient-1",
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "52998224725",
   medicalRecordNumber: 48213,
   bloodType: null,
   sexForClinicalUse: null,
+  name: "Marina Oliveira",
+  phone: "+5511999990000",
+  email: "marina@example.test",
   birthDate: null,
   notes: null,
-  doctorUserId: doctorId,
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2026-08-07T12:00:00Z",
 };
 
@@ -43,204 +34,71 @@ vi.mock("../../app/navigation", async (importOriginal) => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-function QueryHarness({ children }: PropsWithChildren) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+function Harness({ children }: PropsWithChildren) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+
+async function submitPatient(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
+  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
+  await user.type(screen.getByLabelText("Documento"), "52998224725");
+  await user.type(screen.getByLabelText("E-mail"), "marina@example.test");
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
 }
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/app/pacientes/novo");
   navigateMock = vi.fn();
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
-    if (path === "/clinics/members") return [doctor];
     if (path === "/patients" && init?.method === "POST") return createdPatient;
     throw new Error(`Unexpected request: ${path}`);
   });
 });
 
-test("adiciona patientId ao retorno sem apagar a data existente", async () => {
+test("cadastra o paciente globalmente sem consultar médicos da clínica", async () => {
+  const user = userEvent.setup();
+  render(<Harness><NewPatientPage /></Harness>);
+  await submitPatient(user);
+
+  await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/app/pacientes"));
+  expect(requestMock).toHaveBeenCalledTimes(1);
+  expect(requestMock).toHaveBeenCalledWith("/patients", expect.objectContaining({
+    method: "POST",
+    body: expect.stringContaining('"document":"52998224725"'),
+  }));
+});
+
+test("preserva o retorno seguro para o agendamento", async () => {
   window.history.replaceState(
     {},
     "",
     "/app/pacientes/novo?returnTo=%2Fapp%2Fagenda%2Fnova%3Fdate%3D2026-08-10",
   );
   const user = userEvent.setup();
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
+  render(<Harness><NewPatientPage /></Harness>);
+  await submitPatient(user);
 
-  await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
-  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
-  await user.type(screen.getByLabelText("CPF"), "52998224725");
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
-  await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
-  await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
-
-  await waitFor(() =>
-    expect(navigateMock).toHaveBeenCalledWith(
-      `/app/agenda/nova?date=2026-08-10&patientId=${patientId}`,
-    ),
-  );
+  await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(
+    "/app/agenda/nova?date=2026-08-10&patientId=patient-1",
+  ));
 });
 
-test("cancelar retorna ao agendamento e mantém o rascunho", async () => {
-  window.history.replaceState(
-    {},
-    "",
-    "/app/pacientes/novo?returnTo=%2Fapp%2Fagenda%2Fnova%3Fdate%3D2026-08-10",
-  );
-  sessionStorage.setItem("booking-draft-test", "preservar");
-  const user = userEvent.setup();
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
-
-  await user.click(await screen.findByRole("button", { name: "Cancelar" }));
-
-  expect(navigateMock).toHaveBeenCalledWith(
-    "/app/agenda/nova?date=2026-08-10",
-  );
-  expect(sessionStorage.getItem("booking-draft-test")).toBe("preservar");
-});
-
-test.each([
-  ["ausente", "/app/pacientes/novo"],
-  [
-    "externo",
-    "/app/pacientes/novo?returnTo=https%3A%2F%2Fevil.example%2Fcapture",
-  ],
-])("cancelar usa pacientes quando o retorno é %s", async (_case, location) => {
-  window.history.replaceState({}, "", location);
-  const user = userEvent.setup();
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
-
-  await user.click(await screen.findByRole("button", { name: "Cancelar" }));
-
-  expect(navigateMock).toHaveBeenCalledWith("/app/pacientes");
-});
-
-test("orienta a adicionar um médico quando não há responsável ativo", async () => {
-  requestMock = vi.fn(async (path: string) => {
-    if (path === "/clinics/members") return [];
-    throw new Error(`Unexpected request: ${path}`);
-  });
-
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
-
-  expect(
-    await screen.findByRole("heading", {
-      name: "Adicione um médico antes do paciente",
-    }),
-  ).toBeVisible();
-  expect(
-    screen.queryByRole("list", { name: "Etapas do cadastro do paciente" }),
-  ).not.toBeInTheDocument();
-});
-
-test("preserva o cadastro quando a API recusa o CPF", async () => {
-  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
-    if (path === "/clinics/members") return [doctor];
-    if (path === "/patients" && init?.method === "POST") {
-      throw new ApiError("CPF já cadastrado nesta clínica.", 409);
-    }
-    throw new Error(`Unexpected request: ${path}`);
+test("mantém o formulário e apresenta conflito de documento", async () => {
+  requestMock = vi.fn(async () => {
+    throw new ApiError("Documento já cadastrado nesta clínica.", 409);
   });
   const user = userEvent.setup();
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
-
-  await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
-  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
-  await user.type(screen.getByLabelText("CPF"), "52998224725");
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
-  await user.type(screen.getByLabelText("Data de nascimento"), "1984-03-12");
-  await user.selectOptions(screen.getByLabelText("Tipo sanguíneo"), "ABNegative");
-  await user.selectOptions(
-    screen.getByLabelText("Sexo para referência laboratorial"),
-    "Feminino",
-  );
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
-  await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
-  await user.type(screen.getByLabelText("Observações"), "Alergia registrada");
-  await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
+  render(<Harness><NewPatientPage /></Harness>);
+  await submitPatient(user);
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "CPF já cadastrado nesta clínica.",
+    "Documento já cadastrado nesta clínica.",
   );
-  expect(screen.getByLabelText("Médico responsável")).toHaveValue(doctorId);
-  expect(screen.getByLabelText("Observações")).toHaveValue("Alergia registrada");
-  await user.click(screen.getByRole("button", { name: "Voltar" }));
-  expect(screen.getByLabelText("Data de nascimento")).toHaveValue("1984-03-12");
-  expect(screen.getByLabelText("Tipo sanguíneo")).toHaveValue("ABNegative");
-  expect(screen.getByLabelText("Sexo para referência laboratorial")).toHaveValue(
-    "Feminino",
-  );
-  await user.click(screen.getByRole("button", { name: "Voltar" }));
-  expect(screen.getByLabelText("Nome completo")).toHaveValue("Marina Oliveira");
-  expect(screen.getByLabelText("País ou região do WhatsApp")).toHaveValue("BR");
-  expect(screen.getByLabelText("WhatsApp")).toHaveValue("(11) 99999-0000");
-  expect(screen.getByLabelText("CPF")).toHaveValue("529.982.247-25");
-});
-
-test("limita o nome sugerido a 120 caracteres", async () => {
-  const suggestedName = "M".repeat(140);
-  window.history.replaceState(
-    {},
-    "",
-    `/app/pacientes/novo?nome=${suggestedName}`,
-  );
-
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
-
-  expect(await screen.findByLabelText("Nome completo")).toHaveValue(
-    suggestedName.slice(0, 120),
-  );
-});
-
-test("conclusão com retorno externo usa a lista de pacientes", async () => {
-  window.history.replaceState(
-    {},
-    "",
-    "/app/pacientes/novo?returnTo=https%3A%2F%2Fevil.example%2Fcapture",
-  );
-  const user = userEvent.setup();
-  render(
-    <QueryHarness>
-      <NewPatientPage />
-    </QueryHarness>,
-  );
-
-  await user.type(await screen.findByLabelText("Nome completo"), "Marina Oliveira");
-  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
-  await user.type(screen.getByLabelText("CPF"), "52998224725");
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
-  await user.click(screen.getByRole("button", { name: "Continuar" }));
-  await user.selectOptions(screen.getByLabelText("Médico responsável"), doctorId);
-  await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
-
-  await waitFor(() =>
-    expect(navigateMock).toHaveBeenCalledWith("/app/pacientes"),
-  );
+  expect(screen.getByLabelText("Observações")).toBeVisible();
 });

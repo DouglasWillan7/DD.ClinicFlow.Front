@@ -9,34 +9,14 @@ import { AppShell } from "./AppShell";
 import { NotFoundPage } from "./NotFoundPage";
 import { ExamRealtimeProvider } from "../features/patients/exams/ExamRealtimeProvider";
 
-const AuthLayout = lazy(() =>
-  import("../auth/AuthLayout").then((module) => ({
-    default: module.AuthLayout,
-  })),
-);
 const LoginPage = lazy(() =>
   import("../auth/LoginPage").then((module) => ({
     default: module.LoginPage,
   })),
 );
-const RegisterPage = lazy(() =>
-  import("../auth/RegisterPage").then((module) => ({
-    default: module.RegisterPage,
-  })),
-);
-const ActivatePage = lazy(() =>
-  import("../auth/ActivatePage").then((module) => ({
-    default: module.ActivatePage,
-  })),
-);
 const TeamPage = lazy(() =>
   import("../features/team/TeamPage").then((module) => ({
     default: module.TeamPage,
-  })),
-);
-const DoctorDetailPage = lazy(() =>
-  import("../features/team/DoctorDetailPage").then((module) => ({
-    default: module.DoctorDetailPage,
   })),
 );
 const AgendaPage = lazy(() =>
@@ -145,19 +125,9 @@ function AppRoutes() {
     return <Redirect to={session ? appStart : "/entrar"} replace />;
   }
 
-  if (path === "/entrar" || path === "/cadastro") {
+  if (path === "/entrar") {
     if (session) return <Redirect to={appStart} replace />;
-    if (path === "/entrar") return <LoginPage />;
-    return <RegisterPage />;
-  }
-
-  // Ativação vale mesmo com sessão aberta: o link pode chegar em máquina compartilhada.
-  if (path === "/ativar") {
-    return (
-      <AuthLayout>
-        <ActivatePage />
-      </AuthLayout>
-    );
+    return <LoginPage />;
   }
 
   if (path.startsWith("/app")) {
@@ -190,15 +160,6 @@ function AppRoutes() {
     };
 
     // Só hexadecimal, então /equipe/novo nunca cai aqui.
-    const doctorDetailMatch = path.match(/^\/app\/equipe\/([0-9a-f-]+)$/i);
-    if (doctorDetailMatch) {
-      return (
-        <AppShell>
-          <DoctorDetailPage doctorId={doctorDetailMatch[1]} />
-        </AppShell>
-      );
-    }
-
     const editPatientMatch = path.match(/^\/app\/pacientes\/([0-9a-f-]+)\/editar$/i);
     if (editPatientMatch) {
       return (

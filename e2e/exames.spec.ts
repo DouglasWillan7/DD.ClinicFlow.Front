@@ -14,16 +14,17 @@ const newRequestId = "70000000-0000-4000-8000-000000000006";
 
 const patient = {
   id: patientId,
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "00000000000",
   name: "Paciente Exemplo",
   phone: "+5511000000000",
-  cpf: "00000000000",
+  email: null,
   medicalRecordNumber: 101,
   bloodType: null,
   birthDate: "1984-03-12",
   notes: null,
-  doctorUserId: doctorId,
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2025-01-01T12:00:00Z",
 };
 
@@ -370,12 +371,26 @@ function summary(value: Record<string, unknown>) {
 }
 
 function sessionFor(roles: ClinicRole[]) {
+  const clinicRole = roles.includes("Doctor") ? "Doctor" : "Secretary";
+  const isAdmin = roles.includes("Admin");
   return {
     userId: "10000000-0000-4000-8000-000000000001",
     email: "professional@example.test",
+    phone: "+5511988887777",
     clinicId: "20000000-0000-4000-8000-000000000001",
+    clinicName: "Clínica Vital",
+    userClinicId: `uc-${clinicRole.toLowerCase()}`,
+    clinicRole,
+    isAdmin,
     roles,
     name: roles.includes("Doctor") ? "Dra. Helena Costa" : "Equipe ClinicFlow",
+    availableClinics: [{
+      userClinicId: `uc-${clinicRole.toLowerCase()}`,
+      clinicId: "20000000-0000-4000-8000-000000000001",
+      clinicName: "Clínica Vital",
+      role: clinicRole,
+      isAdmin,
+    }],
     tokens: {
       accessToken: "exam-e2e-access-token",
       refreshToken: "exam-e2e-refresh-token",
@@ -493,29 +508,31 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
         timeZoneId: "America/Sao_Paulo",
         phone: null,
         address: null,
-        defaultAppointmentDurationMinutes: 30,
         plan: "Clinic",
         subscriptionStatus: "Active",
         maxDoctors: null,
         createdAtUtc: "2026-07-01T12:00:00Z",
       } });
     }
-    if (url.pathname === "/clinics/members") {
+    if (url.pathname === `/clinics/${session.clinicId}/members/summary`) {
       return route.fulfill({ status: 200, json: [{
+        userClinicId: "uc-doctor",
         userId: doctorId,
-        email: "doctor@example.test",
-        roles: ["Doctor"],
-        isCreator: false,
-        name: "Dra. Helena Costa",
+        displayName: "Dra. Helena Costa",
+        role: "Doctor",
+        isAdmin: false,
         specialty: "Clínica médica",
+        defaultAppointmentDurationMinutes: 30,
       }] });
     }
     if (url.pathname === "/users/me") {
       return route.fulfill({ status: 200, json: {
         userId: session.userId,
         email: session.email,
+        phone: session.phone,
         name: session.name,
-        roles,
+        role: session.clinicRole,
+        isAdmin: session.isAdmin,
         medicalLicense: null,
         medicalLicenseState: null,
         specialty: null,

@@ -1,8 +1,6 @@
 import type { Member } from "../../api/types";
-import { hasRole } from "../../auth/roles";
-
 export function getDoctorName(doctor: Member) {
-  return doctor.name?.trim() || doctor.email;
+  return doctor.displayName.trim();
 }
 
 /** Rótulo curto do CTA: as duas primeiras palavras ("Dra. Helena Costa"). */
@@ -11,7 +9,7 @@ export function getShortDoctorName(doctor: Member) {
 }
 
 export function listDoctors(members: Member[]) {
-  return members.filter((member) => hasRole(member, "Doctor"));
+  return members.filter((member) => member.role === "Doctor");
 }
 
 /**

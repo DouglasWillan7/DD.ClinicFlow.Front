@@ -67,12 +67,11 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-/** O handoff mostra só o final do CPF; o número inteiro não precisa vazar aqui. */
-function formatCpfSuffix(cpf: string) {
-  const digits = onlyDigits(cpf);
-  if (digits.length < 4) return null;
-  const suffix = digits.slice(-4);
-  return `CPF final ${suffix.slice(0, 2)}-${suffix.slice(2)}`;
+/** A busca mostra só o final do documento para evitar repetir o identificador completo. */
+function formatDocumentSuffix(documentType: string, document: string) {
+  const normalized = document.replace(/\s/g, "");
+  if (normalized.length < 4) return null;
+  return `${documentType} final ${normalized.slice(-4)}`;
 }
 
 export function buildPatientEntries(
@@ -91,7 +90,7 @@ export function buildPatientEntries(
         patient.isActive ? null : "Inativo",
         age === null ? null : `${age} anos`,
         `Pront. ${formatMedicalRecord(patient.medicalRecordNumber)}`,
-        formatCpfSuffix(patient.cpf),
+        formatDocumentSuffix(patient.documentType, patient.document),
       ]
         .filter(Boolean)
         .join(" · "),
@@ -99,7 +98,7 @@ export function buildPatientEntries(
       folded,
       foldedMap: map,
       textAliases: [String(patient.medicalRecordNumber)],
-      digitAliases: [onlyDigits(patient.cpf), onlyDigits(patient.phone)].filter(
+      digitAliases: [onlyDigits(patient.document), onlyDigits(patient.phone)].filter(
         Boolean,
       ),
     };
@@ -121,7 +120,6 @@ export function buildDoctorEntries(members: Member[]): SearchEntry[] {
       foldedMap: map,
       textAliases: [
         normalizeSearch(doctor.specialty ?? ""),
-        normalizeSearch(doctor.email),
       ].filter(Boolean),
       digitAliases: [],
     };

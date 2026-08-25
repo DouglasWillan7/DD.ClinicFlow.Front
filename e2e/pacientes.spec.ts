@@ -3,9 +3,21 @@ import { expect, test, type Page } from "@playwright/test";
 const session = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "ana@clinicavital.com.br",
+  phone: "+5511988887777",
   clinicId: "22222222-2222-2222-2222-222222222222",
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-doctor",
+  clinicRole: "Doctor",
+  isAdmin: true,
   roles: ["Admin", "Doctor"],
   name: "Ana Martins",
+  availableClinics: [{
+    userClinicId: "uc-doctor",
+    clinicId: "22222222-2222-2222-2222-222222222222",
+    clinicName: "Clínica Vital",
+    role: "Doctor",
+    isAdmin: true,
+  }],
   tokens: {
     accessToken: "visual-test-token",
     refreshToken: "visual-test-refresh",
@@ -26,15 +38,16 @@ function makePatient(
   record += 1;
   return {
     phone: "+5511999990000",
-    cpf: "52998224725",
+    email: null,
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "52998224725",
     medicalRecordNumber: record,
     bloodType: null,
     sexForClinicalUse: null,
     birthDate: "1984-03-12",
     notes: null,
-    doctorUserId,
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-07-20T12:00:00Z",
     lastAppointmentUtc: "2026-08-03T14:00:00Z",
     nextAppointmentUtc: null,
@@ -49,7 +62,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000001",
     name: "Mohammad Jaber Abdullah",
-    cpf: "41288755601",
+    document: "41288755601",
     birthDate: "1984-03-12",
     nextAppointmentUtc: "2026-08-10T17:00:00Z",
     nextAppointmentType: "Teleconsultation",
@@ -57,7 +70,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000002",
     name: "Rita de Cássia Alves",
-    cpf: "31820477120",
+    document: "31820477120",
     birthDate: "1968-09-27",
     nextAppointmentUtc: "2026-08-10T13:00:00Z",
     nextAppointmentType: "Teleconsultation",
@@ -65,7 +78,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000003",
     name: "Ana Beatriz Lima",
-    cpf: "25941033688",
+    document: "25941033688",
     birthDate: "1992-01-05",
     nextAppointmentUtc: "2026-08-11T12:00:00Z",
     nextAppointmentType: "InPerson",
@@ -73,14 +86,14 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000004",
     name: "Carlos Souza Filho",
-    cpf: "10659948233",
+    document: "10659948233",
     birthDate: "1975-06-19",
     situation: "ExamePendente",
   }),
   makePatient({
     id: "60000000-0000-4000-8000-000000000005",
     name: "Carlos Eduardo Souza",
-    cpf: "74302195840",
+    document: "74302195840",
     birthDate: "1981-11-02",
     situation: "ExamePendente",
     nextAppointmentUtc: "2026-08-12T18:00:00Z",
@@ -89,7 +102,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000006",
     name: "Paula Ramos",
-    cpf: "58133620495",
+    document: "58133620495",
     birthDate: "1990-05-14",
     nextAppointmentUtc: "2026-08-11T12:30:00Z",
     nextAppointmentType: "InPerson",
@@ -97,7 +110,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000007",
     name: "Fernanda Costa",
-    cpf: "93041266712",
+    document: "93041266712",
     birthDate: "1987-07-30",
     situation: "NovoPaciente",
     lastAppointmentUtc: null,
@@ -107,7 +120,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000008",
     name: "Helena Martins",
-    cpf: "27480811564",
+    document: "27480811564",
     birthDate: "1959-12-08",
     situation: "Inativo",
     isActive: false,
@@ -116,7 +129,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000009",
     name: "João Pedro Nunes",
-    cpf: "66019472307",
+    document: "66019472307",
     birthDate: "1996-04-21",
   }),
 ];
@@ -124,7 +137,7 @@ const patients = [
 const clinicalPatient = makePatient({
   id: clinicalPatientId,
   name: "Paciente Exemplo",
-  cpf: "00000000000",
+  document: "00000000000",
   phone: "+5511000000000",
   medicalRecordNumber: 101,
   birthDate: "1990-01-15",
@@ -133,7 +146,7 @@ const clinicalPatient = makePatient({
 const emptyClinicalPatient = makePatient({
   id: emptyClinicalPatientId,
   name: "Paciente Sem Laudo",
-  cpf: "00000000000",
+  document: "00000000000",
   phone: "+5511000000000",
   medicalRecordNumber: 102,
   birthDate: "1992-02-20",
@@ -216,18 +229,21 @@ async function mockPacientes(page: Page) {
         maxDoctors: null,
         createdAtUtc: "2026-07-01T12:00:00Z",
       };
+    } else if (url.pathname === "/patients" && route.request().method() === "POST") {
+      body = { ...patients[0], id: "created-patient" };
     } else if (url.pathname === "/patients") {
       body = patients;
-    } else if (url.pathname === "/clinics/members") {
+    } else if (url.pathname === `/clinics/${session.clinicId}/members/summary`) {
       // A busca global da topbar resolve médicos em qualquer tela.
       body = [
         {
+          userClinicId: "uc-doctor",
           userId: doctorUserId,
-          email: "helena@clinicavital.com.br",
-          roles: ["Doctor"],
-          isCreator: false,
-          name: "Dra. Helena Costa",
+          displayName: "Dra. Helena Costa",
+          role: "Doctor",
+          isAdmin: false,
           specialty: "Cardiologia",
+          defaultAppointmentDurationMinutes: 30,
         },
       ];
     } else if (url.pathname.startsWith("/patients/")) {
@@ -252,8 +268,10 @@ async function mockPacientes(page: Page) {
       body = {
         userId: session.userId,
         email: session.email,
+        phone: session.phone,
         name: session.name,
-        roles: session.roles,
+        role: session.clinicRole,
+        isAdmin: session.isAdmin,
         medicalLicense: null,
         medicalLicenseState: null,
         specialty: null,
@@ -475,7 +493,8 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   });
   await phoneField.fill("912345678");
   await expect(phoneField).toHaveValue("912 345 678");
-  await page.getByLabel("CPF").fill("52998224725");
+  await page.getByLabel("Documento", { exact: true }).fill("52998224725");
+  await page.getByLabel("E-mail").fill("marina@example.test");
   await page.screenshot({
     path: "test-results/pacientes-09-cadastro-identificacao.png",
     fullPage: true,
@@ -496,7 +515,7 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
     "Atendimento",
   );
   await expectVisiblePatientControlsToMeetMinimumTarget(page);
-  await page.getByLabel("Médico responsável").selectOption(doctorUserId);
+  await expect(page.getByLabel(/Médico responsável/)).toHaveCount(0);
   await page.getByLabel("Observações").fill("Retorno em 30 dias");
   await page.screenshot({
     path: "test-results/pacientes-10-cadastro-atendimento.png",
@@ -509,10 +528,12 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   expect((await created).postDataJSON()).toEqual({
     name: "Marina Oliveira",
     phone: "+351912345678",
-    cpf: "52998224725",
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "52998224725",
+    email: "marina@example.test",
     bloodType: "ABNegative",
     sexForClinicalUse: "Feminino",
-    doctorUserId,
     birthDate: "1984-03-12",
     notes: "Retorno em 30 dias",
   });
@@ -529,7 +550,7 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
     page.getByRole("textbox", { name: "WhatsApp", exact: true }),
   ).toHaveValue("(11) 99999-0000");
   await expect(page.getByLabel("Sexo para referência laboratorial")).toHaveValue("");
-  await page.getByLabel("CPF").fill("52998224725");
+  await page.getByLabel("Documento", { exact: true }).fill("52998224725");
   await page
     .getByLabel("Sexo para referência laboratorial")
     .selectOption("Masculino");
@@ -605,7 +626,8 @@ test.describe("mobile", () => {
     });
     await phoneField.fill("11999990000");
     await expect(phoneField).toHaveValue("(11) 99999-0000");
-    await page.getByLabel("CPF").fill("52998224725");
+    await page.getByLabel("Documento", { exact: true }).fill("52998224725");
+    await page.getByLabel("E-mail").fill("marina@example.test");
     await page.screenshot({
       path: "test-results/pacientes-12-telefone-mobile.png",
       fullPage: true,
@@ -613,7 +635,7 @@ test.describe("mobile", () => {
     await page.getByRole("button", { name: "Continuar" }).click();
     await expectVisiblePatientControlsToMeetMinimumTarget(page);
     await page.getByRole("button", { name: "Continuar" }).click();
-    await expect(page.getByLabel("Médico responsável")).toBeVisible();
+    await expect(page.getByLabel(/Médico responsável/)).toHaveCount(0);
     await expect(stepper.locator('[aria-current="step"]')).toContainText(
       "Atendimento",
     );

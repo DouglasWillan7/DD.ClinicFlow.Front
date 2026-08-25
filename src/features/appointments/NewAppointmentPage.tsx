@@ -22,11 +22,11 @@ import type {
   Appointment,
   AppointmentType,
   Clinic,
-  Doctor,
   DoctorAvailability,
   HealthcarePlan,
   Member,
   Patient,
+  UserClinicHealthcarePlans,
 } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
@@ -188,7 +188,9 @@ export function NewAppointmentPage() {
   });
   const members = useQuery({
     queryKey: ["new-appointment", authScope, "members"],
-    queryFn: () => request<Member[]>("/clinics/members"),
+    queryFn: () => request<Member[]>(
+      `/clinics/${session?.clinicId}/members/summary`,
+    ),
     enabled: Boolean(authScope),
   });
   const healthcarePlans = useQuery({
@@ -196,10 +198,17 @@ export function NewAppointmentPage() {
     queryFn: () => request<HealthcarePlan[]>("/healthcare-plans"),
     enabled: Boolean(authScope && selection.doctor),
   });
-  const doctorProfiles = useQuery({
-    queryKey: ["new-appointment", authScope, "doctor-profiles"],
-    queryFn: () => request<Doctor[]>("/clinics/doctors"),
-    enabled: Boolean(authScope && selection.doctor),
+  const acceptedPlanIds = useQuery({
+    queryKey: [
+      "new-appointment",
+      authScope,
+      "doctor-healthcare-plans",
+      selection.doctor?.userClinicId,
+    ],
+    queryFn: () => request<UserClinicHealthcarePlans>(
+      `/clinics/${session?.clinicId}/members/${selection.doctor?.userClinicId}/healthcare-plans`,
+    ),
+    enabled: Boolean(authScope && session?.clinicId && selection.doctor),
   });
   const patient = useQuery({
     queryKey: ["new-appointment", authScope, "patient", requestedPatientId],
@@ -344,17 +353,15 @@ export function NewAppointmentPage() {
   );
   const acceptedHealthcarePlans = useMemo(() => {
     const acceptedIds = new Set(
-      doctorProfiles.data?.find(
-        (profile) => profile.userId === selection.doctor?.userId,
-      )?.healthInsurancePlanIds ?? [],
+      acceptedPlanIds.data?.healthcarePlanIds ?? [],
     );
     return (healthcarePlans.data ?? []).filter((plan) =>
       acceptedIds.has(plan.id),
     );
-  }, [doctorProfiles.data, healthcarePlans.data, selection.doctor?.userId]);
+  }, [acceptedPlanIds.data, healthcarePlans.data]);
 
   useEffect(() => {
-    if (!selection.healthcarePlanId || healthcarePlans.isPending || doctorProfiles.isPending) {
+    if (!selection.healthcarePlanId || healthcarePlans.isPending || acceptedPlanIds.isPending) {
       return;
     }
     if (
@@ -367,7 +374,7 @@ export function NewAppointmentPage() {
   }, [
     acceptedHealthcarePlans,
     dispatchSelection,
-    doctorProfiles.isPending,
+    acceptedPlanIds.isPending,
     healthcarePlans.isPending,
     selection.healthcarePlanId,
   ]);

@@ -70,7 +70,7 @@ export function AppointmentSummary({
         </div>
         <div className={styles.summaryRow}>
           <dt>Médico</dt>
-          <dd>{selection.doctor?.name ?? selection.doctor?.email ?? "—"}</dd>
+          <dd>{selection.doctor?.displayName ?? "—"}</dd>
         </div>
         <div className={styles.summaryRow}>
           <dt>Tipo</dt>

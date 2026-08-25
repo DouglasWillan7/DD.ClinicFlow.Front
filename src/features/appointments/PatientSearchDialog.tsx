@@ -17,8 +17,8 @@ import { getAuthScope } from "../../auth/sessionScope";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import {
   formatBirthDate,
-  formatCpf,
   formatMedicalRecord,
+  formatPatientDocument,
 } from "../patients/patientFormatters";
 import { getInitials } from "./appointmentLabels";
 import styles from "./NewAppointmentPage.module.css";
@@ -325,8 +325,12 @@ export function PatientSearchDialog({
                         <span>Nasc.:</span>
                         <span>{formatBirthDate(patient.birthDate)}</span>
                         <span aria-hidden="true">·</span>
-                        <span>CPF</span>
-                        <span>{formatCpf(patient.cpf)}</span>
+                        <span>{patient.documentType}</span>
+                        <span>{formatPatientDocument(
+                          patient.documentCountryCode,
+                          patient.documentType,
+                          patient.document,
+                        )}</span>
                         <span aria-hidden="true">·</span>
                         <span>
                           Prontuário{" "}

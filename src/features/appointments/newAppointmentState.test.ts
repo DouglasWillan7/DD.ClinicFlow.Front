@@ -16,27 +16,29 @@ import {
 
 const patient: Patient = {
   id: "p-1",
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "52998224725",
   name: "Marina Oliveira",
   phone: "+5511999990000",
-  cpf: "52998224725",
+  email: "marina@example.test",
   medicalRecordNumber: 48213,
   bloodType: "APositive",
   sexForClinicalUse: null,
   birthDate: "1980-03-10",
   notes: null,
-  doctorUserId: "d-1",
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2026-08-01T12:00:00Z",
 };
 
 const doctor: Member = {
+  userClinicId: "uc-d-1",
   userId: "d-1",
-  email: "helena@example.test",
-  roles: ["Doctor"],
-  isCreator: false,
-  name: "Dra. Helena Costa",
+  displayName: "Dra. Helena Costa",
+  role: "Doctor",
+  isAdmin: false,
   specialty: "Cardiologia",
+  defaultAppointmentDurationMinutes: 30,
 };
 
 const slot: AvailabilitySlot = {
@@ -120,10 +122,10 @@ describe("new appointment selection", () => {
       date: "2026-08-10",
     });
     expect(serialized).not.toContain(patient.name);
-    expect(serialized).not.toContain(patient.cpf);
+    expect(serialized).not.toContain(patient.document);
     expect(serialized).not.toContain(patient.birthDate!);
     expect(serialized).not.toContain(patient.phone);
-    expect(serialized).not.toContain(doctor.name!);
+    expect(serialized).not.toContain(doctor.displayName);
 
     expect(restoreDraft(scopeA)).toEqual({
       patientId: "p-1",

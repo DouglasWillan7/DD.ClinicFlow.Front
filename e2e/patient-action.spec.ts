@@ -23,19 +23,19 @@ async function mockCriticalFlow(page: Page, failCompletion = false) {
     timeZoneId: "America/Sao_Paulo",
     phone: "+551130000000",
     address: "Rua Horizonte, 10",
-    defaultAppointmentDurationMinutes: 30,
     plan: "Clinic",
     subscriptionStatus: "Active",
     maxDoctors: null,
     createdAtUtc: "2026-08-01T12:00:00Z",
   };
   const doctor = {
+    userClinicId: "uc-doctor",
     userId: doctorId,
-    email: "helena@horizonte.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dra. Helena Costa",
+    displayName: "Dra. Helena Costa",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: 30,
   };
   const appointment = () => ({
     id: appointmentId,
@@ -124,14 +124,16 @@ async function mockCriticalFlow(page: Page, failCompletion = false) {
       };
     } else if (url.pathname === "/clinics/current") {
       body = clinic;
-    } else if (url.pathname === "/clinics/members") {
+    } else if (url.pathname === `/clinics/${clinicId}/members/summary`) {
       body = [doctor];
     } else if (url.pathname === "/users/me") {
       body = {
         userId,
         name: "Ana Martins",
         email: "ana@horizonte.test",
-        roles: ["Secretary", "Admin"],
+        phone: "+5511988887777",
+        role: "Secretary",
+        isAdmin: true,
         medicalLicense: null,
         medicalLicenseState: null,
         specialty: null,
@@ -200,17 +202,18 @@ async function mockCriticalFlow(page: Page, failCompletion = false) {
     } else if (url.pathname === `/patients/${patientId}`) {
       body = {
         id: patientId,
-        cpf: "52998224725",
+        documentCountryCode: "BR",
+        documentType: "CPF",
+        document: "52998224725",
         medicalRecordNumber: 48213,
         bloodType: "APositive",
         sexForClinicalUse: "Feminino",
         name: "Marina Oliveira",
         phone: "+5511999990000",
+        email: null,
         birthDate: "1990-01-10",
         notes: null,
-        doctorUserId: doctorId,
         isActive: true,
-        whatsappConsentAtUtc: null,
         createdAtUtc: "2026-08-01T12:00:00Z",
       };
     } else if (url.pathname === "/patient-actions/doctor-access") {

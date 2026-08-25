@@ -2,16 +2,10 @@ import type { AuthResponse } from "../api/types";
 
 export const SCOPED_SESSION_STORAGE_PREFIX = "clinicflow.scoped.";
 
-type SessionIdentity = Pick<
-  AuthResponse,
-  "clinicId" | "userId" | "roles" | "userClinicId"
->;
+type SessionIdentity = Pick<AuthResponse, "clinicId" | "userId" | "userClinicId">;
 
 export function getAuthScope(session: SessionIdentity) {
-  const legacyScope = `${session.clinicId}:${session.userId}:${[...session.roles].sort().join(",")}`;
-  return session.userClinicId
-    ? `${session.userClinicId}:${legacyScope}`
-    : legacyScope;
+  return `${session.userClinicId}:${session.clinicId}:${session.userId}`;
 }
 
 export function clearScopedSessionStorage() {

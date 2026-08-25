@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/client";
-import type { Member, Patient } from "../../api/types";
+import type { Patient } from "../../api/types";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
-import { hasRole } from "../../auth/roles";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { PageHeader } from "../../components/PageHeader";
 import { DoctorAccessPanel } from "../patient-actions/DoctorAccessPanel";
@@ -17,10 +16,12 @@ function toPatientFormValue(patient: Patient): PatientFormValue {
   return {
     name: patient.name,
     phone: patient.phone,
-    cpf: patient.cpf,
+    documentCountryCode: patient.documentCountryCode,
+    documentType: patient.documentType,
+    document: patient.document,
+    email: patient.email ?? "",
     bloodType: patient.bloodType,
     sexForClinicalUse: patient.sexForClinicalUse,
-    doctorUserId: patient.doctorUserId,
     birthDate: patient.birthDate ?? "",
     notes: patient.notes ?? "",
   };
@@ -34,10 +35,6 @@ export function EditPatientPage({ patientId }: { patientId: string }) {
     queryKey: ["patients", patientId],
     queryFn: () => request<Patient>(`/patients/${patientId}`),
   });
-  const members = useQuery({
-    queryKey: ["clinic", "members"],
-    queryFn: () => request<Member[]>("/clinics/members"),
-  });
   const mutation = useMutation({
     mutationFn: (values: PatientFormValue) =>
       request<Patient>(`/patients/${patientId}`, {
@@ -50,24 +47,20 @@ export function EditPatientPage({ patientId }: { patientId: string }) {
     },
   });
 
-  if (patient.isLoading || members.isLoading) {
+  if (patient.isLoading) {
     return <LoadingBlock label="Carregando o cadastro…" />;
   }
 
-  if (patient.isError || !patient.data || members.isError) {
+  if (patient.isError || !patient.data) {
     return (
       <ErrorBlock
         message="Não foi possível carregar o cadastro do paciente."
         retry={() => {
           void patient.refetch();
-          void members.refetch();
         }}
       />
     );
   }
-
-  const doctors =
-    members.data?.filter((member) => hasRole(member, "Doctor")) ?? [];
 
   return (
     <>
@@ -84,7 +77,6 @@ export function EditPatientPage({ patientId }: { patientId: string }) {
           </dl>
           <PatientForm
             initialValue={toPatientFormValue(patient.data)}
-            doctors={doctors}
             submitLabel="Salvar alterações"
             onSubmit={(values) => mutation.mutate(values)}
             onCancel={() => navigate("/app/pacientes")}

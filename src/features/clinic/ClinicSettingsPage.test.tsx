@@ -18,7 +18,6 @@ const clinic: Clinic = {
   timeZoneId: "America/Sao_Paulo",
   phone: "+551130000000",
   address: "Rua das Flores, 100, São Paulo",
-  defaultAppointmentDurationMinutes: 30,
   plan: "Clinic",
   subscriptionStatus: "Active",
   maxDoctors: 10,

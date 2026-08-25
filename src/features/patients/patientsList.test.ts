@@ -11,17 +11,18 @@ function makePatient(overrides: Partial<PatientListItem>): PatientListItem {
   record += 1;
   return {
     id: crypto.randomUUID(),
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "52998224725",
     name: "Paciente Teste",
     phone: "+5511999990000",
-    cpf: "52998224725",
+    email: null,
     medicalRecordNumber: record,
     bloodType: null,
     sexForClinicalUse: null,
     birthDate: null,
     notes: null,
-    doctorUserId: "d-1",
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-08-01T12:00:00Z",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
@@ -40,7 +41,7 @@ describe("matchesSearch", () => {
   });
 
   test("busca por CPF exige 3+ dígitos e ignora máscara", () => {
-    const patient = makePatient({ cpf: "52998224725" });
+    const patient = makePatient({ document: "52998224725" });
     expect(matchesSearch(patient, "529.982")).toBe(true);
     expect(matchesSearch(patient, "52")).toBe(false);
   });

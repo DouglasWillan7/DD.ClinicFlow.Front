@@ -50,9 +50,21 @@ function makeSession(
   return {
     userId,
     clinicId,
+    clinicName: `Clínica ${clinicId}`,
+    userClinicId: `uc-${userId}-${clinicId}`,
+    clinicRole: roles.includes("Doctor") ? "Doctor" : "Secretary",
+    isAdmin: roles.includes("Admin"),
     roles,
     email: `${userId}@example.test`,
+    phone: "+5511999999999",
     name: userId,
+    availableClinics: [{
+      userClinicId: `uc-${userId}-${clinicId}`,
+      clinicId,
+      clinicName: `Clínica ${clinicId}`,
+      role: roles.includes("Doctor") ? "Doctor" : "Secretary",
+      isAdmin: roles.includes("Admin"),
+    }],
     tokens: {
       accessToken,
       refreshToken: `refresh-${accessToken}`,
@@ -81,17 +93,18 @@ function makePatient(
 ): Patient {
   return {
     id,
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "52998224725",
     name,
     phone: "+5511999990000",
-    cpf: "52998224725",
+    email: null,
     medicalRecordNumber: 48213,
     bloodType: "APositive",
     sexForClinicalUse: null,
     birthDate: "1980-03-10",
     notes: null,
-    doctorUserId: "d-1",
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc,
   };
 }
@@ -122,7 +135,7 @@ afterEach(() => {
 describe("PatientSearchDialog", () => {
   authSessionMock = sessionA;
 
-  test("isola a chave por clínica, usuário e papéis sem incluir tokens", async () => {
+  test("isola a chave pelo vínculo contextual sem incluir tokens", async () => {
     const client = createQueryClient(Number.POSITIVE_INFINITY);
     const requestA = vi.fn().mockResolvedValue([
       makePatient("patient-a", "Paciente da clínica A"),
@@ -146,8 +159,8 @@ describe("PatientSearchDialog", () => {
     );
     expect(serializedKeys).toContain("clinic-a");
     expect(serializedKeys).toContain("user-a");
-    expect(serializedKeys).toContain("Admin");
-    expect(serializedKeys).toContain("Secretary");
+    expect(serializedKeys).toContain("uc-user-a-clinic-a");
+    expect(serializedKeys).not.toContain("Admin");
     expect(serializedKeys).not.toContain("sensitive-token-a");
     unmount();
 

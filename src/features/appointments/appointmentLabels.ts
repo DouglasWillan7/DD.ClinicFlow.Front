@@ -84,7 +84,7 @@ export function normalizeSearch(value: string) {
 
 /** Especialidade é opcional no cadastro e não decide quem pode ser agendado. */
 function isEligibleDoctor(member: Member) {
-  return member.roles.includes("Doctor");
+  return member.role === "Doctor";
 }
 
 /** Busca do agendamento: casa nome OU especialidade, sem acento e sem caixa. */
@@ -96,7 +96,7 @@ export function filterDoctors(members: Member[], search: string) {
     if (!normalizedSearch) return true;
 
     return normalizeSearch(
-      `${member.name ?? ""} ${member.specialty ?? ""}`,
+      `${member.displayName} ${member.specialty ?? ""}`,
     ).includes(normalizedSearch);
   });
 }

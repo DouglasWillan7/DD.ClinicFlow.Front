@@ -23,9 +23,21 @@ const appointmentId = "40000000-0000-4000-8000-000000000001";
 const session: AuthResponse = {
   userId,
   email: "secretaria@example.test",
+  phone: "+5511999999999",
   clinicId,
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-secretary",
+  clinicRole: "Secretary",
+  isAdmin: false,
   roles: ["Secretary"],
   name: "Secretaria",
+  availableClinics: [{
+    userClinicId: "uc-secretary",
+    clinicId,
+    clinicName: "Clínica Vital",
+    role: "Secretary",
+    isAdmin: false,
+  }],
   tokens: {
     accessToken: "token",
     refreshToken: "refresh",
@@ -44,7 +56,6 @@ const clinic: Clinic = {
   timeZoneId: "America/Sao_Paulo",
   phone: "+551130000000",
   address: "Rua Clínica, 10",
-  defaultAppointmentDurationMinutes: 30,
   plan: "Clinic",
   subscriptionStatus: "Active",
   maxDoctors: null,
@@ -52,20 +63,22 @@ const clinic: Clinic = {
 };
 const members: Member[] = [
   {
+    userClinicId: "uc-doctor-1",
     userId: doctorId,
-    email: "helena@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dra. Helena Costa",
+    displayName: "Dra. Helena Costa",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: 30,
   },
   {
+    userClinicId: "uc-doctor-2",
     userId: secondDoctorId,
-    email: "paulo@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dr. Paulo Nunes",
+    displayName: "Dr. Paulo Nunes",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Neurologia",
+    defaultAppointmentDurationMinutes: 45,
   },
 ];
 const appointment: Appointment = {
@@ -76,7 +89,7 @@ const appointment: Appointment = {
   startUtc: "2026-08-10T12:00:00Z",
   endUtc: "2026-08-10T12:30:00Z",
   type: "InPerson",
-  status: "Agendada",
+  status: "AwaitingPatientAction",
   notes: "Retorno com exames",
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
@@ -88,7 +101,7 @@ const teleconsultation: Appointment = {
   startUtc: "2026-08-10T14:00:00Z",
   endUtc: "2026-08-10T15:00:00Z",
   type: "Teleconsultation",
-  status: "Confirmada",
+  status: "Confirmed",
   notes: null,
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
@@ -100,7 +113,7 @@ const canceled: Appointment = {
   startUtc: "2026-08-10T16:00:00Z",
   endUtc: "2026-08-10T16:30:00Z",
   type: "InPerson",
-  status: "Cancelada",
+  status: "Cancelled",
   notes: null,
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
@@ -112,7 +125,7 @@ const otherDoctorAppointment: Appointment = {
   startUtc: "2026-08-10T13:00:00Z",
   endUtc: "2026-08-10T13:30:00Z",
   type: "InPerson",
-  status: "Confirmada",
+  status: "Confirmed",
   notes: null,
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
@@ -124,7 +137,7 @@ const historicalAppointment: Appointment = {
   startUtc: "2000-08-09T12:00:00Z",
   endUtc: "2000-08-09T12:30:00Z",
   type: "InPerson",
-  status: "Confirmada",
+  status: "Confirmed",
   notes: "Atendimento anterior",
   createdAtUtc: "2000-08-01T12:00:00Z",
 };
@@ -136,7 +149,7 @@ const completedAppointment: Appointment = {
   startUtc: "2026-08-10T17:00:00Z",
   endUtc: "2026-08-10T17:30:00Z",
   type: "InPerson",
-  status: "Realizada",
+  status: "Completed",
   notes: "Acompanhamento",
   createdAtUtc: "2026-08-06T12:00:00Z",
 };
@@ -225,7 +238,7 @@ async function findTimeline(doctorName = "Dra. Helena Costa") {
 function mockAgenda(appointments: Appointment[] = [appointment]) {
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith("/appointments?")) return appointments;
     if (path === `/appointments/${appointmentId}`) return appointment;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
@@ -312,7 +325,7 @@ test("fecha o menu com Escape e devolve o foco ao gatilho", async () => {
 test("desabilita a consulta rápida e explica quando não há médico ativo", async () => {
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return [];
+    if (path === `/clinics/${clinicId}/members/summary`) return [];
     if (path.startsWith("/appointments?")) return [];
     throw new Error(`Unexpected request: ${path}`);
   });
@@ -383,6 +396,9 @@ test("mantém estados sem acesso visíveis, mas sem ação para abrir consulta",
   activeSession = {
     ...session,
     userId: doctorId,
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: false,
     roles: ["Doctor"],
     name: "Dra. Helena Costa",
   };
@@ -435,7 +451,7 @@ test("permite à secretaria concluir a ação única sem expor dados clínicos n
   } as const;
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith("/appointments?")) return [pendingAppointment];
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
     if (path === `/patient-actions/appointments/${pendingAppointment.id}`) {
@@ -486,6 +502,9 @@ test("exibe o início efetivo sem substituir a janela agendada", async () => {
   activeSession = {
     ...session,
     userId: doctorId,
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: false,
     roles: ["Doctor"],
     name: "Dra. Helena Costa",
   };
@@ -535,6 +554,9 @@ test.each([
     ...session,
     userId: doctorId,
     email: "helena@example.test",
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: roles.includes("Admin"),
     roles: [...roles],
     name: "Dra. Helena Costa",
   };
@@ -594,6 +616,9 @@ test("Minha Agenda ignora outro médico informado na URL", async () => {
   activeSession = {
     ...session,
     userId: doctorId,
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: true,
     roles: ["Admin", "Doctor"],
     name: "Dra. Helena Costa",
   };
@@ -693,7 +718,7 @@ test("mantém datas indisponíveis sem consultar disponibilidade quando não há
   window.history.replaceState({}, "", "/app/agenda?date=2000-08-10");
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return [];
+    if (path === `/clinics/${clinicId}/members/summary`) return [];
     if (path.startsWith("/appointments?")) return [];
     throw new Error(`Unexpected request: ${path}`);
   });
@@ -793,7 +818,7 @@ test("mostra erro recuperável quando a disponibilidade mensal falha", async () 
   let availabilityAttempts = 0;
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith("/appointments?")) return [appointment];
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       availabilityAttempts += 1;
@@ -820,7 +845,7 @@ test("mostra erro recuperável quando a disponibilidade mensal falha", async () 
   expect(availabilityAttempts).toBe(2);
 });
 
-test("anuncia a consulta criada e remove somente o marcador com replace", async () => {
+test("anuncia o desafio criado e remove somente o marcador com replace", async () => {
   window.history.replaceState(
     {},
     "",
@@ -848,9 +873,9 @@ test("anuncia a consulta criada e remove somente o marcador com replace", async 
   );
 
   expect(
-    await screen.findByRole("status", { name: "Consulta agendada" }),
+    await screen.findByRole("status", { name: "Agendamento aguardando paciente" }),
   ).toHaveTextContent(
-    "Consulta agendada: Dra. Helena Costa, 10 de agosto de 2026 às 09:00 (Presencial)",
+    "Aguardando a confirmação do paciente e o compartilhamento dos dados com o médico",
   );
   expect(dismissSuccess).not.toBeNull();
 
@@ -863,7 +888,7 @@ test("anuncia a consulta criada e remove somente o marcador com replace", async 
   );
   expect(replaceSpy).toHaveBeenCalled();
   expect(
-    screen.queryByRole("status", { name: "Consulta agendada" }),
+    screen.queryByRole("status", { name: "Agendamento aguardando paciente" }),
   ).not.toBeInTheDocument();
 });
 
@@ -875,7 +900,7 @@ test("explica que o novo agendamento aguarda confirmação e compartilhamento", 
   );
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith("/appointments?")) return [awaitingPatientAppointment];
     if (path === `/appointments/${awaitingPatientAppointment.id}`) {
       return awaitingPatientAppointment;
@@ -931,7 +956,7 @@ test("recupera falha da agenda com nova tentativa", async () => {
   let attempts = 0;
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith("/appointments?")) {
       attempts += 1;
       if (attempts === 1) throw new Error("offline");

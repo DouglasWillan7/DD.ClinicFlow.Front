@@ -16,7 +16,7 @@ function appointment(
     patientName: "Marina Oliveira",
     doctorUserId: "doctor",
     type: "InPerson",
-    status: "Confirmada",
+    status: "Confirmed",
     notes: null,
     createdAtUtc: "2026-08-01T12:00:00Z",
     ...overrides,
@@ -29,11 +29,11 @@ function slot(label: string, startUtc: string, endUtc: string): AvailabilitySlot
 
 describe("appointmentTimelineTone", () => {
   test("traduz o status do backend para o tom visual da agenda", () => {
-    expect(appointmentTimelineTone("Confirmada")).toBe("confirmed");
-    expect(appointmentTimelineTone("Agendada")).toBe("pending");
-    expect(appointmentTimelineTone("ConfirmacaoEnviada")).toBe("pending");
-    expect(appointmentTimelineTone("Realizada")).toBe("done");
-    expect(appointmentTimelineTone("Cancelada")).toBe("canceled");
+    expect(appointmentTimelineTone("Confirmed")).toBe("confirmed");
+    expect(appointmentTimelineTone("AwaitingPatientAction")).toBe("pending");
+    expect(appointmentTimelineTone("AwaitingPatientAction")).toBe("pending");
+    expect(appointmentTimelineTone("Completed")).toBe("done");
+    expect(appointmentTimelineTone("Cancelled")).toBe("canceled");
     expect(appointmentTimelineTone("NoShow")).toBe("canceled");
   });
 });
@@ -127,20 +127,20 @@ describe("getDayStats", () => {
         id: "a1",
         startUtc: "2026-08-10T11:00:00Z",
         endUtc: "2026-08-10T11:30:00Z",
-        status: "Realizada",
+        status: "Completed",
       }),
       appointment({
         id: "a2",
         startUtc: "2026-08-10T12:00:00Z",
         endUtc: "2026-08-10T12:30:00Z",
-        status: "Agendada",
+        status: "AwaitingPatientAction",
         type: "Teleconsultation",
       }),
       appointment({
         id: "a3",
         startUtc: "2026-08-10T13:00:00Z",
         endUtc: "2026-08-10T13:30:00Z",
-        status: "Cancelada",
+        status: "Cancelled",
         type: "Teleconsultation",
       }),
       appointment({

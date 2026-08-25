@@ -1,17 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Controller, useForm } from "react-hook-form";
-import type { Member } from "../../api/types";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import {
+  documentCountries,
+  documentPlaceholder,
+  documentTypesFor,
+} from "../../auth/documentIdentity";
 import { Field, SelectField } from "../../components/Field";
-import { bloodTypeOptions, formatCpf } from "./patientFormatters";
+import { bloodTypeOptions } from "./patientFormatters";
 import { patientSchema, type PatientFormValue } from "./patientForm";
 import { PatientPhoneField } from "./PatientPhoneField";
 import styles from "./PatientRegistrationForm.module.css";
 
 interface PatientRegistrationFormProps {
   initialValue: PatientFormValue;
-  doctors: Member[];
   onSubmit: (value: PatientFormValue) => void;
   onCancel: () => void;
   onResetServerError?: () => void;
@@ -33,7 +36,7 @@ const steps = [
   {
     label: "Atendimento",
     title: "Organize o atendimento",
-    description: "Defina o médico responsável e registre observações úteis para a equipe.",
+    description: "Registre observações úteis. O acesso médico nasce apenas do consentimento do paciente.",
   },
 ] as const;
 
@@ -41,7 +44,6 @@ type RegistrationStep = 1 | 2 | 3;
 
 export function PatientRegistrationForm({
   initialValue,
-  doctors,
   onSubmit,
   onCancel,
   onResetServerError,
@@ -53,25 +55,21 @@ export function PatientRegistrationForm({
     register,
     control,
     handleSubmit,
-    setValue,
     trigger,
     formState: { errors },
   } = useForm<PatientFormValue>({
     resolver: zodResolver(patientSchema),
-    defaultValues: { ...initialValue, cpf: formatCpf(initialValue.cpf) },
+    defaultValues: initialValue,
     mode: "onTouched",
   });
-  const cpf = register("cpf", {
-    onChange: (event) => {
-      setValue("cpf", formatCpf(event.target.value), { shouldValidate: true });
-    },
-  });
+  const documentCountryCode = useWatch({ control, name: "documentCountryCode" });
+  const documentType = useWatch({ control, name: "documentType" });
   const currentStep = steps[step - 1];
 
   async function continueRegistration() {
     const fields =
       step === 1
-        ? (["name", "phone", "cpf"] as const)
+        ? (["name", "phone", "documentCountryCode", "documentType", "document", "email"] as const)
         : (["birthDate", "bloodType", "sexForClinicalUse"] as const);
     const valid = await trigger(fields, { shouldFocus: true });
     if (!valid) return;
@@ -151,14 +149,33 @@ export function PatientRegistrationForm({
                 />
               )}
             />
+            <div className={styles.splitFields}>
+              <SelectField label="País do documento" {...register("documentCountryCode")}>
+                {documentCountries.map((country) => (
+                  <option key={country.code} value={country.code}>{country.label}</option>
+                ))}
+              </SelectField>
+              <SelectField label="Tipo de documento" {...register("documentType")}>
+                {documentTypesFor(documentCountryCode).map((type) => (
+                  <option key={type.code} value={type.code}>{type.label}</option>
+                ))}
+              </SelectField>
+            </div>
             <Field
-              label="CPF"
-              inputMode="numeric"
+              label="Documento"
+              inputMode={documentCountryCode === "BR" && documentType === "CPF" ? "numeric" : "text"}
               autoComplete="off"
-              placeholder="000.000.000-00"
-              maxLength={14}
-              error={errors.cpf?.message}
-              {...cpf}
+              placeholder={documentPlaceholder(documentCountryCode, documentType)}
+              maxLength={80}
+              error={errors.document?.message}
+              {...register("document")}
+            />
+            <Field
+              label="E-mail"
+              type="email"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...register("email")}
             />
           </div>
         ) : null}
@@ -205,18 +222,6 @@ export function PatientRegistrationForm({
 
         {step === 3 ? (
           <div className={styles.fields}>
-            <SelectField
-              label="Médico responsável"
-              error={errors.doctorUserId?.message}
-              {...register("doctorUserId")}
-            >
-              <option value="">Selecione</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.userId} value={doctor.userId}>
-                  {doctor.name ?? doctor.email}
-                </option>
-              ))}
-            </SelectField>
             <label className={styles.notes} htmlFor="patient-registration-notes">
               <span>Observações</span>
               <textarea

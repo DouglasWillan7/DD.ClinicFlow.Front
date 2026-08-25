@@ -18,7 +18,6 @@ import type {
   AuthV2ClinicOption,
   AuthV2LoginOutcome,
   AuthV2LoginRequest,
-  ClinicPlan,
 } from "../api/types";
 import { getRoles } from "./roles";
 import {
@@ -41,34 +40,6 @@ interface AuthContextValue {
   ): Promise<AccountRecoveryOptions>;
   requestRecoveryChallenge(selection: string): Promise<void>;
   switchClinic(userClinicId: string): Promise<AuthResponse>;
-  login(
-    email: string,
-    password: string,
-    rememberConnection?: boolean,
-  ): Promise<AuthResponse>;
-  register(
-    name: string,
-    email: string,
-    password: string,
-    plan: ClinicPlan,
-    worksAsDoctor: boolean,
-    onboarding?: {
-      clinicName: string;
-      clinicCity: string;
-      clinicState: string;
-      medicalLicense: string;
-      medicalLicenseState: string;
-      specialty: string;
-      termsAccepted: boolean;
-      termsVersion: string;
-    },
-  ): Promise<AuthResponse>;
-  activate(
-    email: string,
-    token: string,
-    password: string,
-    name?: string,
-  ): Promise<AuthResponse>;
   refreshSession(): Promise<AuthResponse>;
   logout(): void;
   updateSessionName(name: string): void;
@@ -282,19 +253,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string, rememberConnection = false) => {
-      const generation = beginExplicitTransition();
-      persistentSessionRef.current = rememberConnection;
-      const response = await apiRequest<AuthResponse>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      });
-      return commitExplicitTransition(response, generation);
-    },
-    [beginExplicitTransition, commitExplicitTransition],
-  );
-
   const loginWithDocument = useCallback(
     async (request: AuthV2LoginRequest) => {
       const generation = beginExplicitTransition();
@@ -361,54 +319,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [],
   );
 
-  const register = useCallback(
-    async (
-      name: string,
-      email: string,
-      password: string,
-      plan: ClinicPlan,
-      worksAsDoctor: boolean,
-      onboarding?: {
-        clinicName: string;
-        clinicCity: string;
-        clinicState: string;
-        medicalLicense: string;
-        medicalLicenseState: string;
-        specialty: string;
-        termsAccepted: boolean;
-        termsVersion: string;
-      },
-    ) => {
-      const generation = beginExplicitTransition();
-      const response = await apiRequest<AuthResponse>("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          plan,
-          worksAsDoctor,
-          ...onboarding,
-        }),
-      });
-      return commitExplicitTransition(response, generation);
-    },
-    [beginExplicitTransition, commitExplicitTransition],
-  );
-
-  /** Médico cadastrado pela recepção define a senha com o token do convite e já entra. */
-  const activate = useCallback(
-    async (email: string, token: string, password: string, name?: string) => {
-      const generation = beginExplicitTransition();
-      const response = await apiRequest<AuthResponse>("/auth/activate", {
-        method: "POST",
-        body: JSON.stringify({ email, token, password, name: name ?? null }),
-      });
-      return commitExplicitTransition(response, generation);
-    },
-    [beginExplicitTransition, commitExplicitTransition],
-  );
-
   const refresh = useCallback(async () => {
     const current = sessionRef.current;
     if (!current) throw new Error("Sessão não encontrada.");
@@ -425,8 +335,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return existing.promise;
     }
 
-    const promise = apiRequest<AuthResponse | AuthV2Authenticated>(
-      current.userClinicId ? "/auth/v2/refresh" : "/auth/refresh",
+    const promise = apiRequest<AuthV2Authenticated>(
+      "/auth/v2/refresh",
       {
         method: "POST",
         body: JSON.stringify({ refreshToken: current.tokens.refreshToken }),
@@ -435,9 +345,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         .then(
           (response) => {
             assertCurrentSession(operation);
-            const next = "kind" in response
-              ? mapAuthenticatedSession(response, current.availableClinics)
-              : normalizeSession(response);
+            const next = mapAuthenticatedSession(
+              response,
+              current.availableClinics,
+            );
             if (
               next.clinicId !== current.clinicId ||
               next.userId !== current.userId ||
@@ -676,14 +587,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const value = useMemo(
     () => ({
       session,
-      login,
       loginWithDocument,
       selectClinic,
       getRecoveryOptions,
       requestRecoveryChallenge,
       switchClinic,
-      register,
-      activate,
       refreshSession: refresh,
       logout,
       updateSessionName: (name: string) => {
@@ -697,16 +605,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       requestBlob,
     }),
     [
-      activate,
       beginExplicitTransition,
-      login,
       loginWithDocument,
       selectClinic,
       getRecoveryOptions,
       requestRecoveryChallenge,
       switchClinic,
       refresh,
-      register,
       request,
       requestBlob,
       saveSession,

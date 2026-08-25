@@ -27,19 +27,21 @@ vi.mock("./exams/ExamRealtimeProvider", () => ({
 
 const patient: Patient = {
   id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-  cpf: "52998224725",
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "52998224725",
   medicalRecordNumber: 48213,
   bloodType: null,
   sexForClinicalUse: null,
   name: "Rita de Cássia Alves",
   phone: "+5511988776655",
+  email: null,
   birthDate: "1984-03-12",
   notes: null,
-  doctorUserId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2025-01-01T12:00:00Z",
 };
+const doctorUserId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
 const summaries = [
   { id: "11111111-1111-4111-8111-111111111111", patientId: patient.id, name: "Perfil lipídico", category: "Laboratorio", scheduledOn: null, status: "EmRevisao", version: 2, hasDocument: true, averageConfidence: 0.92, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z" },
@@ -52,8 +54,8 @@ function rawDetail(id = summaries[0].id, overrides: Record<string, unknown> = {}
   return {
     id,
     patientId: patient.id,
-    doctorUserId: patient.doctorUserId,
-    requestedByUserId: patient.doctorUserId,
+    doctorUserId,
+    requestedByUserId: doctorUserId,
     name: id === summaries[1].id ? "Hemograma" : "Perfil lipídico",
     category: "Laboratorio",
     scheduledOn: null,
@@ -67,7 +69,7 @@ function rawDetail(id = summaries[0].id, overrides: Record<string, unknown> = {}
     cancelledAtUtc: null,
     document: { fileName: "perfil.pdf", contentType: "application/pdf", sizeBytes: 2048, source: "Clinica", createdAtUtc: "2026-08-09T10:00:00Z", processingAttempts: 1 },
     activeRevision: null,
-    draftRevision: { id: "revision-1", number: 1, status: "Rascunho", aiSuggestedOutcome: "Alterado", clinicalOutcome: null, averageConfidence: 0.92, model: "model", correctionReason: null, createdByUserId: patient.doctorUserId, createdAtUtc: "2026-08-09T10:00:00Z", lastEditedByUserId: null, updatedAtUtc: null, validatedByUserId: null, validatedAtUtc: null, structuredResults: [{ id: "result-1", order: 0, catalogCode: "LDL", name: "LDL", numericValue: 160, textValue: null, unit: "mg/dL", referenceText: "< 130", outOfRangeSuggestion: true, confidence: 0.92 }], narrativeSections: [], structuredFindings: [] },
+    draftRevision: { id: "revision-1", number: 1, status: "Rascunho", aiSuggestedOutcome: "Alterado", clinicalOutcome: null, averageConfidence: 0.92, model: "model", correctionReason: null, createdByUserId: doctorUserId, createdAtUtc: "2026-08-09T10:00:00Z", lastEditedByUserId: null, updatedAtUtc: null, validatedByUserId: null, validatedAtUtc: null, structuredResults: [{ id: "result-1", order: 0, catalogCode: "LDL", name: "LDL", numericValue: 160, textValue: null, unit: "mg/dL", referenceText: "< 130", outOfRangeSuggestion: true, confidence: 0.92 }], narrativeSections: [], structuredFindings: [] },
     attemptsRemaining: 2,
     capabilities,
     ...overrides,
@@ -155,7 +157,7 @@ test("deep link validado consulta e renderiza somente o relatório clínico", as
     ...rawDetail().draftRevision,
     status: "Validada",
     clinicalOutcome: "Alterado",
-    validatedByUserId: patient.doctorUserId,
+    validatedByUserId: doctorUserId,
     validatedAtUtc: "2026-08-09T14:30:00Z",
   };
   requestMock.mockImplementation((path: string, init?: RequestInit) => {
@@ -238,7 +240,7 @@ test("primeira validação atualiza laudo e resumo já em cache sem remount ou f
       ...rawDetail().draftRevision,
       status: "Validada",
       clinicalOutcome: "Alterado",
-      validatedByUserId: patient.doctorUserId,
+      validatedByUserId: doctorUserId,
       validatedAtUtc: "2026-08-09T14:30:00Z",
     },
     draftRevision: null,
@@ -258,7 +260,7 @@ test("primeira validação atualiza laudo e resumo já em cache sem remount ou f
           ...rawDetail().draftRevision,
           status: "Validada",
           clinicalOutcome: "Alterado",
-          validatedByUserId: patient.doctorUserId,
+          validatedByUserId: doctorUserId,
           validatedAtUtc: "2026-08-09T14:30:00Z",
         },
         draftRevision: null,
@@ -298,7 +300,7 @@ test("loading e falha do relatório validado permanecem na coluna de detalhe", a
     ...rawDetail().draftRevision,
     status: "Validada",
     clinicalOutcome: "Alterado",
-    validatedByUserId: patient.doctorUserId,
+    validatedByUserId: doctorUserId,
     validatedAtUtc: "2026-08-09T14:30:00Z",
   };
   const deferredReport: { reject: (reason?: unknown) => void } = {

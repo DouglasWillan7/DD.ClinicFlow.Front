@@ -15,11 +15,20 @@ const session: AuthResponse = {
   userId: "u-1",
   email: "recepcao@example.test",
   clinicId: "c-1",
+  clinicName: "Clínica Centro",
   userClinicId: "uc-1",
   clinicRole: "Secretary",
   isAdmin: false,
   roles: ["Secretary"],
   name: "Camila Duarte",
+  phone: "+5511999999999",
+  availableClinics: [{
+    userClinicId: "uc-1",
+    clinicId: "c-1",
+    clinicName: "Clínica Centro",
+    role: "Secretary",
+    isAdmin: false,
+  }],
   tokens: {
     accessToken: "token",
     refreshToken: "refresh",
@@ -40,16 +49,17 @@ function patient(
   overrides: Partial<PatientListItem> & Pick<PatientListItem, "id" | "name">,
 ): PatientListItem {
   return {
-    cpf: "12345678901",
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "12345678901",
     medicalRecordNumber: 1024,
     bloodType: null,
     sexForClinicalUse: null,
     phone: "+5511988887777",
+    email: null,
     birthDate: "1990-03-10",
     notes: null,
-    doctorUserId: "d1",
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-01-01T12:00:00Z",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
@@ -65,12 +75,13 @@ const patients: PatientListItem[] = [
 ];
 const members: Member[] = [
   {
+    userClinicId: "uc-d1",
     userId: "d1",
-    email: "helena@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dra. Helena Costa",
+    displayName: "Dra. Helena Costa",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: 30,
   },
 ];
 
@@ -111,7 +122,7 @@ beforeEach(() => {
   });
   requestMock.mockImplementation(async (path: string) => {
     if (path.startsWith("/patients")) return patients;
-    if (path === "/clinics/members") return members;
+    if (path === "/clinics/c-1/members/summary") return members;
     throw new Error(`Unexpected request: ${path}`);
   });
 });
@@ -250,7 +261,7 @@ test("⌘K traz o foco para a busca de qualquer lugar da tela", async () => {
 test("enquanto o índice carrega não oferece cadastrar duplicado", async () => {
   let releasePatients: (value: PatientListItem[]) => void = () => undefined;
   requestMock.mockImplementation(async (path: string) => {
-    if (path === "/clinics/members") return members;
+    if (path === "/clinics/c-1/members/summary") return members;
     return new Promise<PatientListItem[]>((resolve) => {
       releasePatients = resolve;
     });

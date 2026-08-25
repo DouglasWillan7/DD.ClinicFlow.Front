@@ -6,8 +6,7 @@ import { z } from "zod";
 import { ApiError } from "../../api/client";
 import type { CurrentUser } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
-import { can } from "../../auth/permissions";
-import { formatRoles } from "../../auth/roles";
+import { roleLabels } from "../../auth/roles";
 import { Button } from "../../components/Button";
 import {
   ErrorBlock,
@@ -17,18 +16,20 @@ import {
 import { Field } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
-import { DoctorSelfRegistration } from "../team/DoctorSelfRegistration";
 import styles from "./SettingsLayout.module.css";
 
 const profileSchema = z.object({
   name: z.string().trim().min(2, "Informe seu nome.").max(120),
+  medicalLicense: z.string().trim().max(30).nullable(),
+  medicalLicenseState: z.string().trim().max(30).nullable(),
+  specialty: z.string().trim().max(120).nullable(),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
 const profileKey = ["user", "me"] as const;
 
 export function ProfileSettingsPage() {
-  const { request, session, updateSessionName } = useAuth();
+  const { request, updateSessionName } = useAuth();
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
   const query = useQuery({
@@ -42,12 +43,22 @@ export function ProfileSettingsPage() {
     formState: { errors },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: "" },
+    defaultValues: {
+      name: "",
+      medicalLicense: null,
+      medicalLicenseState: null,
+      specialty: null,
+    },
   });
 
   useEffect(() => {
     if (!query.data) return;
-    reset({ name: query.data.name });
+    reset({
+      name: query.data.name,
+      medicalLicense: query.data.medicalLicense,
+      medicalLicenseState: query.data.medicalLicenseState,
+      specialty: query.data.specialty,
+    });
   }, [query.data, reset]);
 
   const mutation = useMutation({
@@ -56,10 +67,9 @@ export function ProfileSettingsPage() {
         method: "PUT",
         body: JSON.stringify({
           name: values.name,
-          // CRM, UF e especialidade vivem no cadastro médico, logo abaixo.
-          medicalLicense: query.data?.medicalLicense ?? null,
-          medicalLicenseState: query.data?.medicalLicenseState ?? null,
-          specialty: query.data?.specialty ?? null,
+          medicalLicense: values.medicalLicense || null,
+          medicalLicenseState: values.medicalLicenseState || null,
+          specialty: values.specialty || null,
         }),
       }),
     onMutate: () => setSaved(false),
@@ -70,8 +80,6 @@ export function ProfileSettingsPage() {
       setSaved(true);
     },
   });
-
-  const isDoctor = can(session, "ReadClinicalRecord");
 
   return (
     <>
@@ -94,7 +102,10 @@ export function ProfileSettingsPage() {
               <div className={styles.panelHeader}>
                 <div>
                   <h2>Conta</h2>
-                  <p>{formatRoles(query.data)}</p>
+                  <p>
+                    {roleLabels[query.data.role]}
+                    {query.data.isAdmin ? " · Administração" : ""}
+                  </p>
                 </div>
               </div>
               <form
@@ -117,6 +128,23 @@ export function ProfileSettingsPage() {
                   readOnly
                   hint="Este contato pertence ao seu vínculo com a clínica atual. O acesso usa seu documento."
                 />
+                {query.data.role === "Doctor" ? (
+                  <>
+                    <Field
+                      label="Registro profissional"
+                      {...register("medicalLicense")}
+                    />
+                    <Field
+                      label="Região do registro"
+                      {...register("medicalLicenseState")}
+                    />
+                    <Field
+                      className={styles.wide}
+                      label="Especialidade"
+                      {...register("specialty")}
+                    />
+                  </>
+                ) : null}
                 <div className={styles.actions}>
                   {saved ? <SuccessNote>Perfil atualizado.</SuccessNote> : null}
                   {mutation.isError ? (
@@ -133,11 +161,7 @@ export function ProfileSettingsPage() {
               </form>
             </section>
 
-            {isDoctor ? (
-              // Mesmo formulário e mesmo endpoint do cadastro feito pela administração:
-              // registro profissional e agenda semanal existem em um lugar só no produto.
-              <DoctorSelfRegistration doctorId={query.data.userId} />
-            ) : (
+            {query.data.role !== "Doctor" ? (
               <section className={styles.panel}>
                 <p className={styles.wide}>
                   Este perfil não possui atuação médica. As informações de CRM e
@@ -145,7 +169,7 @@ export function ProfileSettingsPage() {
                   administração.
                 </p>
               </section>
-            )}
+            ) : null}
           </div>
         ) : null}
       </div>

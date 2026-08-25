@@ -23,7 +23,7 @@ const secondDoctorId = "20000000-0000-4000-8000-000000000002";
 const patientId = "30000000-0000-4000-8000-000000000001";
 const secondPatientId = "30000000-0000-4000-8000-000000000002";
 const appointmentId = "40000000-0000-4000-8000-000000000001";
-const authScope = `${clinicId}:${userId}:Secretary`;
+const authScope = `uc-secretary:${clinicId}:${userId}`;
 const draftKey = `clinicflow.scoped.new-appointment-draft:${encodeURIComponent(
   authScope,
 )}`;
@@ -31,9 +31,21 @@ const draftKey = `clinicflow.scoped.new-appointment-draft:${encodeURIComponent(
 const session: AuthResponse = {
   userId,
   email: "secretaria@example.test",
+  phone: "+5511999999999",
   clinicId,
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-secretary",
+  clinicRole: "Secretary",
+  isAdmin: false,
   roles: ["Secretary"],
   name: "Secretaria",
+  availableClinics: [{
+    userClinicId: "uc-secretary",
+    clinicId,
+    clinicName: "Clínica Vital",
+    role: "Secretary",
+    isAdmin: false,
+  }],
   tokens: {
     accessToken: "token-sensitive",
     refreshToken: "refresh-sensitive",
@@ -91,7 +103,6 @@ const clinic: Clinic = {
   timeZoneId: "America/Sao_Paulo",
   phone: "+551130000000",
   address: "Rua Clínica, 10",
-  defaultAppointmentDurationMinutes: 30,
   plan: "Clinic",
   subscriptionStatus: "Active",
   maxDoctors: null,
@@ -99,42 +110,45 @@ const clinic: Clinic = {
 };
 const members: Member[] = [
   {
+    userClinicId: "uc-doctor-1",
     userId: doctorId,
-    email: "helena@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dra. Helena Costa",
+    displayName: "Dra. Helena Costa",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: 30,
   },
   {
+    userClinicId: "uc-doctor-2",
     userId: secondDoctorId,
-    email: "paulo@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dr. Paulo Nunes",
+    displayName: "Dr. Paulo Nunes",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Neurologia",
+    defaultAppointmentDurationMinutes: 45,
   },
 ];
 const patient: Patient = {
   id: patientId,
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "52998224725",
   name: "Marina Oliveira",
   phone: "+5511999990000",
-  cpf: "52998224725",
+  email: "marina@example.test",
   medicalRecordNumber: 48213,
   bloodType: "APositive",
   sexForClinicalUse: null,
   birthDate: "1980-03-10",
   notes: null,
-  doctorUserId: doctorId,
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2026-08-01T12:00:00Z",
 };
 const secondPatient: Patient = {
   ...patient,
   id: secondPatientId,
   name: "Bianca Souza",
-  cpf: "16899535009",
+  document: "16899535009",
   medicalRecordNumber: 48214,
 };
 const availability: DoctorAvailability = {
@@ -162,7 +176,7 @@ const createdAppointment: Appointment = {
   doctorUserId: doctorId,
   startUtc: "2026-08-10T12:00:00Z",
   endUtc: "2026-08-10T12:30:00Z",
-  status: "Agendada",
+  status: "AwaitingPatientAction",
   type: "InPerson",
   notes: null,
   createdAtUtc: "2026-08-06T12:00:00Z",
@@ -186,7 +200,7 @@ afterEach(() => vi.useRealTimers());
 test("confirma seleção completa e retorna para a consulta criada", async () => {
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
     if (path === "/appointments" && init?.method === "POST") {
@@ -244,21 +258,18 @@ test("oferece somente planos aceitos pelo médico e envia a relação escolhida"
   const rejectedPlanId = "50000000-0000-4000-8000-000000000002";
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === "/healthcare-plans") {
       return [
         { id: acceptedPlanId, name: "Unimed" },
         { id: rejectedPlanId, name: "SulAmérica" },
       ];
     }
-    if (path === "/clinics/doctors") {
-      return [
-        {
-          userId: doctorId,
-          slotDurationMinutes: 30,
-          healthInsurancePlanIds: [acceptedPlanId],
-        },
-      ];
+    if (path === `/clinics/${clinicId}/members/uc-doctor-1/healthcare-plans`) {
+      return {
+        userClinicId: "uc-doctor-1",
+        healthcarePlanIds: [acceptedPlanId],
+      };
     }
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
@@ -350,7 +361,7 @@ test("consulta rápida busca 62 dias no fuso da clínica e agenda o menor startU
   };
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return quickClinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (
       path ===
@@ -438,7 +449,7 @@ test("consulta rápida recalcula o primeiro horário ao trocar de médico", asyn
   };
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
     if (path.startsWith(`/doctors/${secondDoctorId}/availability`)) {
       return secondAvailability;
@@ -474,7 +485,7 @@ test("consulta rápida não cria encaixe quando faltam horários em 62 dias", as
   );
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       return { ...availability, days: [] } satisfies DoctorAvailability;
     }
@@ -505,7 +516,7 @@ test("consulta rápida recupera a falha ao buscar o próximo horário", async ()
   let availabilityAttempts = 0;
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       availabilityAttempts += 1;
       if (availabilityAttempts === 1) throw new Error("offline");
@@ -558,7 +569,7 @@ test("consulta rápida atualiza o horário depois de conflito sem sair do modo",
   let availabilityRequests = 0;
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       availabilityRequests += 1;
@@ -605,7 +616,7 @@ test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", asy
   );
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path === `/patients/${secondPatientId}`) return secondPatient;
     if (path === "/patients?includeInactive=false") return [patient];
@@ -707,6 +718,9 @@ test("retorna ao Início quando a consulta parte da agenda pessoal", async () =>
     ...session,
     userId: doctorId,
     email: "helena@example.test",
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: true,
     roles: ["Admin", "Doctor"],
     name: "Dra. Helena Costa",
   };
@@ -717,7 +731,7 @@ test("retorna ao Início quando a consulta parte da agenda pessoal", async () =>
   );
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
     if (path === "/appointments" && init?.method === "POST") {
@@ -757,6 +771,9 @@ test("volta da criação para o dia aberto no Início", async () => {
     ...session,
     userId: doctorId,
     email: "helena@example.test",
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: false,
     roles: ["Doctor"],
     name: "Dra. Helena Costa",
   };
@@ -767,7 +784,7 @@ test("volta da criação para o dia aberto no Início", async () => {
   );
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     throw new Error(`Unexpected request: ${path}`);
   });
   const user = userEvent.setup();
@@ -790,7 +807,7 @@ test("mantém o paciente escolhido enquanto a hidratação da URL termina depois
   const patientFromUrl = deferred<Patient>();
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patientFromUrl.promise;
     if (path === "/patients?includeInactive=false") return [secondPatient];
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
@@ -848,7 +865,7 @@ test("hidrata o novo patientId quando a URL muda na mesma instância", async () 
   const firstPatient = deferred<Patient>();
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return firstPatient.promise;
     if (path === `/patients/${secondPatientId}`) return secondPatient;
     throw new Error(`Unexpected request: ${path}`);
@@ -905,7 +922,7 @@ test("conclui a tentativa pendente com o snapshot original após mudar a seleç�
   };
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       return twoDaysAvailability;
@@ -964,7 +981,7 @@ test("ignora patientId malformado sem interpolar uma rota de paciente", async ()
   );
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path.startsWith("/patients/")) return patient;
     throw new Error(`Unexpected request: ${path}`);
   });
@@ -988,7 +1005,7 @@ test("409 tardio atualiza a tentativa original sem alterar o novo contexto", asy
   let currentAvailabilityRequests = 0;
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       originalAvailabilityRequests += 1;
@@ -1075,7 +1092,7 @@ test("409 tardio não altera uma nova geração que retornou aos mesmos valores"
   let availabilityRequests = 0;
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       availabilityRequests += 1;
@@ -1130,7 +1147,7 @@ test("refaz o HTTP da tentativa original mesmo após remover a query do cache", 
   let currentAvailabilityRequests = 0;
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       originalAvailabilityRequests += 1;
@@ -1199,7 +1216,7 @@ test("conflito preserva o contexto, limpa somente o slot e atualiza a disponibil
   let availabilityRequests = 0;
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       availabilityRequests += 1;
@@ -1260,7 +1277,7 @@ test("conflito preserva o contexto, limpa somente o slot e atualiza a disponibil
 test("salva rascunho sem PII antes de cadastrar paciente e o restaura pelo retorno", async () => {
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path === "/patients?includeInactive=false") return [patient];
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
@@ -1296,7 +1313,7 @@ test("salva rascunho sem PII antes de cadastrar paciente e o restaura pelo retor
     date: "2026-08-10",
   });
   expect(draft).not.toContain(patient.name);
-  expect(draft).not.toContain(patient.cpf);
+  expect(draft).not.toContain(patient.document);
   expect(navigateMock).toHaveBeenCalledWith(
     "/app/pacientes/novo?returnTo=%2Fapp%2Fagenda%2Fnova%3Fdate%3D2026-08-10",
   );
@@ -1305,7 +1322,7 @@ test("salva rascunho sem PII antes de cadastrar paciente e o restaura pelo retor
 test("leva a data de contexto ao cadastro mesmo sem selecionar uma data", async () => {
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path === "/patients?includeInactive=false") return [patient];
     throw new Error(`Unexpected request: ${path}`);
@@ -1340,7 +1357,7 @@ test("hidrata patientId do retorno, restaura escolhas válidas e limpa o draft a
   );
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
     throw new Error(`Unexpected request: ${path}`);
@@ -1395,7 +1412,7 @@ test("usa date como contexto de mês e retorno sem selecionar um dia bloqueado",
   };
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
       expect(path).toContain("from=2026-08-01&to=2026-08-31");
@@ -1450,7 +1467,7 @@ test("prioriza a data selecionada no cadastro e restaura o novo mês no retorno"
   };
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     if (path === `/patients/${patientId}`) return patient;
     if (path === "/patients?includeInactive=false") return [patient];
     if (path.startsWith(`/doctors/${doctorId}/availability`)) {
@@ -1526,7 +1543,7 @@ test("carrega clínica e membros em paralelo e recupera falha com retry", async 
   });
   requestMock = vi.fn((path: string) => {
     if (path === "/clinics/current") return clinicPromise;
-    if (path === "/clinics/members") return membersPromise;
+    if (path === `/clinics/${clinicId}/members/summary`) return membersPromise;
     throw new Error(`Unexpected request: ${path}`);
   });
   const firstRender = render(
@@ -1539,7 +1556,7 @@ test("carrega clínica e membros em paralelo e recupera falha com retry", async 
     "Preparando pacientes e médicos",
   );
   expect(requestMock).toHaveBeenCalledWith("/clinics/current");
-  expect(requestMock).toHaveBeenCalledWith("/clinics/members");
+  expect(requestMock).toHaveBeenCalledWith(`/clinics/${clinicId}/members/summary`);
   await act(async () => {
     resolveClinic(clinic);
     resolveMembers(members);
@@ -1555,7 +1572,7 @@ test("carrega clínica e membros em paralelo e recupera falha com retry", async 
       if (clinicAttempts === 1) throw new Error("offline");
       return clinic;
     }
-    if (path === "/clinics/members") return members;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
     throw new Error(`Unexpected request: ${path}`);
   });
   const user = userEvent.setup();
@@ -1575,12 +1592,13 @@ test("carrega clínica e membros em paralelo e recupera falha com retry", async 
 test("aceita o médico sem especialidade que a agenda mandou pela URL", async () => {
   const rookieId = "20000000-0000-4000-8000-000000000003";
   const rookie: Member = {
+    userClinicId: "uc-doctor-3",
     userId: rookieId,
-    email: "novo@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dr. Novo Vieira",
+    displayName: "Dr. Novo Vieira",
+    role: "Doctor",
+    isAdmin: false,
     specialty: null,
+    defaultAppointmentDurationMinutes: 30,
   };
   window.history.replaceState(
     {},
@@ -1589,7 +1607,7 @@ test("aceita o médico sem especialidade que a agenda mandou pela URL", async ()
   );
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/current") return clinic;
-    if (path === "/clinics/members") return [...members, rookie];
+    if (path === `/clinics/${clinicId}/members/summary`) return [...members, rookie];
     if (path.startsWith(`/doctors/${rookieId}/availability`)) {
       return { ...availability, doctorUserId: rookieId };
     }

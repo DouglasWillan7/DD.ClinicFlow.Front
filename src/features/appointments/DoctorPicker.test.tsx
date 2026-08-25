@@ -5,28 +5,31 @@ import { DoctorPicker } from "./DoctorPicker";
 
 const members: Member[] = [
   {
+    userClinicId: "uc-d-1",
     userId: "d-1",
-    email: "helena@example.test",
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Dra. Helena Costa",
+    displayName: "Dra. Helena Costa",
+    role: "Doctor",
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: 30,
   },
   {
+    userClinicId: "uc-d-2",
     userId: "d-2",
-    email: "joao@example.test",
-    roles: ["Admin", "Doctor"],
-    isCreator: false,
-    name: "Dr. João Ávila",
+    displayName: "Dr. João Ávila",
+    role: "Doctor",
+    isAdmin: true,
     specialty: "Neurologia",
+    defaultAppointmentDurationMinutes: 30,
   },
   {
+    userClinicId: "uc-s-1",
     userId: "s-1",
-    email: "secretaria@example.test",
-    roles: ["Secretary"],
-    isCreator: false,
-    name: "Secretaria",
+    displayName: "Secretaria",
+    role: "Secretary",
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: null,
   },
 ];
 

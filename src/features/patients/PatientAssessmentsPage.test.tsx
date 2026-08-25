@@ -22,17 +22,18 @@ vi.mock("../../app/navigation", () => ({
 
 const patient: Patient = {
   id: "p-1",
-  cpf: "52998224725",
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "52998224725",
   medicalRecordNumber: 48213,
   bloodType: null,
   sexForClinicalUse: null,
   name: "Rita de Cássia Alves",
   phone: "+5511988776655",
+  email: null,
   birthDate: "1984-03-12",
   notes: null,
-  doctorUserId: "d-1",
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2025-01-01T12:00:00Z",
 };
 

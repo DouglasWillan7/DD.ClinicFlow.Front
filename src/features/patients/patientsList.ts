@@ -26,7 +26,7 @@ function normalizeText(value: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Busca do handoff: nome sem acento, CPF/telefone com 3+ dígitos e prontuário. */
+/** Busca do handoff: nome, documento/telefone com 3+ caracteres e prontuário. */
 export function matchesSearch(patient: PatientListItem, search: string) {
   const term = search.trim();
   if (!term) return true;
@@ -34,9 +34,12 @@ export function matchesSearch(patient: PatientListItem, search: string) {
   const normalized = normalizeText(term);
   const digits = term.replace(/\D/g, "");
   if (normalizeText(patient.name).includes(normalized)) return true;
+  if (normalized.length >= 3 && normalizeText(patient.document).includes(normalized)) {
+    return true;
+  }
   if (String(patient.medicalRecordNumber).includes(normalized)) return true;
   if (digits.length >= 3) {
-    if (patient.cpf.includes(digits)) return true;
+    if (patient.document.replace(/\D/g, "").includes(digits)) return true;
     if (patient.phone.replace(/\D/g, "").includes(digits)) return true;
   }
   return false;

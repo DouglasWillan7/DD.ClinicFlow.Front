@@ -62,9 +62,21 @@ async function openConsultation(page: Page, options: {
   }, {
     userId: "11111111-1111-4111-8111-111111111111",
     email: "medica@example.test",
+    phone: "+5511988887777",
     clinicId: "22222222-2222-4222-8222-222222222222",
+    clinicName: "Clínica Vital",
+    userClinicId: roles.includes("Doctor") ? "uc-doctor" : "uc-secretary",
+    clinicRole: roles.includes("Doctor") ? "Doctor" : "Secretary",
+    isAdmin: roles.includes("Admin"),
     roles,
     name: roles.includes("Doctor") ? "Dra. Ana Martins" : "Paula Souza",
+    availableClinics: [{
+      userClinicId: roles.includes("Doctor") ? "uc-doctor" : "uc-secretary",
+      clinicId: "22222222-2222-4222-8222-222222222222",
+      clinicName: "Clínica Vital",
+      role: roles.includes("Doctor") ? "Doctor" : "Secretary",
+      isAdmin: roles.includes("Admin"),
+    }],
     tokens: {
       accessToken: "test-token",
       refreshToken: "refresh",
@@ -82,7 +94,7 @@ async function openConsultation(page: Page, options: {
       startUtc: "2026-08-12T12:00:00Z",
       endUtc: "2026-08-12T13:00:00Z",
       type: "InPerson",
-      status: "Realizada",
+      status: "Completed",
       notes: null,
       createdAtUtc: "2026-08-10T12:00:00Z",
     } });

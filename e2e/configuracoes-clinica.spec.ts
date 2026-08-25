@@ -3,9 +3,21 @@ import { expect, test, type Page } from "@playwright/test";
 const session = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "ana@clinicavital.com.br",
+  phone: "+5511988887777",
   clinicId: "22222222-2222-2222-2222-222222222222",
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-secretary",
+  clinicRole: "Secretary",
+  isAdmin: true,
   roles: ["Admin", "Secretary"],
   name: "Ana Martins",
+  availableClinics: [{
+    userClinicId: "uc-secretary",
+    clinicId: "22222222-2222-2222-2222-222222222222",
+    clinicName: "Clínica Vital",
+    role: "Secretary",
+    isAdmin: true,
+  }],
   tokens: {
     accessToken: "visual-test-token",
     refreshToken: "visual-test-refresh",
@@ -19,7 +31,6 @@ const clinic = {
   timeZoneId: "America/Sao_Paulo",
   phone: "+551130000000",
   address: "Rua das Flores, 100, São Paulo",
-  defaultAppointmentDurationMinutes: 30,
   plan: "Clinic",
   subscriptionStatus: "Active",
   maxDoctors: 10,
@@ -44,7 +55,10 @@ async function mockClinicSettings(page: Page) {
       return route.fulfill({ status: 200, json: currentClinic });
     }
 
-    if (url.pathname === "/patients" || url.pathname === "/clinics/members") {
+    if (
+      url.pathname === "/patients" ||
+      url.pathname === `/clinics/${session.clinicId}/members/summary`
+    ) {
       return route.fulfill({ status: 200, json: [] });
     }
 

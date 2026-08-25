@@ -15,7 +15,7 @@ import { usePatientClinicalSummary } from "./exams/clinicalReportQueries";
 import { PatientClinicalOverview } from "./PatientClinicalOverview";
 import { PatientHeader } from "./PatientHeader";
 import {
-  formatCpf,
+  formatPatientDocument,
   formatDateOnly,
   formatMedicalRecord,
 } from "./patientFormatters";
@@ -92,8 +92,12 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
                 <dd>{formatDateOnly(person.birthDate)}</dd>
               </div>
               <div>
-                <dt>CPF</dt>
-                <dd>{formatCpf(person.cpf)}</dd>
+                <dt>{person.documentType}</dt>
+                <dd>{formatPatientDocument(
+                  person.documentCountryCode,
+                  person.documentType,
+                  person.document,
+                )}</dd>
               </div>
               <div>
                 <dt>Prontuário</dt>

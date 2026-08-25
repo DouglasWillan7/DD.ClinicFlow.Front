@@ -57,30 +57,16 @@ const administrativeCapabilities = new Set<ClinicCapability>([
   "ReadAdministrativeAudit",
 ]);
 
-function legacyContext(subject: PermissionSubject) {
-  const roles = subject.roles ?? [];
-  const role = (["Doctor", "Nurse", "Secretary"] as const).find((candidate) =>
-    roles.includes(candidate),
-  );
-  return { role, isAdmin: roles.includes("Admin") };
-}
-
-/**
- * Resolve uma capacidade somente no vínculo ativo. Sessões v2 incompletas são
- * negadas por padrão; o array `roles` existe apenas para a transição de sessões
- * realmente legadas, que não possuem `userClinicId`.
- */
+/** Resolve uma capacidade somente a partir do vínculo contextual validado. */
 export function can(
   subject: PermissionSubject | null | undefined,
   capability: ClinicCapability,
 ) {
   if (!subject) return false;
 
-  const isV2 = Boolean(subject.userClinicId);
-  if (isV2 && !subject.clinicRole) return false;
-  const legacy = isV2 ? undefined : legacyContext(subject);
-  const role = subject.clinicRole ?? legacy?.role;
-  const isAdmin = subject.isAdmin ?? legacy?.isAdmin ?? false;
+  if (!subject.userClinicId || !subject.clinicRole) return false;
+  const role = subject.clinicRole;
+  const isAdmin = subject.isAdmin ?? false;
 
   if (administrativeCapabilities.has(capability)) return isAdmin;
   const requiredRole = minimumRole[capability];

@@ -3,9 +3,21 @@ import { expect, test, type Page } from "@playwright/test";
 const session = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "ana@clinicavital.com.br",
+  phone: "+5511988887777",
   clinicId: "22222222-2222-2222-2222-222222222222",
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-doctor",
+  clinicRole: "Doctor",
+  isAdmin: true,
   roles: ["Admin", "Doctor"],
   name: "Ana Martins",
+  availableClinics: [{
+    userClinicId: "uc-doctor",
+    clinicId: "22222222-2222-2222-2222-222222222222",
+    clinicName: "Clínica Vital",
+    role: "Doctor",
+    isAdmin: true,
+  }],
   tokens: {
     accessToken: "visual-test-token",
     refreshToken: "visual-test-refresh",
@@ -18,16 +30,17 @@ const HEIGHT_CM = 178;
 
 const patient = {
   id: patientId,
+  documentCountryCode: "BR",
+  documentType: "CPF",
+  document: "41288755601",
   name: "Mohammad Jaber Abdullah",
   phone: "+5511999990000",
-  cpf: "41288755601",
+  email: null,
   medicalRecordNumber: 10001,
   bloodType: null,
   birthDate: "1984-03-12",
   notes: null,
-  doctorUserId: "33333333-3333-3333-3333-333333333333",
   isActive: true,
-  whatsappConsentAtUtc: null,
   createdAtUtc: "2025-01-01T12:00:00Z",
 };
 
@@ -82,7 +95,6 @@ async function mockAvaliacoes(page: Page) {
         timeZoneId: "America/Sao_Paulo",
         phone: null,
         address: null,
-        defaultAppointmentDurationMinutes: 30,
         plan: "Clinic",
         subscriptionStatus: "Active",
         maxDoctors: null,
@@ -98,8 +110,10 @@ async function mockAvaliacoes(page: Page) {
       body = {
         userId: session.userId,
         email: session.email,
+        phone: session.phone,
         name: session.name,
-        roles: session.roles,
+        role: session.clinicRole,
+        isAdmin: session.isAdmin,
         medicalLicense: null,
         medicalLicenseState: null,
         specialty: null,

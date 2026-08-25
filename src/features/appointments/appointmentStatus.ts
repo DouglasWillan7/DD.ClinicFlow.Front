@@ -7,34 +7,28 @@ export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   InProgress: "Em atendimento",
   Completed: "Realizada",
   Cancelled: "Cancelada",
-  Agendada: "Agendada",
-  ConfirmacaoEnviada: "Confirmação enviada",
-  Confirmada: "Confirmada",
-  Cancelada: "Cancelada",
-  Realizada: "Realizada",
   NoShow: "Não compareceu",
 };
 
 export function appointmentStatusTone(status: AppointmentStatus) {
-  if (["Confirmed", "Completed", "Confirmada", "Realizada"].includes(status)) {
+  if (status === "Confirmed" || status === "Completed") {
     return "success";
   }
-  if (["AccessRequired", "NoShow", "Cancelled", "Cancelada"].includes(status)) {
+  if (status === "AccessRequired" || status === "NoShow" || status === "Cancelled") {
     return "attention";
   }
-  if (["AwaitingPatientAction", "InProgress", "ConfirmacaoEnviada"].includes(status)) {
+  if (status === "AwaitingPatientAction" || status === "InProgress") {
     return "info";
   }
   return "neutral";
 }
 
 export function isAppointmentPendingPatientAction(status: AppointmentStatus) {
-  return status === "AwaitingPatientAction" || status === "Agendada" ||
-    status === "ConfirmacaoEnviada";
+  return status === "AwaitingPatientAction";
 }
 
 export function isAppointmentConfirmed(status: AppointmentStatus) {
-  return status === "Confirmed" || status === "Confirmada";
+  return status === "Confirmed";
 }
 
 export function isAppointmentInProgress(status: AppointmentStatus) {
@@ -42,11 +36,11 @@ export function isAppointmentInProgress(status: AppointmentStatus) {
 }
 
 export function isAppointmentCompleted(status: AppointmentStatus) {
-  return status === "Completed" || status === "Realizada";
+  return status === "Completed";
 }
 
 export function isAppointmentCancelled(status: AppointmentStatus) {
-  return status === "Cancelled" || status === "Cancelada" || status === "NoShow";
+  return status === "Cancelled" || status === "NoShow";
 }
 
 export function isAppointmentTerminal(status: AppointmentStatus) {

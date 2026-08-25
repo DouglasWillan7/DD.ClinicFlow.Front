@@ -3,9 +3,21 @@ import { expect, test, type Page } from "@playwright/test";
 const session = {
   userId: "11111111-1111-1111-1111-111111111111",
   email: "ana@clinicavital.com.br",
+  phone: "+5511988887777",
   clinicId: "22222222-2222-2222-2222-222222222222",
+  clinicName: "Clínica Vital",
+  userClinicId: "uc-secretary",
+  clinicRole: "Secretary",
+  isAdmin: true,
   roles: ["Admin", "Secretary"],
   name: "Ana Martins",
+  availableClinics: [{
+    userClinicId: "uc-secretary",
+    clinicId: "22222222-2222-2222-2222-222222222222",
+    clinicName: "Clínica Vital",
+    role: "Secretary",
+    isAdmin: true,
+  }],
   tokens: {
     accessToken: "visual-test-token",
     refreshToken: "visual-test-refresh",
@@ -13,45 +25,19 @@ const session = {
   },
 };
 
-/** Projeção de Member para o cadastro completo devolvido por /clinics/doctors. */
-function toDoctor(member: (typeof members)[number]) {
-  return {
-    userId: member.userId,
-    email: member.email,
-    name: member.name,
-    roles: member.roles,
-    isCreator: member.isCreator,
-    hasAccess: true,
-    hasPendingInvitation: false,
-    medicalLicense: "123456",
-    medicalLicenseState: "SP",
-    specialty: member.specialty,
-    cpf: null,
-    birthDate: null,
-    phone: null,
-    gender: null,
-    rqe: null,
-    practiceAreas: null,
-    bio: null,
-    slotDurationMinutes: 30,
-    healthInsurancePlanIds: [],
-    scheduleIntervals: [],
-  };
-}
-
 /** Projeção contextual usada pela gestão de vínculos v2. */
-function toClinicMember(member: (typeof members)[number], index: number) {
+function toClinicMember(member: (typeof members)[number]) {
   return {
-    userClinicId: `30000000-0000-4000-8000-00000000000${index + 1}`,
+    userClinicId: member.userClinicId,
     userId: member.userId,
     clinicId: session.clinicId,
-    displayName: member.name,
+    displayName: member.displayName,
     status: "Active",
     role: "Doctor",
     isAdmin: false,
     isOwner: false,
     email: member.email,
-    phone: `+551198888777${index}`,
+    phone: "+5511988887770",
     emailConfirmedAtUtc: "2026-07-01T12:00:00Z",
     phoneConfirmedAtUtc: null,
     doctorProfile: {
@@ -73,20 +59,30 @@ function toClinicMember(member: (typeof members)[number], index: number) {
 
 const members = [
   {
+    userClinicId: "uc-doctor-1",
     userId: "33333333-3333-3333-3333-333333333333",
     email: "helena@clinicavital.com.br",
     roles: ["Doctor"],
     isCreator: false,
     name: "Dra. Helena Costa",
+    displayName: "Dra. Helena Costa",
+    role: "Doctor" as const,
+    isAdmin: false,
     specialty: "Cardiologia",
+    defaultAppointmentDurationMinutes: 30,
   },
   {
+    userClinicId: "uc-doctor-2",
     userId: "44444444-4444-4444-4444-444444444444",
     email: "rafael@clinicavital.com.br",
     roles: ["Doctor"],
     isCreator: false,
     name: "Dr. Rafael Lima",
+    displayName: "Dr. Rafael Lima",
+    role: "Doctor" as const,
+    isAdmin: false,
     specialty: "Clínica geral",
+    defaultAppointmentDurationMinutes: 30,
   },
 ];
 
@@ -98,7 +94,7 @@ const appointments = [
     doctorUserId: members[0].userId,
     startUtc: "2026-07-28T12:00:00Z",
     endUtc: "2026-07-28T12:45:00Z",
-    status: "Confirmada",
+    status: "Confirmed",
     type: "InPerson",
     notes: "Retorno com exames recentes.",
     createdAtUtc: "2026-07-20T12:00:00Z",
@@ -110,7 +106,7 @@ const appointments = [
     doctorUserId: members[1].userId,
     startUtc: "2026-07-28T14:30:00Z",
     endUtc: "2026-07-28T15:00:00Z",
-    status: "ConfirmacaoEnviada",
+    status: "AwaitingPatientAction",
     type: "Teleconsultation",
     notes: null,
     createdAtUtc: "2026-07-20T12:00:00Z",
@@ -120,58 +116,62 @@ const appointments = [
 const patients = [
   {
     id: appointments[0].patientId,
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "52998224725",
     name: appointments[0].patientName,
     phone: "+5511999990000",
-    cpf: "52998224725",
+    email: null,
     medicalRecordNumber: 48213,
     bloodType: "APositive",
     birthDate: "1990-01-10",
     notes: null,
-    doctorUserId: members[0].userId,
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-07-20T12:00:00Z",
   },
   {
     id: "99999999-9999-4999-8999-999999999999",
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "11144477735",
     name: "Carlos Souza",
     phone: "+5511999990001",
-    cpf: "11144477735",
+    email: null,
     medicalRecordNumber: 46990,
     bloodType: "BNegative",
     birthDate: "1975-11-22",
     notes: null,
-    doctorUserId: members[0].userId,
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-07-27T12:00:00Z",
   },
   {
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "12345678909",
     name: "Carlos Souza",
     phone: "+5511999990002",
-    cpf: "12345678909",
+    email: null,
     medicalRecordNumber: 50871,
     bloodType: "ANegative",
     birthDate: "1990-01-09",
     notes: null,
-    doctorUserId: members[0].userId,
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-07-26T12:00:00Z",
   },
   {
     id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    documentCountryCode: "BR",
+    documentType: "CPF",
+    document: "39053344705",
     name: "Ana Beatriz Lima",
     phone: "+5511999990003",
-    cpf: "39053344705",
+    email: null,
     medicalRecordNumber: 51102,
     bloodType: "OPositive",
     birthDate: "1988-07-04",
     notes: null,
-    doctorUserId: members[1].userId,
     isActive: true,
-    whatsappConsentAtUtc: null,
     createdAtUtc: "2026-07-25T12:00:00Z",
   },
 ];
@@ -197,6 +197,10 @@ async function mockClinicFlow(
     roles: options.roles ?? session.roles,
     name: roleUser?.name ?? session.name,
     email: roleUser?.email ?? session.email,
+    phone: roleUser ? "+5511988887777" : session.phone,
+    userClinicId: roleUser?.userClinicId ?? session.userClinicId,
+    clinicRole: roleUser ? "Doctor" : "Secretary",
+    isAdmin: (options.roles ?? session.roles).includes("Admin"),
   };
   const appointmentStore = [...appointments];
   const blockStore: Array<{ id: string; date: string; reason: string | null }> = [];
@@ -220,7 +224,6 @@ async function mockClinicFlow(
         timeZoneId: "America/Sao_Paulo",
         phone: "+551130000000",
         address: "Rua das Flores, 120",
-        defaultAppointmentDurationMinutes: 30,
         plan: "Clinic",
         subscriptionStatus: "Active",
         maxDoctors: null,
@@ -228,25 +231,21 @@ async function mockClinicFlow(
       };
     } else if (url.pathname === `/clinics/${currentSession.clinicId}/members`) {
       body = hasDoctor ? members.map(toClinicMember) : [];
-    } else if (url.pathname === "/clinics/members") {
+    } else if (url.pathname === `/clinics/${currentSession.clinicId}/members/summary`) {
       body = hasDoctor ? members : [];
-    } else if (url.pathname === "/clinics/doctors") {
-      body = hasDoctor ? members.map(toDoctor) : [];
-    } else if (url.pathname.startsWith("/clinics/doctors/")) {
-      const doctor = members.find(
-        (member) => member.userId === url.pathname.split("/").pop(),
-      );
-      body = doctor ? toDoctor(doctor) : undefined;
-    } else if (url.pathname === "/health-insurance-plans") {
+    } else if (url.pathname === "/healthcare-plans") {
       body = [{ id: "c0000000-0000-0000-0000-000000000001", name: "Particular" }];
-    } else if (url.pathname === "/clinics/invitations") {
-      body = [];
+    } else if (/^\/clinics\/[^/]+\/members\/[^/]+\/healthcare-plans$/.test(url.pathname)) {
+      const userClinicId = url.pathname.split("/").at(-2)!;
+      body = { userClinicId, healthcarePlanIds: [] };
     } else if (url.pathname === "/users/me") {
       body = {
         userId: currentSession.userId,
         email: currentSession.email,
+        phone: currentSession.phone,
         name: currentSession.name,
-        roles: currentSession.roles,
+        role: currentSession.clinicRole,
+        isAdmin: currentSession.isAdmin,
         medicalLicense: currentSession.roles.includes("Doctor")
           ? "123456"
           : null,
@@ -284,7 +283,7 @@ async function mockClinicFlow(
         doctorUserId: payload.doctorUserId,
         startUtc: payload.startUtc,
         endUtc: "2026-08-10T12:30:00Z",
-        status: "Agendada",
+        status: "AwaitingPatientAction",
         type: payload.type,
         notes: payload.notes,
         createdAtUtc: "2026-07-28T10:00:00Z",
@@ -311,7 +310,7 @@ async function mockClinicFlow(
       );
       body = search
         ? patients.filter((patient) =>
-            `${patient.name} ${patient.cpf} ${patient.medicalRecordNumber}`
+            `${patient.name} ${patient.document} ${patient.medicalRecordNumber}`
               .toLocaleLowerCase("pt-BR")
               .includes(search),
           )
@@ -424,7 +423,7 @@ async function mockClinicFlow(
             label: "Cadastrar o primeiro paciente",
             path: "/app/pacientes/novo",
             completed: false,
-            blocked: !hasDoctor,
+            blocked: false,
           },
           {
             code: "appointment",
@@ -525,9 +524,9 @@ test("agenda consulta completa e retorna ao detalhe criado", async ({ page }) =>
     type: "InPerson",
     notes: null,
   });
-  await expect(page.getByRole("status", { name: "Consulta agendada" }))
+  await expect(page.getByRole("status", { name: "Agendamento aguardando paciente" }))
     .toContainText(
-      "Consulta agendada: Dra. Helena Costa, 10 de agosto de 2026 às 09:00 (Presencial)",
+      "Aguardando a confirmação do paciente e o compartilhamento dos dados com o médico",
     );
   const timeline = page.getByRole("region", { name: "Dra. Helena Costa" });
   await expect(timeline.getByText("Marina Oliveira")).toBeVisible();
@@ -586,9 +585,9 @@ test("consulta rápida agenda o primeiro horário e opera o menu por teclado", a
     type: "InPerson",
     notes: null,
   });
-  await expect(page.getByRole("status", { name: "Consulta agendada" }))
+  await expect(page.getByRole("status", { name: "Agendamento aguardando paciente" }))
     .toContainText(
-      "Consulta agendada: Dra. Helena Costa, 10 de agosto de 2026 às 09:00 (Presencial)",
+      "Aguardando a confirmação do paciente e o compartilhamento dos dados com o médico",
     );
 });
 
@@ -668,8 +667,8 @@ test("agenda consulta completa somente com teclado", async ({ page }) => {
     await page.keyboard.press("Enter");
   }
 
-  await expect(page.getByRole("status", { name: "Consulta agendada" }))
-    .toContainText("Consulta agendada");
+  await expect(page.getByRole("status", { name: "Agendamento aguardando paciente" }))
+    .toContainText("Aguardando a confirmação do paciente");
 });
 
 test("exibe pacientes recentes e distingue homônimos na busca", async ({
@@ -765,24 +764,18 @@ for (const viewport of [
   });
 }
 
-test("médico configura a própria agenda em Meu perfil", async ({ page }) => {
+test("médico mantém a identificação profissional no vínculo atual", async ({ page }) => {
   await mockClinicFlow(page, {
     roles: ["Doctor"],
     userId: members[0].userId,
   });
   await page.goto("/app/configuracoes/perfil");
 
-  // Mesma agenda do cadastro feito pela administração, dentro de um único formulário.
-  await expect(
-    page.getByRole("heading", { name: "Cadastro médico" }),
-  ).toBeVisible();
-  await expect(page.getByRole("group", { name: /Dias de atendimento/ })).toBeVisible();
-  await expect(
-    page.getByRole("checkbox", { name: /Horários diferentes por dia/ }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Salvar cadastro" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Meu perfil" })).toBeVisible();
+  await expect(page.getByLabel("Registro profissional")).toHaveValue("123456");
+  await expect(page.getByLabel("Especialidade")).toHaveValue("Cardiologia");
+  await expect(page.getByRole("button", { name: "Salvar conta" })).toBeVisible();
+  await expect(page.getByRole("group", { name: /Dias de atendimento/ })).toHaveCount(0);
 });
 
 for (const viewport of [
@@ -1174,7 +1167,7 @@ for (const viewport of [
   });
 }
 
-test("bloqueia paciente enquanto não existe médico ativo", async ({ page }) => {
+test("permite cadastrar paciente sem médico e mantém apenas a agenda dependente", async ({ page }) => {
   await mockClinicFlow(page, { hasDoctor: false });
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto("/app/onboarding");
@@ -1185,8 +1178,8 @@ test("bloqueia paciente enquanto não existe médico ativo", async ({ page }) =>
   await expect(page.getByText("Cadastrar o primeiro paciente")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Cadastrar o primeiro paciente" }),
-  ).toHaveCount(0);
-  await expect(page.getByLabel("Etapa bloqueada")).toHaveCount(2);
+  ).toBeVisible();
+  await expect(page.getByLabel("Etapa bloqueada")).toHaveCount(1);
 
   await page.screenshot({
     path: "/private/tmp/clinicflow-onboarding-doctor-required.png",
@@ -1195,9 +1188,7 @@ test("bloqueia paciente enquanto não existe médico ativo", async ({ page }) =>
 
   await page.goto("/app/pacientes/novo");
   await expect(
-    page.getByRole("heading", {
-      name: "Adicione um médico antes do paciente",
-    }),
+    page.getByRole("heading", { name: "Identifique o paciente" }),
   ).toBeVisible();
 });
 

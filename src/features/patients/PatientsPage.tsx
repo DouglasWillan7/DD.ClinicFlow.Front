@@ -8,7 +8,11 @@ import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
 import { ErrorBlock } from "../../components/Feedback";
 import { getInitials } from "../appointments/appointmentLabels";
-import { formatCpf, formatMedicalRecord, getAge } from "./patientFormatters";
+import {
+  formatMedicalRecord,
+  formatPatientDocument,
+  getAge,
+} from "./patientFormatters";
 import {
   countBySituation,
   filterPatients,
@@ -172,7 +176,7 @@ export function PatientsPage() {
                       <span className={styles.identityCopy}>
                         <span className={styles.name}>{patient.name}</span>
                         <span className={styles.record}>
-                          {`Pront. ${formatMedicalRecord(patient.medicalRecordNumber)} · CPF ${formatCpf(patient.cpf)}`}
+                          {`Pront. ${formatMedicalRecord(patient.medicalRecordNumber)} · ${patient.documentType} ${formatPatientDocument(patient.documentCountryCode, patient.documentType, patient.document)}`}
                         </span>
                       </span>
                     </span>

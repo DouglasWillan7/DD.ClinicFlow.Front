@@ -8,6 +8,9 @@ const { authState, requestMock, hubMock } = vi.hoisted(() => ({
   authState: {
     session: {
       name: "Dra. Ana Martins",
+      userClinicId: "uc-doctor",
+      clinicRole: "Doctor" as "Doctor" | "Secretary",
+      isAdmin: false,
       roles: ["Doctor"] as ("Admin" | "Secretary" | "Doctor")[],
       tokens: { accessToken: "test-token" },
     },
@@ -103,6 +106,9 @@ beforeEach(() => {
   });
   authState.session = {
     name: "Dra. Ana Martins",
+    userClinicId: "uc-doctor",
+    clinicRole: "Doctor",
+    isAdmin: false,
     roles: ["Doctor"],
     tokens: { accessToken: "test-token" },
   };
@@ -391,7 +397,12 @@ test("finaliza o lifecycle depois de drenar a transcrição", async () => {
 });
 
 test("não consulta nem renderiza pontos clínicos para Secretary", async () => {
-  authState.session = { ...authState.session, roles: ["Secretary"] };
+  authState.session = {
+    ...authState.session,
+    userClinicId: "uc-secretary",
+    clinicRole: "Secretary",
+    roles: ["Secretary"],
+  };
   renderPage();
 
   expect(await screen.findByRole("heading", { name: "Transcrição da consulta" })).toBeVisible();

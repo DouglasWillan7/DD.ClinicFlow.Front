@@ -103,7 +103,9 @@ export function AgendaPage({
   });
   const members = useQuery({
     queryKey: ["clinic", "members"],
-    queryFn: () => request<Member[]>("/clinics/members"),
+    queryFn: () => request<Member[]>(
+      `/clinics/${session?.clinicId}/members/summary`,
+    ),
   });
   const onboarding = useQuery({
     queryKey: onboardingKey,
@@ -364,7 +366,7 @@ export function AgendaPage({
             <>
               <span aria-hidden="true">›</span>
               <span className={styles.breadcrumbDoctor}>
-                {doctor.name?.trim() || doctor.email}
+                {doctor.displayName}
               </span>
             </>
           ) : null}
@@ -476,7 +478,7 @@ export function AgendaPage({
               Consulta agendada:{" "}
               {members.data?.find(
                 (member) => member.userId === created.data.doctorUserId,
-              )?.name ?? "Médico"}
+              )?.displayName ?? "Médico"}
               ,{" "}
               {formatInTimeZone(
                 created.data.startUtc,

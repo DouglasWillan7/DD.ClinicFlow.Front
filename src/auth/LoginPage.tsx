@@ -14,7 +14,7 @@ import type {
   AccountRecoveryOptions,
   AuthV2ClinicSelectionRequired,
 } from "../api/types";
-import { Link, useLocation, useNavigate } from "../app/navigation";
+import { useLocation, useNavigate } from "../app/navigation";
 import { useAuth } from "./AuthProvider";
 import { ClinicContextSelector } from "../features/clinic-context/ClinicContextSelector";
 import {
@@ -437,7 +437,7 @@ export function LoginPage() {
                 </form>
 
                 <p className={styles.footer}>
-                  Novo por aqui? <Link to="/cadastro">Criar conta</Link>
+                  Seu acesso é criado pela clínica. Em caso de dúvida, fale com a administração.
                   <span aria-hidden="true"> · </span>
                   ou peça acesso ao administrador da sua clínica.
                 </p>

@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   formatBirthDate,
   formatBloodType,
-  formatCpf,
+  formatPatientDocument,
   formatMedicalRecord,
   getAge,
 } from "./patientFormatters";
 
 describe("patient formatters", () => {
-  it("apresenta CPF com pontuação sem alterar seus dígitos", () => {
-    expect(formatCpf("52998224725")).toBe("529.982.247-25");
+  it("apresenta CPF brasileiro e preserva documentos internacionais", () => {
+    expect(formatPatientDocument("BR", "CPF", "52998224725")).toBe(
+      "529.982.247-25",
+    );
+    expect(formatPatientDocument("PT", "NIF", "123456789")).toBe("123456789");
   });
 
   it("traduz o tipo sanguíneo da API para o rótulo clínico", () => {

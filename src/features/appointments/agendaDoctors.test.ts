@@ -8,36 +8,37 @@ import {
 
 function member(overrides: Partial<Member> & Pick<Member, "userId">): Member {
   return {
-    email: `${overrides.userId}@example.test`,
-    roles: ["Doctor"],
-    isCreator: false,
-    name: "Médico",
+    userClinicId: `uc-${overrides.userId}`,
+    displayName: "Médico",
+    role: "Doctor",
+    isAdmin: false,
     specialty: null,
+    defaultAppointmentDurationMinutes: 30,
     ...overrides,
   };
 }
 
 const helena = member({
   userId: "helena",
-  name: "Dra. Helena Costa",
+  displayName: "Dra. Helena Costa",
   specialty: "Cardiologia",
 });
 const ibrahim = member({
   userId: "ibrahim",
-  name: "Dr. Ibrahim Kadri",
+  displayName: "Dr. Ibrahim Kadri",
   specialty: "Gastroenterologia",
 });
 const paulo = member({
   userId: "paulo",
-  name: "Dr. Paulo Nunes",
+  displayName: "Dr. Paulo Nunes",
   specialty: "Clínica Geral",
 });
 const doctors = [helena, ibrahim, paulo];
 
 describe("listDoctors", () => {
   test("mantém apenas quem atende, mesmo sem especialidade cadastrada", () => {
-    const secretary = member({ userId: "camila", roles: ["Secretary"] });
-    const rookie = member({ userId: "novo", name: "Dr. Novo" });
+    const secretary = member({ userId: "camila", role: "Secretary" });
+    const rookie = member({ userId: "novo", displayName: "Dr. Novo" });
 
     expect(listDoctors([helena, secretary, rookie]).map((d) => d.userId)).toEqual(
       ["helena", "novo"],
@@ -61,8 +62,8 @@ describe("resolveActiveDoctor", () => {
 describe("getShortDoctorName", () => {
   test("usa as duas primeiras palavras do nome no CTA", () => {
     expect(getShortDoctorName(ibrahim)).toBe("Dr. Ibrahim");
-    expect(getShortDoctorName(member({ userId: "x", name: null }))).toBe(
-      "x@example.test",
+    expect(getShortDoctorName(member({ userId: "x", displayName: "Dr. X" }))).toBe(
+      "Dr. X",
     );
   });
 });

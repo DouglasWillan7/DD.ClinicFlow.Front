@@ -13,7 +13,7 @@ import { buildDoctorEntries, buildPatientEntries } from "./searchIndex";
 const INDEX_STALE_TIME = 5 * 60_000;
 
 export function useGlobalSearchIndex() {
-  const { request } = useAuth();
+  const { request, session } = useAuth();
 
   const patients = useQuery({
     queryKey: ["patients", "list"],
@@ -22,7 +22,10 @@ export function useGlobalSearchIndex() {
   });
   const members = useQuery({
     queryKey: ["clinic", "members"],
-    queryFn: () => request<Member[]>("/clinics/members"),
+    queryFn: () => request<Member[]>(
+      `/clinics/${session?.clinicId}/members/summary`,
+    ),
+    enabled: Boolean(session?.clinicId),
     staleTime: INDEX_STALE_TIME,
   });
 

@@ -9,15 +9,15 @@ import {
 
 describe("appointment status", () => {
   it("traduz estados internos para linguagem operacional", () => {
-    expect(appointmentStatusLabels.ConfirmacaoEnviada).toBe(
-      "Confirmação enviada",
+    expect(appointmentStatusLabels.AwaitingPatientAction).toBe(
+      "Aguardando confirmação do paciente",
     );
     expect(appointmentStatusLabels.NoShow).toBe("Não compareceu");
   });
 
   it("mantém estados que exigem atenção no mesmo tom semântico", () => {
-    expect(appointmentStatusTone("Cancelada")).toBe("attention");
-    expect(appointmentStatusTone("Confirmada")).toBe("success");
+    expect(appointmentStatusTone("Cancelled")).toBe("attention");
+    expect(appointmentStatusTone("Confirmed")).toBe("success");
   });
 
   it("traduz todos os estados canônicos do lifecycle v2", () => {

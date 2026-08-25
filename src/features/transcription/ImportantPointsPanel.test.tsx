@@ -15,6 +15,9 @@ import { ImportantPointsPanel } from "./ImportantPointsPanel";
 const { authState, requestMock } = vi.hoisted(() => ({
   authState: {
     session: {
+      userClinicId: "uc-doctor",
+      clinicRole: "Doctor" as const,
+      isAdmin: false,
       roles: ["Doctor"],
       tokens: { accessToken: "test-token" },
     },
@@ -89,6 +92,9 @@ function renderPanel(options: {
 
 beforeEach(() => {
   authState.session = {
+    userClinicId: "uc-doctor",
+    clinicRole: "Doctor",
+    isAdmin: false,
     roles: ["Doctor"],
     tokens: { accessToken: "test-token" },
   };
@@ -98,6 +104,9 @@ beforeEach(() => {
 
 test("não renderiza o painel clínico para usuário sem papel Doctor", () => {
   authState.session = {
+    userClinicId: "uc-secretary",
+    clinicRole: "Secretary",
+    isAdmin: false,
     roles: ["Secretary"],
     tokens: { accessToken: "test-token" },
   };

@@ -1,16 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import type { Member } from "../../api/types";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import {
+  documentCountries,
+  documentPlaceholder,
+  documentTypesFor,
+} from "../../auth/documentIdentity";
 import { Button } from "../../components/Button";
 import { Field, SelectField } from "../../components/Field";
-import { bloodTypeOptions, formatCpf } from "./patientFormatters";
+import { bloodTypeOptions } from "./patientFormatters";
 import { patientSchema, type PatientFormValue } from "./patientForm";
 import { PatientPhoneField } from "./PatientPhoneField";
 import styles from "./PatientsPage.module.css";
 
 interface PatientFormProps {
   initialValue: PatientFormValue;
-  doctors: Member[];
   submitLabel: string;
   onSubmit: (value: PatientFormValue) => void;
   onCancel: () => void;
@@ -20,7 +23,6 @@ interface PatientFormProps {
 
 export function PatientForm({
   initialValue,
-  doctors,
   submitLabel,
   onSubmit,
   onCancel,
@@ -31,17 +33,13 @@ export function PatientForm({
     register,
     control,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<PatientFormValue>({
     resolver: zodResolver(patientSchema),
-    defaultValues: { ...initialValue, cpf: formatCpf(initialValue.cpf) },
+    defaultValues: initialValue,
   });
-  const cpf = register("cpf", {
-    onChange: (event) => {
-      setValue("cpf", formatCpf(event.target.value), { shouldValidate: true });
-    },
-  });
+  const documentCountryCode = useWatch({ control, name: "documentCountryCode" });
+  const documentType = useWatch({ control, name: "documentType" });
 
   return (
     <form
@@ -70,14 +68,31 @@ export function PatientForm({
           />
         )}
       />
+      <SelectField label="País do documento" {...register("documentCountryCode")}>
+        {documentCountries.map((country) => (
+          <option key={country.code} value={country.code}>{country.label}</option>
+        ))}
+      </SelectField>
+      <SelectField label="Tipo de documento" {...register("documentType")}>
+        {documentTypesFor(documentCountryCode).map((type) => (
+          <option key={type.code} value={type.code}>{type.label}</option>
+        ))}
+      </SelectField>
       <Field
-        label="CPF"
-        inputMode="numeric"
+        label="Documento"
+        inputMode={documentCountryCode === "BR" && documentType === "CPF" ? "numeric" : "text"}
         autoComplete="off"
-        placeholder="000.000.000-00"
-        maxLength={14}
-        error={errors.cpf?.message}
-        {...cpf}
+        placeholder={documentPlaceholder(documentCountryCode, documentType)}
+        maxLength={80}
+        error={errors.document?.message}
+        {...register("document")}
+      />
+      <Field
+        label="E-mail"
+        type="email"
+        autoComplete="email"
+        error={errors.email?.message}
+        {...register("email")}
       />
       <SelectField
         label="Tipo sanguíneo"
@@ -108,19 +123,6 @@ export function PatientForm({
         error={errors.birthDate?.message}
         {...register("birthDate")}
       />
-      <SelectField
-        className={styles.wide}
-        label="Médico responsável"
-        error={errors.doctorUserId?.message}
-        {...register("doctorUserId")}
-      >
-        <option value="">Selecione</option>
-        {doctors.map((doctor) => (
-          <option key={doctor.userId} value={doctor.userId}>
-            {doctor.name ?? doctor.email}
-          </option>
-        ))}
-      </SelectField>
       <label className={styles.notes} htmlFor="notes">
         <span>Observações</span>
         <textarea

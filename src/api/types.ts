@@ -34,14 +34,13 @@ export interface AuthResponse {
   roles: UserRole[];
   tokens: TokenPair;
   name: string | null;
-  /** Contexto v2. Ausente somente em sessões legadas durante o rollout. */
-  userClinicId?: string;
-  clinicName?: string;
-  clinicRole?: ClinicRole;
-  isAdmin?: boolean;
-  phone?: string;
+  userClinicId: string;
+  clinicName: string;
+  clinicRole: ClinicRole;
+  isAdmin: boolean;
+  phone: string;
   /** Opções seguras conhecidas no login; não contêm documento ou contatos. */
-  availableClinics?: AuthV2ClinicOption[];
+  availableClinics: AuthV2ClinicOption[];
 }
 
 export interface AuthV2LoginRequest {
@@ -117,7 +116,6 @@ export interface Clinic {
   timeZoneId: string;
   phone: string | null;
   address: string | null;
-  defaultAppointmentDurationMinutes: number;
   plan: ClinicPlan;
   subscriptionStatus: "Active" | "Suspended" | "Canceled";
   maxDoctors: number | null;
@@ -125,19 +123,17 @@ export interface Clinic {
 }
 
 export interface Member {
+  userClinicId: string;
   userId: string;
-  email: string;
-  roles: UserRole[];
-  isCreator: boolean;
-  name: string | null;
+  displayName: string;
+  role: ClinicRole;
+  isAdmin: boolean;
   specialty: string | null;
+  defaultAppointmentDurationMinutes: number | null;
 }
 
 export type UserClinicStatus = "Pending" | "Active" | "Suspended" | "Inactive";
-export type AppointmentDurationSource =
-  | "Configured"
-  | "DoctorProfile"
-  | "ClinicLegacyFallback";
+export type AppointmentDurationSource = "Configured";
 
 export interface DoctorMembershipProfile {
   professionalAuthority: string | null;
@@ -171,54 +167,14 @@ export interface ClinicMember {
   updatedAtUtc: string;
 }
 
-export interface Invitation {
-  id: string;
-  email: string;
-  roles: UserRole[];
-  createdAtUtc: string;
-}
-
-export type DoctorGender = "Feminino" | "Masculino" | "Outro";
-
-/** Item de GET /clinics/doctors: cadastro profissional completo do médico da clínica. */
-export interface Doctor {
-  userId: string;
-  email: string;
-  name: string | null;
-  roles: UserRole[];
-  isCreator: boolean;
-  /** Já definiu senha. Enquanto for falso o médico atende mas não entra no sistema. */
-  hasAccess: boolean;
-  hasPendingInvitation: boolean;
-  medicalLicense: string | null;
-  medicalLicenseState: string | null;
-  specialty: string | null;
-  cpf: string | null;
-  birthDate: string | null;
-  phone: string | null;
-  gender: DoctorGender | null;
-  rqe: string | null;
-  practiceAreas: string | null;
-  bio: string | null;
-  /** Duração própria; nula quando o médico segue a padrão da clínica. */
-  slotDurationMinutes: number | null;
-  healthInsurancePlanIds: string[];
-  scheduleIntervals: DoctorScheduleInterval[];
-}
-
 export interface HealthcarePlan {
   id: string;
   name: string;
 }
 
-/** @deprecated Use `HealthcarePlan`; kept only for legacy doctor forms. */
-export type HealthInsurancePlan = HealthcarePlan;
-
-/** O token só volta uma vez, na resposta que emite o convite. */
-export interface DoctorAccessInvite {
-  email: string;
-  token: string;
-  expiresAtUtc: string;
+export interface UserClinicHealthcarePlans {
+  userClinicId: string;
+  healthcarePlanIds: string[];
 }
 
 export interface OnboardingStep {
@@ -239,8 +195,10 @@ export interface OnboardingStatus {
 export interface CurrentUser {
   userId: string;
   email: string;
+  phone: string;
   name: string;
-  roles: UserRole[];
+  role: ClinicRole;
+  isAdmin: boolean;
   medicalLicense: string | null;
   medicalLicenseState: string | null;
   specialty: string | null;
@@ -253,11 +211,6 @@ export type AppointmentStatus =
   | "InProgress"
   | "Completed"
   | "Cancelled"
-  | "Agendada"
-  | "ConfirmacaoEnviada"
-  | "Confirmada"
-  | "Cancelada"
-  | "Realizada"
   | "NoShow";
 
 export interface Appointment {
@@ -375,17 +328,18 @@ export type SexForClinicalUse = "Feminino" | "Masculino";
 
 export interface Patient {
   id: string;
-  cpf: string;
+  documentCountryCode: string;
+  documentType: string;
+  document: string;
   medicalRecordNumber: number;
   bloodType: BloodType | null;
   sexForClinicalUse: SexForClinicalUse | null;
   name: string;
   phone: string;
+  email: string | null;
   birthDate: string | null;
   notes: string | null;
-  doctorUserId: string;
   isActive: boolean;
-  whatsappConsentAtUtc: string | null;
   createdAtUtc: string;
 }
 
