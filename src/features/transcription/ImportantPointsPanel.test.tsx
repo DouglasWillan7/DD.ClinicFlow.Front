@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { ApiError } from "../../api/client";
+import type { ClinicRole, UserRole } from "../../api/types";
 import type {
   ConsultationImportantPoint,
   ConsultationImportantPointsSnapshot,
@@ -16,9 +17,9 @@ const { authState, requestMock } = vi.hoisted(() => ({
   authState: {
     session: {
       userClinicId: "uc-doctor",
-      clinicRole: "Doctor" as const,
+      clinicRole: "Doctor" as ClinicRole,
       isAdmin: false,
-      roles: ["Doctor"],
+      roles: ["Doctor"] as UserRole[],
       tokens: { accessToken: "test-token" },
     },
   },

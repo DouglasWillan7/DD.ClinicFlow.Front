@@ -51,6 +51,30 @@ export interface AuthV2LoginRequest {
   rememberConnection: boolean;
 }
 
+export interface RegisterClinicOwnerRequest {
+  countryCode: string;
+  documentType: string;
+  document: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  plan: ClinicPlan;
+  clinicName: string;
+  clinicRegistrationCountryCode: string;
+  clinicRegistrationType: string;
+  clinicRegistrationNumber: string;
+  clinicAddress: string | null;
+  professionalAuthority: string;
+  professionalRegistrationNumber: string;
+  professionalRegistrationRegion: string | null;
+  professionalRegistrationCountryCode: string;
+  specialty: string | null;
+  defaultAppointmentDurationMinutes: number;
+  termsAccepted: boolean;
+  termsVersion: string;
+}
+
 export interface AuthV2User {
   id: string;
   name: string;

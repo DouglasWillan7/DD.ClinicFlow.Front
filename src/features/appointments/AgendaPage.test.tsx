@@ -546,9 +546,9 @@ test("resume o dia sem contar canceladas e conta os horários livres", async () 
   expect(stats.map((stat) => stat.textContent)).toEqual(["2", "1", "1", "2"]);
 });
 
-test.each([
-  { profile: "médico", roles: ["Doctor"] as const },
-  { profile: "médico administrador", roles: ["Admin", "Doctor"] as const },
+test.each<{ profile: string; roles: AuthResponse["roles"] }>([
+  { profile: "médico", roles: ["Doctor"] },
+  { profile: "médico administrador", roles: ["Admin", "Doctor"] },
 ])("adapta Minha Agenda para o $profile", async ({ roles }) => {
   activeSession = {
     ...session,

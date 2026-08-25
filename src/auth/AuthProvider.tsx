@@ -18,6 +18,7 @@ import type {
   AuthV2ClinicOption,
   AuthV2LoginOutcome,
   AuthV2LoginRequest,
+  RegisterClinicOwnerRequest,
 } from "../api/types";
 import { getRoles } from "./roles";
 import {
@@ -29,6 +30,7 @@ const SESSION_KEY = "clinicflow.session";
 
 interface AuthContextValue {
   session: AuthResponse | null;
+  registerClinicOwner(request: RegisterClinicOwnerRequest): Promise<AuthResponse>;
   loginWithDocument(request: AuthV2LoginRequest): Promise<AuthV2LoginOutcome>;
   selectClinic(
     selectionToken: string,
@@ -268,6 +270,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
         pendingClinicOptionsRef.current = response.clinics;
       }
       return response;
+    },
+    [beginExplicitTransition, commitExplicitTransition],
+  );
+
+  const registerClinicOwner = useCallback(
+    async (request: RegisterClinicOwnerRequest) => {
+      const generation = beginExplicitTransition();
+      persistentSessionRef.current = true;
+      const response = await apiRequest<AuthV2Authenticated>(
+        "/auth/v2/register",
+        {
+          method: "POST",
+          body: JSON.stringify(request),
+        },
+      );
+      pendingClinicOptionsRef.current = undefined;
+      return commitExplicitTransition(
+        mapAuthenticatedSession(response),
+        generation,
+      );
     },
     [beginExplicitTransition, commitExplicitTransition],
   );
@@ -587,6 +609,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const value = useMemo(
     () => ({
       session,
+      registerClinicOwner,
       loginWithDocument,
       selectClinic,
       getRecoveryOptions,
@@ -607,6 +630,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [
       beginExplicitTransition,
       loginWithDocument,
+      registerClinicOwner,
       selectClinic,
       getRecoveryOptions,
       requestRecoveryChallenge,

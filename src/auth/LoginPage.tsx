@@ -1,11 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
-  Building2,
+  CalendarDays,
   Check,
+  FileText,
   KeyRound,
-  ShieldCheck,
-  UserRoundCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -14,7 +13,7 @@ import type {
   AccountRecoveryOptions,
   AuthV2ClinicSelectionRequired,
 } from "../api/types";
-import { useLocation, useNavigate } from "../app/navigation";
+import { Link, useLocation, useNavigate } from "../app/navigation";
 import { useAuth } from "./AuthProvider";
 import { ClinicContextSelector } from "../features/clinic-context/ClinicContextSelector";
 import {
@@ -204,23 +203,58 @@ export function LoginPage() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <section className={styles.showcase} aria-label="Acesso seguro ao ClinicFlow">
-          <img className={styles.logo} src="/clinicflow-logo.png" alt="ClinicFlow" />
-          <div className={styles.showcaseContent}>
-            <p className={styles.eyebrow}>Identidade única, contexto correto</p>
-            <h1>Seu acesso acompanha você. Os dados da clínica, não.</h1>
-            <p className={styles.intro}>
-              Entre com seu documento e escolha o vínculo de trabalho quando necessário.
-            </p>
-            <ul className={styles.benefits}>
-              <li><UserRoundCheck aria-hidden="true" /> Um único acesso por pessoa</li>
-              <li><Building2 aria-hidden="true" /> Contatos e função definidos por clínica</li>
-              <li><ShieldCheck aria-hidden="true" /> Permissões aplicadas ao contexto selecionado</li>
-            </ul>
+        <section className={styles.showcase} aria-label="Conheça o ClinicFlow">
+          <div className={styles.glow} aria-hidden="true" />
+          <img
+            className={styles.logo}
+            src="/clinicflow-logo.png"
+            alt="ClinicFlow"
+          />
+          <h1>A rotina clínica da sua equipe, do agendamento ao laudo.</h1>
+
+          <div className={styles.featureStack} aria-hidden="true">
+            <div className={`${styles.featureCard} ${styles.patientCard}`}>
+              <span className={styles.avatar}>JP</span>
+              <span className={styles.featureText}>
+                <strong>João Pedro Almeida</strong>
+                <small>Consulta de retorno · 09:30</small>
+              </span>
+              <span className={styles.confirmed}>Confirmada</span>
+            </div>
+
+            <div className={`${styles.featureCard} ${styles.transcriptionCard}`}>
+              <span className={styles.recordingDot} />
+              <strong>Transcrevendo consulta</strong>
+              <span className={styles.equalizer}>
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
+
+            <div className={`${styles.featureCard} ${styles.reportCard}`}>
+              <span className={styles.documentIcon}>
+                <FileText size={22} strokeWidth={1.8} />
+              </span>
+              <span className={styles.featureText}>
+                <strong>Laudo de endoscopia</strong>
+                <small>Análise de documentos · laudo lido pela IA</small>
+              </span>
+              <div className={styles.chips}>
+                <span>Sintoma</span>
+                <span>Conduta</span>
+                <span>Exame</span>
+                <span>+5 pontos</span>
+              </div>
+            </div>
+
+            <div className={`${styles.featureCard} ${styles.agendaCard}`}>
+              <CalendarDays size={21} strokeWidth={1.8} />
+              <strong>12</strong>
+              <span>consultas na sua agenda de hoje</span>
+            </div>
           </div>
-          <p className={styles.showcaseNote}>
-            O ClinicFlow protege a separação entre identidade, clínica e dados assistenciais.
-          </p>
         </section>
 
         <section className={styles.formPanel}>
@@ -437,7 +471,7 @@ export function LoginPage() {
                 </form>
 
                 <p className={styles.footer}>
-                  Seu acesso é criado pela clínica. Em caso de dúvida, fale com a administração.
+                  Novo por aqui? <Link to="/cadastro">Criar conta</Link>
                   <span aria-hidden="true"> · </span>
                   ou peça acesso ao administrador da sua clínica.
                 </p>

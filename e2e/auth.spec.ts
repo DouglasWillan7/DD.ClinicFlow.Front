@@ -37,19 +37,40 @@ test("mantém o acesso íntegro em viewport mobile", async ({ page }) => {
   });
 });
 
-test("não expõe auto cadastro em rota pública", async ({ page }) => {
+test("expõe o cadastro inicial por documento em rota pública", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/cadastro");
 
   await expect(
-    page.getByRole("heading", { name: "Este caminho não faz parte do fluxo." }),
+    page.getByRole("heading", { name: "Comece pela sua conta" }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/cadastro$/);
-  await expect(page.getByLabel("Documento", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("Nome completo")).toHaveCount(0);
+  await expect(page.getByLabel("Documento", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Nome completo")).toBeVisible();
+  await expect(page.getByLabel("E-mail nesta clínica")).toBeVisible();
+  await expect(page.getByLabel("Telefone nesta clínica")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Entrar" })).toHaveAttribute(
+    "href",
+    "/entrar",
+  );
 
-  const cardBox = await page.getByRole("main").boundingBox();
+  const cardBox = await page.locator("section").first().boundingBox();
   expect(cardBox).not.toBeNull();
   expect(cardBox!.x + cardBox!.width).toBeLessThanOrEqual(390);
   expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
+});
+
+test("preserva a apresentação original no lado esquerdo do acesso", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/entrar");
+
+  await expect(page.getByRole("heading", {
+    name: "A rotina clínica da sua equipe, do agendamento ao laudo.",
+  })).toBeVisible();
+  await expect(page.getByText("João Pedro Almeida")).toBeVisible();
+  await expect(page.getByText("Transcrevendo consulta")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Criar conta" })).toHaveAttribute(
+    "href",
+    "/cadastro",
+  );
 });

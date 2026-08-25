@@ -21,6 +21,7 @@ vi.mock("../api/client", () => ({
 }));
 
 let latestLogin: Promise<AuthV2LoginOutcome> | null = null;
+let latestRegistration: Promise<AuthResponse> | null = null;
 let latestRefresh: Promise<AuthResponse> | null = null;
 let latestRecovery: Promise<AccountRecoveryOptions> | null = null;
 let latestRecoveryChallenge: Promise<void> | null = null;
@@ -87,6 +88,37 @@ function Controls() {
       <output aria-label="Sessão atual">
         {auth.session ? JSON.stringify(auth.session) : "sem sessão"}
       </output>
+      <button
+        type="button"
+        onClick={() => {
+          latestRegistration = auth.registerClinicOwner({
+            countryCode: "BR",
+            documentType: "CPF",
+            document: "52998224725",
+            name: "Ana",
+            email: "ana@clinica.test",
+            phone: "+5511999999999",
+            password: "Senha123!",
+            plan: "Clinic",
+            clinicName: "Clínica Centro",
+            clinicRegistrationCountryCode: "BR",
+            clinicRegistrationType: "CNPJ",
+            clinicRegistrationNumber: "11.444.777/0001-61",
+            clinicAddress: null,
+            professionalAuthority: "CRM",
+            professionalRegistrationNumber: "123456",
+            professionalRegistrationRegion: "SP",
+            professionalRegistrationCountryCode: "BR",
+            specialty: "Gastroenterologia",
+            defaultAppointmentDurationMinutes: 30,
+            termsAccepted: true,
+            termsVersion: "clinicflow-terms-v1",
+          });
+          void latestRegistration.catch(() => undefined);
+        }}
+      >
+        Criar conta
+      </button>
       <button
         type="button"
         onClick={() => {
@@ -178,6 +210,7 @@ describe("AuthProvider identity v2", () => {
     apiBlobRequestMock.mockReset();
     apiRequestMock.mockReset();
     latestLogin = null;
+    latestRegistration = null;
     latestRefresh = null;
     latestRecovery = null;
     latestRecoveryChallenge = null;
@@ -204,6 +237,24 @@ describe("AuthProvider identity v2", () => {
     });
     expect(screen.getByLabelText("Sessão atual")).toHaveTextContent('"userClinicId":"uc-1"');
     expect(screen.getByLabelText("Sessão atual")).toHaveTextContent('"roles":["Doctor","Admin"]');
+  });
+
+  test("cadastra o proprietário pelo contrato v2 e materializa a sessão", async () => {
+    apiRequestMock.mockResolvedValue(authenticated);
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+    await expect(latestRegistration).resolves.toMatchObject({
+      userClinicId: "uc-1",
+      clinicRole: "Doctor",
+      isAdmin: true,
+    });
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/register", {
+      method: "POST",
+      body: expect.stringContaining('"document":"52998224725"'),
+    });
+    expect(screen.getByLabelText("Sessão atual")).toHaveTextContent('"userClinicId":"uc-1"');
   });
 
   test("mantém a seleção de clínica fora da sessão até a escolha explícita", async () => {

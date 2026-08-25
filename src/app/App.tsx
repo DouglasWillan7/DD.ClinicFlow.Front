@@ -14,6 +14,11 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   })),
 );
+const RegisterPage = lazy(() =>
+  import("../auth/RegisterPage").then((module) => ({
+    default: module.RegisterPage,
+  })),
+);
 const TeamPage = lazy(() =>
   import("../features/team/TeamPage").then((module) => ({
     default: module.TeamPage,
@@ -125,9 +130,9 @@ function AppRoutes() {
     return <Redirect to={session ? appStart : "/entrar"} replace />;
   }
 
-  if (path === "/entrar") {
+  if (path === "/entrar" || path === "/cadastro") {
     if (session) return <Redirect to={appStart} replace />;
-    return <LoginPage />;
+    return path === "/entrar" ? <LoginPage /> : <RegisterPage />;
   }
 
   if (path.startsWith("/app")) {

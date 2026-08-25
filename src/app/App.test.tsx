@@ -65,6 +65,17 @@ describe("App routing", () => {
     expect(window.location.pathname).toBe("/entrar");
   });
 
+  test("abre o cadastro inicial sem exigir sessão", async () => {
+    window.history.replaceState({}, "", "/cadastro");
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Comece pela sua conta" }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe("/cadastro");
+  });
+
   test("abre a ação pública sem exigir sessão", async () => {
     window.history.replaceState({}, "", "/acao-paciente/opaque-reference");
     apiRequest.mockResolvedValue({

@@ -67,6 +67,18 @@ describe("LoginPage", () => {
     selectClinicMock.mockReset();
   });
 
+  test("mantém a apresentação original e oferece o cadastro inicial", () => {
+    render(<LoginPage />);
+
+    expect(screen.getByRole("heading", {
+      name: "A rotina clínica da sua equipe, do agendamento ao laudo.",
+    })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Criar conta" })).toHaveAttribute(
+      "href",
+      "/cadastro",
+    );
+  });
+
   test("não usa e-mail como username e valida CPF antes da autenticação", async () => {
     const user = userEvent.setup();
     render(<LoginPage />);
