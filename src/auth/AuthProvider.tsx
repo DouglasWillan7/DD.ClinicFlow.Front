@@ -15,6 +15,7 @@ import type {
   AccountRecoveryOptions,
   AuthResponse,
   AuthV2Authenticated,
+  AuthV2ClinicOption,
   AuthV2LoginOutcome,
   AuthV2LoginRequest,
   ClinicPlan,
@@ -39,6 +40,7 @@ interface AuthContextValue {
     identity: AccountRecoveryIdentity,
   ): Promise<AccountRecoveryOptions>;
   requestRecoveryChallenge(selection: string): Promise<void>;
+  switchClinic(userClinicId: string): Promise<AuthResponse>;
   login(
     email: string,
     password: string,
@@ -126,8 +128,28 @@ function normalizeSession(value: AuthResponse): AuthResponse {
   };
 }
 
-function mapAuthenticatedSession(value: AuthV2Authenticated): AuthResponse {
+function mapAuthenticatedSession(
+  value: AuthV2Authenticated,
+  knownClinics?: readonly AuthV2ClinicOption[],
+): AuthResponse {
   const { clinicContext } = value;
+  const currentOption: AuthV2ClinicOption = {
+    userClinicId: clinicContext.userClinicId,
+    clinicId: clinicContext.clinicId,
+    clinicName: clinicContext.clinicName,
+    role: clinicContext.role,
+    isAdmin: clinicContext.isAdmin,
+  };
+  const availableClinics = knownClinics?.length
+    ? knownClinics.map((option) =>
+        option.userClinicId === currentOption.userClinicId
+          ? currentOption
+          : { ...option },
+      )
+    : [currentOption];
+  if (!availableClinics.some((option) => option.userClinicId === currentOption.userClinicId)) {
+    availableClinics.push(currentOption);
+  }
   return normalizeSession({
     userId: value.user.id,
     name: value.user.name,
@@ -138,6 +160,7 @@ function mapAuthenticatedSession(value: AuthV2Authenticated): AuthResponse {
     userClinicId: clinicContext.userClinicId,
     clinicRole: clinicContext.role,
     isAdmin: clinicContext.isAdmin,
+    availableClinics,
     roles: clinicContext.isAdmin
       ? [clinicContext.role, "Admin"]
       : [clinicContext.role],
@@ -169,6 +192,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const refreshOperationRef = useRef<RefreshOperation | null>(null);
   const mountedRef = useRef(true);
   const persistentSessionRef = useRef(getPersistentSession() !== null);
+  const pendingClinicOptionsRef = useRef<readonly AuthV2ClinicOption[] | undefined>(
+    undefined,
+  );
 
   const saveSession = useCallback((value: AuthResponse | null) => {
     const next = value ? normalizeSession(value) : null;
@@ -278,7 +304,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         body: JSON.stringify(request),
       });
       if (response.kind === "authenticated") {
+        pendingClinicOptionsRef.current = undefined;
         commitExplicitTransition(mapAuthenticatedSession(response), generation);
+      } else {
+        pendingClinicOptionsRef.current = response.clinics;
       }
       return response;
     },
@@ -300,7 +329,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
           body: JSON.stringify({ selectionToken, userClinicId }),
         },
       );
-      return commitExplicitTransition(mapAuthenticatedSession(response), generation);
+      const next = mapAuthenticatedSession(
+        response,
+        pendingClinicOptionsRef.current,
+      );
+      pendingClinicOptionsRef.current = undefined;
+      return commitExplicitTransition(next, generation);
     },
     [beginExplicitTransition, commitExplicitTransition],
   );
@@ -402,7 +436,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           (response) => {
             assertCurrentSession(operation);
             const next = "kind" in response
-              ? mapAuthenticatedSession(response)
+              ? mapAuthenticatedSession(response, current.availableClinics)
               : normalizeSession(response);
             if (
               next.clinicId !== current.clinicId ||
@@ -432,6 +466,78 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
     return promise;
   }, [assertCurrentSession, saveSession]);
+
+  const switchClinic = useCallback(
+    async (userClinicId: string) => {
+      const current = sessionRef.current;
+      if (!current?.userClinicId) {
+        throw new Error("A sessão atual não permite trocar de clínica.");
+      }
+      if (userClinicId === current.userClinicId) return current;
+
+      const generation = beginExplicitTransition();
+      const operation: SessionOperation = {
+        generation,
+        scope: getAuthScope(current),
+      };
+
+      try {
+        const response = await apiRequest<AuthV2Authenticated>(
+          "/auth/v2/switch-clinic",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              refreshToken: current.tokens.refreshToken,
+              userClinicId,
+            }),
+          },
+        );
+        assertCurrentSession(operation);
+        return commitExplicitTransition(
+          mapAuthenticatedSession(response, current.availableClinics),
+          generation,
+        );
+      } catch (switchError) {
+        assertCurrentSession(operation);
+        const isRejectedContext =
+          switchError instanceof Error &&
+          "status" in switchError &&
+          switchError.status === 401;
+        if (!isRejectedContext) throw switchError;
+
+        try {
+          const response = await apiRequest<AuthV2Authenticated>(
+            "/auth/v2/refresh",
+            {
+              method: "POST",
+              body: JSON.stringify({ refreshToken: current.tokens.refreshToken }),
+            },
+          );
+          assertCurrentSession(operation);
+          commitExplicitTransition(
+            mapAuthenticatedSession(response, current.availableClinics),
+            generation,
+          );
+        } catch (refreshError) {
+          assertCurrentSession(operation);
+          if (
+            refreshError instanceof Error &&
+            "status" in refreshError &&
+            refreshError.status === 401
+          ) {
+            clearSession();
+          }
+        }
+        throw switchError;
+      }
+    },
+    [
+      assertCurrentSession,
+      beginExplicitTransition,
+      clearSession,
+      commitExplicitTransition,
+    ],
+  );
 
   const request = useCallback(
     async <T,>(path: string, init: RequestInit = {}) => {
@@ -575,6 +681,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       selectClinic,
       getRecoveryOptions,
       requestRecoveryChallenge,
+      switchClinic,
       register,
       activate,
       refreshSession: refresh,
@@ -597,6 +704,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       selectClinic,
       getRecoveryOptions,
       requestRecoveryChallenge,
+      switchClinic,
       refresh,
       register,
       request,

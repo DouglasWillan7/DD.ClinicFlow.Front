@@ -2,6 +2,7 @@ import clsx from "clsx";
 import {
   Building2,
   CalendarDays,
+  ChevronDown,
   House,
   LogOut,
   Menu,
@@ -21,22 +22,26 @@ import {
   useState,
 } from "react";
 import { useAuth } from "../auth/AuthProvider";
-import { formatRoles, hasRole } from "../auth/roles";
+import { formatRoles, hasRole, roleLabels } from "../auth/roles";
 import { getAuthScope } from "../auth/sessionScope";
 import { BrandMark } from "../components/BrandMark";
+import { ClinicContextSelector } from "../features/clinic-context/ClinicContextSelector";
 import { GlobalSearch } from "../features/search/GlobalSearch";
-import { NavLink } from "./navigation";
+import { NavLink, useNavigate } from "./navigation";
 import { readRailPinned, saveRailPinned } from "./railPreference";
 import styles from "./AppShell.module.css";
 
 export function AppShell({ children }: PropsWithChildren) {
-  const { session, logout } = useAuth();
+  const { session, logout, switchClinic } = useAuth();
+  const navigate = useNavigate();
   const railScope = session ? getAuthScope(session) : "";
   const [menuOpen, setMenuOpen] = useState(false);
   const [railPinned, setRailPinned] = useState(() => readRailPinned(railScope));
   const [railHovered, setRailHovered] = useState(false);
   const [railFocused, setRailFocused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [switchingClinicId, setSwitchingClinicId] = useState<string>();
+  const [contextError, setContextError] = useState<string>();
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const restoreMenuFocusRef = useRef(false);
@@ -69,7 +74,18 @@ export function AppShell({ children }: PropsWithChildren) {
   if (!session) return null;
 
   const displayName = session.name ?? session.email.split("@")[0];
-  const roleLabel = formatRoles(session);
+  const roleLabel = session.clinicRole
+    ? roleLabels[session.clinicRole]
+    : formatRoles(session);
+  const activeClinicName = session.clinicName ?? "Clínica atual";
+  const adminLabel = session.isAdmin ? "Administração" : undefined;
+  const accountLabel = [displayName, activeClinicName, roleLabel, adminLabel]
+    .filter(Boolean)
+    .join(", ");
+  const availableClinics = session.availableClinics ?? [];
+  const otherClinics = availableClinics.filter(
+    (clinic) => clinic.userClinicId !== session.userClinicId,
+  );
   // O hover é a expansão padrão do handoff; o teclado precisa do mesmo gatilho.
   const railExpanded = railPinned || railHovered || railFocused;
   const isDoctor = hasRole(session, "Doctor");
@@ -116,6 +132,24 @@ export function AppShell({ children }: PropsWithChildren) {
   const closeDrawer = (restoreFocus = false) => {
     restoreMenuFocusRef.current = restoreFocus;
     setMenuOpen(false);
+  };
+
+  const chooseClinic = async (userClinicId: string) => {
+    setSwitchingClinicId(userClinicId);
+    setContextError(undefined);
+    try {
+      const next = await switchClinic(userClinicId);
+      setUserMenuOpen(false);
+      navigate(hasRole(next, "Doctor") ? "/app/inicio" : "/app/agenda", {
+        replace: true,
+      });
+    } catch {
+      setContextError(
+        `A outra clínica não está disponível. Você continua na ${activeClinicName}.`,
+      );
+    } finally {
+      setSwitchingClinicId(undefined);
+    }
   };
 
   const renderLink = ({
@@ -233,7 +267,7 @@ export function AppShell({ children }: PropsWithChildren) {
               type="button"
               className={styles.userButton}
               onClick={() => setUserMenuOpen((open) => !open)}
-              aria-label={`${displayName}, ${roleLabel}`}
+              aria-label={accountLabel}
               aria-expanded={userMenuOpen}
               aria-controls="user-menu"
             >
@@ -242,14 +276,40 @@ export function AppShell({ children }: PropsWithChildren) {
               </span>
               <span className={styles.userCopy}>
                 <strong>{displayName}</strong>
-                <small>{roleLabel}</small>
+                <small>
+                  {activeClinicName} · {roleLabel}{adminLabel ? ` · ${adminLabel}` : ""}
+                </small>
               </span>
+              <ChevronDown className={styles.userChevron} aria-hidden="true" />
             </button>
 
             {userMenuOpen ? (
               <div id="user-menu" className={styles.userMenu}>
+                <section className={styles.currentContext} aria-label="Contexto atual">
+                  <span>Contexto atual</span>
+                  <strong>{activeClinicName}</strong>
+                  <small>{roleLabel}{adminLabel ? ` · ${adminLabel}` : ""}</small>
+                </section>
+
+                {otherClinics.length > 0 ? (
+                  <section className={styles.contextChoices} aria-label="Trocar de clínica">
+                    <span className={styles.menuLabel}>Trocar de clínica</span>
+                    <ClinicContextSelector
+                      clinics={otherClinics}
+                      busyUserClinicId={switchingClinicId}
+                      focusFirstOnMount
+                      onSelect={(userClinicId) => void chooseClinic(userClinicId)}
+                    />
+                  </section>
+                ) : null}
+
+                {contextError ? (
+                  <p className={styles.contextError} role="alert">{contextError}</p>
+                ) : null}
+
                 <NavLink
                   to="/app/configuracoes/perfil"
+                  className={styles.profileLink}
                   onClick={() => setUserMenuOpen(false)}
                 >
                   Meu perfil

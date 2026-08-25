@@ -109,11 +109,12 @@ export function ProfileSettingsPage() {
                   {...register("name")}
                 />
                 <Field
+                  id="profile-clinic-email"
                   className={styles.wide}
-                  label="E-mail"
+                  label="E-mail nesta clínica"
                   value={query.data.email}
                   readOnly
-                  hint="O e-mail é a credencial de acesso e só a administração pode trocá-lo."
+                  hint="Este contato pertence ao seu vínculo com a clínica atual. O acesso usa seu documento."
                 />
                 <div className={styles.actions}>
                   {saved ? <SuccessNote>Perfil atualizado.</SuccessNote> : null}

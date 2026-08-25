@@ -40,6 +40,8 @@ export interface AuthResponse {
   clinicRole?: ClinicRole;
   isAdmin?: boolean;
   phone?: string;
+  /** Opções seguras conhecidas no login; não contêm documento ou contatos. */
+  availableClinics?: AuthV2ClinicOption[];
 }
 
 export interface AuthV2LoginRequest {

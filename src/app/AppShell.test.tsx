@@ -5,12 +5,13 @@ import type { ReactNode } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
-const { authState, logout, navigate, request, routerState } = vi.hoisted(() => ({
-  authState: { roles: ["Admin"] as Array<"Admin" | "Doctor" | "Secretary"> },
+const { authState, logout, navigate, request, routerState, switchClinic } = vi.hoisted(() => ({
+  authState: { roles: ["Doctor", "Admin"] as Array<"Admin" | "Doctor" | "Nurse" | "Secretary"> },
   logout: vi.fn(),
   navigate: vi.fn(),
   request: vi.fn(async () => []),
   routerState: { pathname: "/app/agenda" },
+  switchClinic: vi.fn(),
 }));
 
 /** Coloca o shell na rota pedida; `useSearchParams` é o real, sobre a URL. */
@@ -35,6 +36,26 @@ vi.mock("../auth/AuthProvider", () => ({
       userId: "u-1",
       email: "ana@example.test",
       clinicId: "c-1",
+      clinicName: "Clínica Centro",
+      userClinicId: "uc-1",
+      clinicRole: "Doctor",
+      isAdmin: true,
+      availableClinics: [
+        {
+          userClinicId: "uc-1",
+          clinicId: "c-1",
+          clinicName: "Clínica Centro",
+          role: "Doctor",
+          isAdmin: true,
+        },
+        {
+          userClinicId: "uc-2",
+          clinicId: "c-2",
+          clinicName: "Clínica Norte",
+          role: "Secretary",
+          isAdmin: false,
+        },
+      ],
       roles: authState.roles,
       name: "Ana Martins",
       tokens: {
@@ -45,6 +66,7 @@ vi.mock("../auth/AuthProvider", () => ({
     },
     logout,
     request,
+    switchClinic,
   }),
 }));
 
@@ -79,9 +101,10 @@ vi.mock("./navigation", async (importOriginal) => ({
 const railStore = new Map<string, string>();
 
 beforeEach(() => {
-  authState.roles = ["Admin"];
+  authState.roles = ["Doctor", "Admin"];
   logout.mockClear();
   navigate.mockClear();
+  switchClinic.mockReset();
   railStore.clear();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -214,4 +237,54 @@ test("drawer mobile fecha por Esc e restaura foco", async () => {
   await user.keyboard("{Escape}");
   expect(drawer.className).not.toContain("sidebarOpen");
   await waitFor(() => expect(trigger).toHaveFocus());
+});
+
+test("menu de conta exibe somente o papel e admin do contexto ativo", async () => {
+  const user = userEvent.setup();
+  renderShell();
+
+  const account = screen.getByRole("button", {
+    name: "Ana Martins, Clínica Centro, Médico, Administração",
+  });
+  await user.click(account);
+
+  expect(screen.getByText("Contexto atual")).toBeVisible();
+  expect(screen.getByText("Clínica Centro")).toBeVisible();
+  expect(screen.getByText("Médico · Administração")).toBeVisible();
+  expect(screen.queryByText("Médico · Secretaria")).not.toBeInTheDocument();
+});
+
+test("troca a clínica pelo menu e segue para o início permitido pelo novo contexto", async () => {
+  const user = userEvent.setup();
+  switchClinic.mockResolvedValue({
+    userClinicId: "uc-2",
+    clinicId: "c-2",
+    clinicName: "Clínica Norte",
+    clinicRole: "Secretary",
+    isAdmin: false,
+    roles: ["Secretary"],
+  });
+  renderShell("/app/inicio");
+
+  await user.click(screen.getByRole("button", { name: /Ana Martins/ }));
+  const north = screen.getByRole("button", { name: "Clínica Norte, Secretaria" });
+  north.focus();
+  await user.keyboard("{Enter}");
+
+  expect(switchClinic).toHaveBeenCalledWith("uc-2");
+  await waitFor(() => expect(navigate).toHaveBeenCalledWith("/app/agenda", { replace: true }));
+});
+
+test("mantém o contexto atual e explica quando o vínculo de destino está indisponível", async () => {
+  const user = userEvent.setup();
+  switchClinic.mockRejectedValue(Object.assign(new Error("Indisponível"), { status: 401 }));
+  renderShell();
+
+  await user.click(screen.getByRole("button", { name: /Ana Martins/ }));
+  await user.click(screen.getByRole("button", { name: "Clínica Norte, Secretaria" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "A outra clínica não está disponível. Você continua na Clínica Centro.",
+  );
+  expect(screen.getByText("Clínica Centro")).toBeVisible();
 });

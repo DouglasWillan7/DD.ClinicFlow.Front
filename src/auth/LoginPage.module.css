@@ -358,7 +358,6 @@ header > .backButton {
 }
 
 .submit:disabled,
-.clinicOption:disabled,
 .recoveryChoices button:disabled {
   cursor: wait;
   opacity: 0.7;
@@ -377,13 +376,11 @@ header > .backButton {
   font-weight: 650;
 }
 
-.clinicList,
 .recoveryChoices {
   display: grid;
   gap: 10px;
 }
 
-.clinicOption,
 .recoveryChoices button {
   display: flex;
   width: 100%;
@@ -400,7 +397,6 @@ header > .backButton {
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-.clinicOption:hover:not(:disabled),
 .recoveryChoices button:hover:not(:disabled) {
   border-color: var(--color-primary-soft);
   background: var(--color-primary-subtle);
@@ -423,7 +419,6 @@ header > .backButton {
   stroke-width: 1.8;
 }
 
-.clinicCopy,
 .recoveryChoices button > span:nth-child(2) {
   display: flex;
   min-width: 0;
@@ -432,7 +427,6 @@ header > .backButton {
   gap: 3px;
 }
 
-.clinicCopy strong,
 .recoveryChoices strong {
   overflow: hidden;
   font-size: 14px;
@@ -441,7 +435,6 @@ header > .backButton {
   white-space: nowrap;
 }
 
-.clinicCopy small,
 .recoveryChoices small {
   color: var(--color-text-muted);
   font-size: 12px;
@@ -454,7 +447,7 @@ header > .backButton {
   font-weight: 650;
 }
 
-.clinicList + .backButton {
+.contextSelector + .backButton {
   margin-top: 18px;
 }
 

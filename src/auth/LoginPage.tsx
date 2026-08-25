@@ -7,7 +7,7 @@ import {
   ShieldCheck,
   UserRoundCheck,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ApiError } from "../api/client";
 import type {
@@ -16,6 +16,7 @@ import type {
 } from "../api/types";
 import { Link, useLocation, useNavigate } from "../app/navigation";
 import { useAuth } from "./AuthProvider";
+import { ClinicContextSelector } from "../features/clinic-context/ClinicContextSelector";
 import {
   type DocumentCredentials,
   type RecoveryIdentity,
@@ -25,7 +26,6 @@ import {
   documentTypesFor,
   recoveryIdentitySchema,
 } from "./documentIdentity";
-import { roleLabels } from "./roles";
 import styles from "./LoginPage.module.css";
 
 type PageMode = "login" | "recovery" | "recovery-success";
@@ -58,7 +58,6 @@ export function LoginPage() {
   const [recoveryOptions, setRecoveryOptions] = useState<AccountRecoveryOptions>();
   const [recoveryStatus, setRecoveryStatus] = useState<string>();
   const [sendingRecoveryTo, setSendingRecoveryTo] = useState<string>();
-  const firstClinicRef = useRef<HTMLButtonElement>(null);
 
   const loginForm = useForm<DocumentCredentials>({
     resolver: zodResolver(documentCredentialsSchema),
@@ -95,10 +94,6 @@ export function LoginPage() {
       recoveryForm.setValue("documentType", types[0].code);
     }
   }, [recoveryCountryCode, recoveryDocumentType, recoveryForm]);
-
-  useEffect(() => {
-    firstClinicRef.current?.focus();
-  }, [selection]);
 
   const destination = () => {
     const from = (location.state as { from?: string } | null)?.from;
@@ -243,28 +238,13 @@ export function LoginPage() {
 
                 {serverError ? <div className={styles.errorBanner} role="alert">{serverError}</div> : null}
 
-                <div className={styles.clinicList} aria-label="Clínicas disponíveis">
-                  {selection.clinics.map((clinic, index) => (
-                    <button
-                      key={clinic.userClinicId}
-                      ref={index === 0 ? firstClinicRef : undefined}
-                      className={styles.clinicOption}
-                      type="button"
-                      disabled={Boolean(selectingClinicId)}
-                      onClick={() => void chooseClinic(clinic.userClinicId)}
-                    >
-                      <span className={styles.clinicIcon}><Building2 aria-hidden="true" /></span>
-                      <span className={styles.clinicCopy}>
-                        <strong>{clinic.clinicName}</strong>
-                        <small>
-                          {roleLabels[clinic.role]}{clinic.isAdmin ? " · Administração" : ""}
-                        </small>
-                      </span>
-                      <span className={styles.optionAction}>
-                        {selectingClinicId === clinic.userClinicId ? "Entrando..." : "Acessar"}
-                      </span>
-                    </button>
-                  ))}
+                <div className={styles.contextSelector}>
+                  <ClinicContextSelector
+                    clinics={selection.clinics}
+                    busyUserClinicId={selectingClinicId}
+                    focusFirstOnMount
+                    onSelect={(userClinicId) => void chooseClinic(userClinicId)}
+                  />
                 </div>
 
                 <button

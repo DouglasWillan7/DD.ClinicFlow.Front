@@ -23,6 +23,7 @@ let latestBlobPromise: Promise<Blob> | null = null;
 let latestV2LoginPromise: Promise<AuthV2LoginOutcome> | null = null;
 let latestRecoveryOptionsPromise: Promise<AccountRecoveryOptions> | null = null;
 let latestRecoveryChallengePromise: Promise<void> | null = null;
+let latestSwitchPromise: Promise<AuthResponse> | null = null;
 
 vi.mock("../api/client", () => ({
   apiBlobRequest: apiBlobRequestMock,
@@ -112,6 +113,7 @@ function V2AuthControls() {
     requestRecoveryChallenge,
     selectClinic,
     session,
+    switchClinic,
   } = useAuth();
 
   return (
@@ -142,6 +144,10 @@ function V2AuthControls() {
         latestRecoveryChallengePromise = requestRecoveryChallenge("opaque-selection");
         void latestRecoveryChallengePromise.catch(() => undefined);
       }}>Enviar recuperação</button>
+      <button type="button" onClick={() => {
+        latestSwitchPromise = switchClinic("uc-2");
+        void latestSwitchPromise.catch(() => undefined);
+      }}>Trocar clínica v2</button>
     </>
   );
 }
@@ -637,6 +643,7 @@ describe("AuthProvider identity v2", () => {
     latestV2LoginPromise = null;
     latestRecoveryOptionsPromise = null;
     latestRecoveryChallengePromise = null;
+    latestSwitchPromise = null;
     apiBlobRequestMock.mockReset();
     apiRequestMock.mockReset();
   });
@@ -658,6 +665,22 @@ describe("AuthProvider identity v2", () => {
         refreshToken: "refresh-v2-old",
         accessTokenExpiresAtUtc: "2099-01-01T00:00:00Z",
       },
+      availableClinics: [
+        {
+          userClinicId: "uc-1",
+          clinicId: "clinic-v2",
+          clinicName: "Clínica Centro",
+          role: "Doctor",
+          isAdmin: true,
+        },
+        {
+          userClinicId: "uc-2",
+          clinicId: "clinic-north",
+          clinicName: "Clínica Norte",
+          role: "Secretary",
+          isAdmin: false,
+        },
+      ],
     };
   }
 
@@ -772,5 +795,83 @@ describe("AuthProvider identity v2", () => {
       method: "POST",
       body: JSON.stringify({ refreshToken: "refresh-v2-renewed" }),
     }));
+  });
+
+  test("troca o contexto, rotaciona a sessão e remove cache e storage da clínica anterior", async () => {
+    const client = new QueryClient();
+    const user = userEvent.setup();
+    sessionStorage.setItem("clinicflow.session", JSON.stringify(storedV2Session()));
+    sessionStorage.setItem("clinicflow.scoped.draft", "patient-from-centro");
+    client.setQueryData(["patients", "clinic-v2"], ["Paciente Centro"]);
+    apiRequestMock.mockResolvedValue({
+      ...authenticatedV2,
+      accessToken: "access-north",
+      refreshToken: "refresh-north",
+      clinicContext: {
+        ...authenticatedV2.clinicContext,
+        userClinicId: "uc-2",
+        clinicId: "clinic-north",
+        clinicName: "Clínica Norte",
+        role: "Secretary",
+        isAdmin: false,
+      },
+    });
+    renderV2Auth(client);
+
+    await user.click(screen.getByRole("button", { name: "Trocar clínica v2" }));
+    await expect(latestSwitchPromise).resolves.toMatchObject({
+      userClinicId: "uc-2",
+      clinicId: "clinic-north",
+      roles: ["Secretary"],
+      tokens: { refreshToken: "refresh-north" },
+    });
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/switch-clinic", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: "refresh-v2-old", userClinicId: "uc-2" }),
+    });
+    expect(client.getQueryCache().findAll()).toHaveLength(0);
+    expect(sessionStorage.getItem("clinicflow.scoped.draft")).toBeNull();
+    const stored = JSON.parse(sessionStorage.getItem("clinicflow.session")!) as AuthResponse;
+    expect(stored.availableClinics).toHaveLength(2);
+    expect(JSON.stringify(stored)).not.toContain("refresh-v2-old");
+  });
+
+  test("mantém o contexto atual quando apenas o vínculo de destino está indisponível", async () => {
+    const client = new QueryClient();
+    const user = userEvent.setup();
+    sessionStorage.setItem("clinicflow.session", JSON.stringify(storedV2Session()));
+    client.setQueryData(["patients", "clinic-v2"], ["Paciente Centro"]);
+    apiRequestMock.mockImplementation((path: string) => {
+      if (path === "/auth/v2/switch-clinic") {
+        return Promise.reject(errorWithStatus(401, "Vínculo indisponível"));
+      }
+      if (path === "/auth/v2/refresh") return Promise.resolve(authenticatedV2);
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    renderV2Auth(client);
+
+    await user.click(screen.getByRole("button", { name: "Trocar clínica v2" }));
+
+    await expect(latestSwitchPromise).rejects.toMatchObject({ status: 401 });
+    expect(screen.getByRole("status", { name: "Sessão v2" })).toHaveTextContent("clinic-v2");
+    expect(client.getQueryData(["patients", "clinic-v2"])).toEqual(["Paciente Centro"]);
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: "refresh-v2-old" }),
+    });
+  });
+
+  test("encerra a sessão quando o contexto atual também foi suspenso", async () => {
+    const client = new QueryClient();
+    const user = userEvent.setup();
+    sessionStorage.setItem("clinicflow.session", JSON.stringify(storedV2Session()));
+    apiRequestMock.mockRejectedValue(errorWithStatus(401, "Vínculo suspenso"));
+    renderV2Auth(client);
+
+    await user.click(screen.getByRole("button", { name: "Trocar clínica v2" }));
+
+    await expect(latestSwitchPromise).rejects.toMatchObject({ status: 401 });
+    await waitFor(() => expect(screen.getByRole("status", { name: "Sessão v2" })).toHaveTextContent("sem sessão"));
+    expect(sessionStorage.getItem("clinicflow.session")).toBeNull();
   });
 });

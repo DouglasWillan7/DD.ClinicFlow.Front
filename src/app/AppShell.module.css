@@ -282,6 +282,14 @@
     transform var(--transition-fast);
 }
 
+.userChevron {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  color: var(--color-text-muted);
+  stroke-width: 1.8;
+}
+
 .userButton:hover {
   color: var(--color-primary);
 }
@@ -337,24 +345,76 @@
   z-index: var(--z-dropdown);
   top: calc(100% + 8px);
   right: 0;
-  min-width: 180px;
-  padding: 8px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 10px;
   border-radius: var(--radius-control);
   background: var(--color-surface);
   box-shadow: var(--shadow-overlay);
 }
 
-.userMenu a {
+.currentContext {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px 12px;
+}
+
+.currentContext > span,
+.menuLabel {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.currentContext strong {
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currentContext small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.contextChoices {
+  padding: 11px 0 4px;
+  border-top: 1px solid var(--color-border-hairline);
+}
+
+.menuLabel {
+  display: block;
+  padding: 0 10px 8px;
+}
+
+.contextError {
+  margin: 8px 0 2px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.profileLink {
   display: flex;
   min-height: 44px;
   align-items: center;
   padding: 10px 12px;
+  border-top: 1px solid var(--color-border-hairline);
   border-radius: 12px;
+  margin-top: 8px;
   font-size: 14px;
   font-weight: 600;
 }
 
-.userMenu a:hover {
+.profileLink:hover {
   color: var(--color-primary);
   background: var(--color-primary-subtle);
 }
@@ -518,6 +578,18 @@
   .userButton {
     width: 44px;
     padding: 4px;
+  }
+
+  .userChevron {
+    display: none;
+  }
+
+  .userMenu {
+    position: fixed;
+    top: 68px;
+    right: 12px;
+    left: 12px;
+    width: auto;
   }
 
   .userCopy {
