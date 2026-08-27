@@ -1,0 +1,79 @@
+.action {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.state {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--color-text-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.state svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--color-primary);
+}
+
+.state p,
+.loading,
+.sent,
+.feedback p,
+.error {
+  margin: 0;
+}
+
+.state strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.loading,
+.sent {
+  color: var(--color-text-body);
+  font-size: 14px;
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.feedback p,
+.error {
+  color: var(--color-danger-text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.error {
+  flex-basis: 100%;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .action,
+  .feedback {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .action button,
+  .feedback button {
+    width: 100%;
+  }
+
+  .error {
+    text-align: left;
+  }
+}

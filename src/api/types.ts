@@ -286,6 +286,7 @@ export interface PatientActionChallengeView {
   challengeId: string;
   type: ChallengeType;
   channel: ChallengeChannel;
+  destinationMasked?: string | null;
   status: ChallengeStatus;
   attemptNumber: number;
   expiresAtUtc: string;
