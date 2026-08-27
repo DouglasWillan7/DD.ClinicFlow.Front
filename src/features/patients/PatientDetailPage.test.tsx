@@ -2,11 +2,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
+import { ApiError } from "../../api/client";
 import type {
   Appointment,
   Clinic,
-  Patient,
   PatientClinicalSummary,
+  PatientDemographic,
 } from "../../api/types";
 import { PatientDetailPage } from "./PatientDetailPage";
 
@@ -17,6 +18,11 @@ const { requestMock, navigateMock } = vi.hoisted(() => ({
 
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: () => ({ request: requestMock }),
+}));
+vi.mock("../patient-actions/ClinicalAccessEmailAction", () => ({
+  ClinicalAccessEmailAction: ({ patientId }: { patientId: string }) => (
+    <button type="button">Enviar autorização de {patientId}</button>
+  ),
 }));
 
 vi.mock("../../app/navigation", () => ({
@@ -32,21 +38,12 @@ vi.mock("../../app/navigation", () => ({
   ),
 }));
 
-const patient: Patient = {
+const patient: PatientDemographic = {
   id: "patient-1",
-  documentCountryCode: "BR",
-  documentType: "CPF",
-  document: "52998224725",
-  medicalRecordNumber: 48213,
-  bloodType: null,
-  sexForClinicalUse: null,
   name: "Maria Eduarda de Albuquerque Vasconcelos e Nascimento",
   phone: "+5511988776655",
-  email: null,
   birthDate: "1984-03-12",
-  notes: null,
   isActive: true,
-  createdAtUtc: "2025-01-01T12:00:00Z",
 };
 
 const clinic: Clinic = {
@@ -106,7 +103,8 @@ test("substitui a anatomia antiga por cabeçalho compartilhado e resumo clínico
   expect(
     await screen.findByRole("heading", { name: patient.name }),
   ).toBeVisible();
-  expect(screen.getByText(/Prontuário 48\.213/)).toBeVisible();
+  expect(screen.getAllByText(patient.phone).length).toBeGreaterThan(0);
+  expect(screen.queryByText(/NaN|undefined/)).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Visão geral" }))
     .toHaveAttribute("aria-current", "page");
   expect(screen.queryByText("Circunferências")).not.toBeInTheDocument();
@@ -168,5 +166,29 @@ test("erro do resumo mantém contexto e permite tentar novamente", async () => {
 
   expect(await screen.findByRole("heading", { name: "Nenhum laudo validado" }))
     .toBeVisible();
+  expect(summaryAttempts).toBe(2);
+});
+
+test("autorização clínica pendente é um estado esperado, não um erro", async () => {
+  const user = userEvent.setup();
+  let summaryAttempts = 0;
+  requestMock.mockImplementation((path: string) => {
+    if (path === `/exams/patients/${patient.id}/clinical-summary`) {
+      summaryAttempts += 1;
+      return Promise.reject(
+        new ApiError("Usuário sem acesso clínico ao paciente.", 403),
+      );
+    }
+    return defaultRequest(path);
+  });
+
+  renderPage();
+
+  expect(await screen.findByRole("heading", { name: "Acesso clínico pendente" }))
+    .toBeVisible();
+  expect(screen.getByRole("button", { name: `Enviar autorização de ${patient.id}` }))
+    .toBeVisible();
+  expect(screen.queryByText("Algo saiu do fluxo")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Verificar novamente" }));
   expect(summaryAttempts).toBe(2);
 });

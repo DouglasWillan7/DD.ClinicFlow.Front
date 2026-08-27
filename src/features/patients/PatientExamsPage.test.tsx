@@ -21,6 +21,11 @@ const { requestMock, requestBlobMock, realtimeViewMock } = vi.hoisted(() => ({
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: () => ({ request: requestMock, requestBlob: requestBlobMock }),
 }));
+vi.mock("../patient-actions/ClinicalAccessEmailAction", () => ({
+  ClinicalAccessEmailAction: ({ patientId }: { patientId: string }) => (
+    <button type="button">Enviar autorização de {patientId}</button>
+  ),
+}));
 vi.mock("./exams/ExamRealtimeProvider", () => ({
   useExamRealtimeView: realtimeViewMock,
 }));
@@ -540,6 +545,26 @@ test("falha da lista preserva detalhe selecionado e oferece retry específico", 
   renderPage(`/app/pacientes/${patient.id}/exames?exame=${summaries[0].id}`);
   expect(await screen.findByText("Não foi possível carregar os exames.")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Perfil lipídico" })).toBeInTheDocument();
+});
+
+test("substitui o erro da lista por acesso clínico pendente no HTTP 403", async () => {
+  requestMock.mockImplementation((path: string, init?: RequestInit) => {
+    if (path.startsWith(`/exams/patients/${patient.id}`) && !init?.method) {
+      return Promise.reject(
+        new ApiError("Usuário sem acesso clínico ao paciente.", 403),
+      );
+    }
+    return defaultRequest(path, init);
+  });
+
+  renderPage();
+
+  expect(await screen.findByRole("heading", { name: "Acesso clínico pendente" }))
+    .toBeVisible();
+  expect(screen.getByRole("button", { name: `Enviar autorização de ${patient.id}` }))
+    .toBeVisible();
+  expect(screen.queryByText("Selecione um exame")).not.toBeInTheDocument();
+  expect(screen.queryByText("Algo saiu do fluxo")).not.toBeInTheDocument();
 });
 
 test("falha do detalhe preserva lista e oferece retry regional", async () => {

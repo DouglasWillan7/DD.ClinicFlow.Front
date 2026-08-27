@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { Plus } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { ApiError } from "../../api/client";
-import type { BodyAssessment, Patient } from "../../api/types";
+import type { BodyAssessment, PatientDemographic } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { AssessmentsChart } from "./AssessmentsChart";
@@ -19,6 +19,8 @@ import {
 import { latestAssessment, latestHeightCm } from "./bodyAssessments";
 import { usePatientClinicalSummary } from "./exams/clinicalReportQueries";
 import { NewAssessmentDialog } from "./NewAssessmentDialog";
+import { ClinicalAccessNotice } from "./ClinicalAccessNotice";
+import { isClinicalAccessDenied } from "./patientClinicalAccess";
 import { PatientHeader } from "./PatientHeader";
 import styles from "./PatientAssessmentsPage.module.css";
 
@@ -35,7 +37,7 @@ export function PatientAssessmentsPage({ patientId }: { patientId: string }) {
 
   const patient = useQuery({
     queryKey: ["patients", patientId],
-    queryFn: () => request<Patient>(`/patients/${patientId}`),
+    queryFn: () => request<PatientDemographic>(`/patients/${patientId}`),
   });
   const assessments = useQuery({
     queryKey: ["patients", patientId, "assessments"],
@@ -103,6 +105,24 @@ export function PatientAssessmentsPage({ patientId }: { patientId: string }) {
   }
 
   const person = patient.data;
+  const clinicalAccessDenied =
+    isClinicalAccessDenied(assessments.error) ||
+    isClinicalAccessDenied(clinicalSummary.error);
+
+  if (clinicalAccessDenied) {
+    return (
+      <div className={styles.content}>
+        <PatientHeader patient={person} activeSection="assessments" />
+        <ClinicalAccessNotice
+          patientId={patientId}
+          onRetry={() => {
+            void assessments.refetch();
+            void clinicalSummary.refetch();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.content}>

@@ -1,8 +1,11 @@
 import { ArrowLeft, FilePlus2, FileUp } from "lucide-react";
-import type { Patient, PatientExamCapabilities } from "../../api/types";
+import type {
+  PatientDemographic,
+  PatientExamCapabilities,
+} from "../../api/types";
 import { Link, useNavigate } from "../../app/navigation";
 import { getInitials } from "../appointments/appointmentLabels";
-import { formatMedicalRecord, getAge } from "./patientFormatters";
+import { getAge } from "./patientFormatters";
 import { PatientSectionNav } from "./PatientSectionNav";
 import styles from "./PatientHeader.module.css";
 
@@ -19,13 +22,18 @@ export function PatientHeader({
   activeSection,
   capabilities,
 }: {
-  patient: Patient;
+  patient: PatientDemographic;
   activeSection: PatientSection;
   capabilities?: PatientExamCapabilities;
 }) {
   const navigate = useNavigate();
   const age = getAge(patient.birthDate);
-  const medicalRecord = formatMedicalRecord(patient.medicalRecordNumber);
+  const metadata = [
+    age === null ? null : `${age} anos`,
+    patient.phone.trim() || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <header className={styles.header}>
@@ -56,10 +64,7 @@ export function PatientHeader({
 
           <div className={styles.identityCopy}>
             <h1>{patient.name}</h1>
-            <p>
-              {age === null ? null : <span>{age} anos · </span>}
-              Prontuário {medicalRecord}
-            </p>
+            {metadata ? <p>{metadata}</p> : null}
             {patient.isActive ? null : (
               <span className={styles.inactive}>Cadastro inativo</span>
             )}

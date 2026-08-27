@@ -13,7 +13,7 @@ import type {
   DiscardFailedExamRequest,
   ExamListFilters,
   OpenExamRevisionRequest,
-  Patient,
+  PatientDemographic,
   PatientExamDetail,
   SaveExamRevisionRequest,
   UpdateExamRequest,
@@ -43,6 +43,8 @@ import { ExamRequestComposer } from "./exams/ExamRequestComposer";
 import { ExamRevisionEditor } from "./exams/ExamRevisionEditor";
 import { ExamUploadComposer } from "./exams/ExamUploadComposer";
 import { PatientHeader } from "./PatientHeader";
+import { ClinicalAccessNotice } from "./ClinicalAccessNotice";
+import { isClinicalAccessDenied } from "./patientClinicalAccess";
 import styles from "./PatientExamsPage.module.css";
 
 const initialFilters: ExamListFilters = {
@@ -66,7 +68,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
 
   const patient = useQuery({
     queryKey: ["patients", patientId],
-    queryFn: () => request<Patient>(`/patients/${patientId}`),
+    queryFn: () => request<PatientDemographic>(`/patients/${patientId}`),
   });
 
   const list = useInfiniteQuery({
@@ -265,6 +267,19 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
   }
 
   const person = patient.data;
+
+  if (isClinicalAccessDenied(list.error)) {
+    return (
+      <div className={styles.content}>
+        <PatientHeader patient={person} activeSection="exams" />
+        <ClinicalAccessNotice
+          patientId={patientId}
+          onRetry={() => void list.refetch()}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.content}>
       <PatientHeader

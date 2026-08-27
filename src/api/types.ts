@@ -351,20 +351,25 @@ export interface TranscriptionEvent {
 
 export type SexForClinicalUse = "Feminino" | "Masculino";
 
-export interface Patient {
+/** Projeção operacional mínima devolvida por GET /patients/{id}. */
+export interface PatientDemographic {
   id: string;
+  name: string;
+  phone: string;
+  birthDate: string | null;
+  isActive: boolean;
+}
+
+/** Cadastro completo usado somente por contratos que autorizam esses dados. */
+export interface Patient extends PatientDemographic {
   documentCountryCode: string;
   documentType: string;
   document: string;
   medicalRecordNumber: number;
   bloodType: BloodType | null;
   sexForClinicalUse: SexForClinicalUse | null;
-  name: string;
-  phone: string;
   email: string | null;
-  birthDate: string | null;
   notes: string | null;
-  isActive: boolean;
   createdAtUtc: string;
 }
 
@@ -374,8 +379,8 @@ export type PatientSituation =
   | "ExamePendente"
   | "Inativo";
 
-/** Item de GET /patients: cadastro + resumo de agenda/exames calculado pelo backend. */
-export interface PatientListItem extends Patient {
+/** Projeção operacional de GET /patients para listagem e agendamento. */
+export interface PatientListItem extends PatientDemographic {
   lastAppointmentUtc: string | null;
   nextAppointmentUtc: string | null;
   nextAppointmentType: AppointmentType | null;

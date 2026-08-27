@@ -2,7 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from "date-fns-tz";
 import { CalendarDays, Video } from "lucide-react";
 import { ApiError } from "../../api/client";
-import type { Appointment, Clinic, Patient } from "../../api/types";
+import type {
+  Appointment,
+  Clinic,
+  PatientDemographic,
+} from "../../api/types";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
@@ -12,13 +16,10 @@ import {
   isAppointmentTerminal,
 } from "../appointments/appointmentStatus";
 import { usePatientClinicalSummary } from "./exams/clinicalReportQueries";
+import { isClinicalAccessDenied } from "./patientClinicalAccess";
 import { PatientClinicalOverview } from "./PatientClinicalOverview";
 import { PatientHeader } from "./PatientHeader";
-import {
-  formatPatientDocument,
-  formatDateOnly,
-  formatMedicalRecord,
-} from "./patientFormatters";
+import { formatDateOnly } from "./patientFormatters";
 import styles from "./PatientDetailPage.module.css";
 
 function nextAppointment(items: Appointment[]) {
@@ -40,7 +41,7 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
   const navigate = useNavigate();
   const patient = useQuery({
     queryKey: ["patients", patientId],
-    queryFn: () => request<Patient>(`/patients/${patientId}`),
+    queryFn: () => request<PatientDemographic>(`/patients/${patientId}`),
   });
   const clinic = useQuery({
     queryKey: ["clinic", "current"],
@@ -92,22 +93,20 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
                 <dd>{formatDateOnly(person.birthDate)}</dd>
               </div>
               <div>
-                <dt>{person.documentType}</dt>
-                <dd>{formatPatientDocument(
-                  person.documentCountryCode,
-                  person.documentType,
-                  person.document,
-                )}</dd>
+                <dt>Telefone</dt>
+                <dd>{person.phone}</dd>
               </div>
               <div>
-                <dt>Prontuário</dt>
-                <dd>{formatMedicalRecord(person.medicalRecordNumber)}</dd>
+                <dt>Cadastro</dt>
+                <dd>{person.isActive ? "Ativo" : "Inativo"}</dd>
               </div>
               <div>
                 <dt>Última coleta</dt>
                 <dd>
                   {clinicalSummary.isLoading
                     ? "Carregando…"
+                    : isClinicalAccessDenied(clinicalSummary.error)
+                      ? "Acesso pendente"
                     : formatDateOnly(
                         clinicalSummary.data?.latestCollectionDate ?? null,
                       )}
@@ -171,7 +170,7 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
             patientId={patientId}
             summary={clinicalSummary.data}
             loading={clinicalSummary.isLoading}
-            error={clinicalSummary.isError}
+            error={clinicalSummary.error}
             onRetry={() => void clinicalSummary.refetch()}
           />
         </div>

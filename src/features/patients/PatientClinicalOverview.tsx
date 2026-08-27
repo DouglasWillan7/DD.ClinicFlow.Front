@@ -12,6 +12,8 @@ import type {
 } from "../../api/types";
 import { useNavigate } from "../../app/navigation";
 import { ErrorBlock } from "../../components/Feedback";
+import { ClinicalAccessNotice } from "./ClinicalAccessNotice";
+import { isClinicalAccessDenied } from "./patientClinicalAccess";
 import {
   clinicalExamCategoryLabel,
   clinicalExamOutcomeLabel,
@@ -54,13 +56,13 @@ export function PatientClinicalOverview({
   patientId,
   summary,
   loading = false,
-  error = false,
+  error,
   onRetry,
 }: {
   patientId: string;
   summary: PatientClinicalSummary | undefined;
   loading?: boolean;
-  error?: boolean;
+  error?: unknown;
   onRetry?: () => void;
 }) {
   const navigate = useNavigate();
@@ -77,6 +79,10 @@ export function PatientClinicalOverview({
         <i aria-hidden="true" />
       </section>
     );
+  }
+
+  if (isClinicalAccessDenied(error)) {
+    return <ClinicalAccessNotice patientId={patientId} onRetry={onRetry} />;
   }
 
   if (error || !summary) {

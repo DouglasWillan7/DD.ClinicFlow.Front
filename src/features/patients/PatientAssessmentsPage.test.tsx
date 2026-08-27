@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
+import { ApiError } from "../../api/client";
 import type { BodyAssessment, BodyMeasurementType, Patient } from "../../api/types";
 import { PatientAssessmentsPage } from "./PatientAssessmentsPage";
 
@@ -12,6 +13,11 @@ const { requestMock, navigateMock } = vi.hoisted(() => ({
 
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: () => ({ request: requestMock }),
+}));
+vi.mock("../patient-actions/ClinicalAccessEmailAction", () => ({
+  ClinicalAccessEmailAction: ({ patientId }: { patientId: string }) => (
+    <button type="button">Enviar autorização de {patientId}</button>
+  ),
 }));
 vi.mock("../../app/navigation", () => ({
   useNavigate: () => navigateMock,
@@ -139,6 +145,31 @@ test("estado vazio descreve a própria aba sem mencionar a figura removida", asy
 
   expect(await screen.findByText("A primeira avaliação aparece aqui e passa a servir de base para as variações seguintes.")).toBeVisible();
   expect(screen.queryByText(/figura/i)).not.toBeInTheDocument();
+});
+
+test("oculta controles clínicos enquanto a autorização está pendente", async () => {
+  requestMock.mockImplementation((path: string) => {
+    if (path === `/patients/${patient.id}`) return Promise.resolve(patient);
+    if (
+      path === `/assessments/patients/${patient.id}` ||
+      path === `/exams/patients/${patient.id}/clinical-summary`
+    ) {
+      return Promise.reject(
+        new ApiError("Usuário sem acesso clínico ao paciente.", 403),
+      );
+    }
+    return Promise.reject(new Error(`rota inesperada: ${path}`));
+  });
+
+  renderPage();
+
+  expect(await screen.findByRole("heading", { name: "Acesso clínico pendente" }))
+    .toBeVisible();
+  expect(screen.queryByRole("button", { name: "Nova avaliação" }))
+    .not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: `Enviar autorização de ${patient.id}` }))
+    .toBeVisible();
+  expect(screen.queryByText("Algo saiu do fluxo")).not.toBeInTheDocument();
 });
 
 test("alterna para gráfico e desliga uma métrica pelos chips", async () => {
