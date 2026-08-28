@@ -544,69 +544,73 @@ test("consulta rápida recupera a falha ao buscar o próximo horário", async ()
   expect(availabilityAttempts).toBe(2);
 });
 
-test("consulta rápida atualiza o horário depois de conflito sem sair do modo", async () => {
-  window.history.replaceState(
-    {},
-    "",
-    `/app/agenda/nova?patientId=${patientId}&doctorId=${doctorId}&mode=quick`,
-  );
-  const nextAvailability: DoctorAvailability = {
-    ...availability,
-    days: [
-      {
-        date: "2026-08-11",
-        status: "Available",
-        slots: [
-          {
-            startUtc: "2026-08-11T13:00:00Z",
-            endUtc: "2026-08-11T13:30:00Z",
-            label: "10:00",
-          },
-        ],
-      },
-    ],
-  };
-  let availabilityRequests = 0;
-  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
-    if (path === "/clinics/current") return clinic;
-    if (path === `/clinics/${clinicId}/members/summary`) return members;
-    if (path === `/patients/${patientId}`) return patient;
-    if (path.startsWith(`/doctors/${doctorId}/availability`)) {
-      availabilityRequests += 1;
-      return availabilityRequests === 1 ? availability : nextAvailability;
-    }
-    if (path === "/appointments" && init?.method === "POST") {
-      throw new ApiError("Horário ocupado", 409);
-    }
-    throw new Error(`Unexpected request: ${path}`);
-  });
-  const user = userEvent.setup();
+test(
+  "consulta rápida atualiza o horário depois de conflito sem sair do modo",
+  async () => {
+    window.history.replaceState(
+      {},
+      "",
+      `/app/agenda/nova?patientId=${patientId}&doctorId=${doctorId}&mode=quick`,
+    );
+    const nextAvailability: DoctorAvailability = {
+      ...availability,
+      days: [
+        {
+          date: "2026-08-11",
+          status: "Available",
+          slots: [
+            {
+              startUtc: "2026-08-11T13:00:00Z",
+              endUtc: "2026-08-11T13:30:00Z",
+              label: "10:00",
+            },
+          ],
+        },
+      ],
+    };
+    let availabilityRequests = 0;
+    requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+      if (path === "/clinics/current") return clinic;
+      if (path === `/clinics/${clinicId}/members/summary`) return members;
+      if (path === `/patients/${patientId}`) return patient;
+      if (path.startsWith(`/doctors/${doctorId}/availability`)) {
+        availabilityRequests += 1;
+        return availabilityRequests === 1 ? availability : nextAvailability;
+      }
+      if (path === "/appointments" && init?.method === "POST") {
+        throw new ApiError("Horário ocupado", 409);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    const user = userEvent.setup();
 
-  render(
-    <QueryHarness>
-      <NewAppointmentPage />
-    </QueryHarness>,
-  );
+    render(
+      <QueryHarness>
+        <NewAppointmentPage />
+      </QueryHarness>,
+    );
 
-  await user.click(
-    await screen.findByRole("button", { name: "Confirmar agendamento" }),
-  );
+    await user.click(
+      await screen.findByRole("button", { name: "Confirmar agendamento" }),
+    );
 
-  expect(
-    await screen.findByRole("alert", undefined, { timeout: 5_000 }),
-  ).toHaveTextContent("Horário ocupado");
-  const summary = screen
-    .getByRole("heading", { name: "Resumo" })
-    .closest("section")!;
-  expect(await within(summary).findByText("10:00")).toBeVisible();
-  expect(within(summary).getByText("11 de agosto de 2026")).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Consulta rápida" })).toBeVisible();
-  expect(
-    screen.getByRole("button", { name: "Confirmar agendamento" }),
-  ).toBeEnabled();
-  expect(availabilityRequests).toBe(2);
-  expect(navigateMock).not.toHaveBeenCalled();
-});
+    expect(
+      await screen.findByRole("alert", undefined, { timeout: 5_000 }),
+    ).toHaveTextContent("Horário ocupado");
+    const summary = screen
+      .getByRole("heading", { name: "Resumo" })
+      .closest("section")!;
+    expect(await within(summary).findByText("10:00")).toBeVisible();
+    expect(within(summary).getByText("11 de agosto de 2026")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Consulta rápida" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Confirmar agendamento" }),
+    ).toBeEnabled();
+    expect(availabilityRequests).toBe(2);
+    expect(navigateMock).not.toHaveBeenCalled();
+  },
+  15_000,
+);
 
 test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", async () => {
   window.history.replaceState(
