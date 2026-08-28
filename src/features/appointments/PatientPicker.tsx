@@ -1,15 +1,11 @@
 import { UserRound } from "lucide-react";
-import type { Patient } from "../../api/types";
-import {
-  formatBloodType,
-  formatMedicalRecord,
-  getAge,
-} from "../patients/patientFormatters";
+import type { PatientDemographic } from "../../api/types";
+import { getAge } from "../patients/patientFormatters";
 import { getInitials } from "./appointmentLabels";
 import styles from "./NewAppointmentPage.module.css";
 
 export interface PatientPickerProps {
-  patient: Patient | null;
+  patient: PatientDemographic | null;
   onOpen(): void;
 }
 
@@ -18,8 +14,7 @@ export function PatientPicker({ patient, onOpen }: PatientPickerProps) {
   const details = patient
     ? [
         age === null ? null : `${age} anos`,
-        patient.bloodType ? formatBloodType(patient.bloodType) : null,
-        `Prontuário nº ${formatMedicalRecord(patient.medicalRecordNumber)}`,
+        patient.phone.trim() || null,
       ].filter(Boolean)
     : [];
 

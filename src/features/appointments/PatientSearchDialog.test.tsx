@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { ApiError } from "../../api/client";
-import type { AuthResponse, Patient } from "../../api/types";
+import type { AuthResponse, PatientListItem } from "../../api/types";
 import { PatientSearchDialog } from "./PatientSearchDialog";
 
 let requestMock: unknown = vi.fn();
@@ -89,23 +89,17 @@ const sessionB = makeSession(
 function makePatient(
   id: string,
   name: string,
-  createdAtUtc = "2026-08-01T12:00:00Z",
-): Patient {
+): PatientListItem {
   return {
     id,
-    documentCountryCode: "BR",
-    documentType: "CPF",
-    document: "52998224725",
     name,
     phone: "+5511999990000",
-    email: null,
-    medicalRecordNumber: 48213,
-    bloodType: "APositive",
-    sexForClinicalUse: null,
     birthDate: "1980-03-10",
-    notes: null,
     isActive: true,
-    createdAtUtc,
+    lastAppointmentUtc: null,
+    nextAppointmentUtc: null,
+    nextAppointmentType: null,
+    situation: "EmAcompanhamento",
   };
 }
 
@@ -186,12 +180,12 @@ describe("PatientSearchDialog", () => {
     expect(requestB).toHaveBeenCalledOnce();
   });
 
-  test("mostra somente os três pacientes mais recentes e seus metadados formatados", async () => {
+  test("mostra os três primeiros pacientes da ordem recente da API", async () => {
     const patients = [
-      makePatient("p-1", "Paciente Um", "2026-08-01T12:00:00Z"),
-      makePatient("p-2", "Paciente Dois", "2026-08-04T12:00:00Z"),
-      makePatient("p-3", "Paciente Três", "2026-08-03T12:00:00Z"),
-      makePatient("p-4", "Paciente Quatro", "2026-08-02T12:00:00Z"),
+      makePatient("p-2", "Paciente Dois"),
+      makePatient("p-3", "Paciente Três"),
+      makePatient("p-4", "Paciente Quatro"),
+      makePatient("p-1", "Paciente Um"),
     ];
     const request = vi.fn().mockResolvedValue(patients);
     mockUseAuthRequest(request);
@@ -220,8 +214,7 @@ describe("PatientSearchDialog", () => {
       expect.stringContaining("Paciente Quatro"),
     ]);
     expect(screen.getAllByText("10/03/1980").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("529.982.247-25").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Prontuário 48.213").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("+5511999990000").length).toBeGreaterThan(0);
   });
 
   test("busca com debounce, normaliza CPF e Enter seleciona o primeiro resultado", async () => {
@@ -357,8 +350,8 @@ describe("PatientSearchDialog", () => {
 
   test("ignora uma resposta antiga que termina depois da busca atual", async () => {
     vi.useFakeTimers();
-    const marinaResponse = deferred<Patient[]>();
-    const carlosResponse = deferred<Patient[]>();
+    const marinaResponse = deferred<PatientListItem[]>();
+    const carlosResponse = deferred<PatientListItem[]>();
     const marina = makePatient("p-marina", "Marina Oliveira");
     const carlos = makePatient("p-carlos", "Carlos Souza");
     const request = vi.fn((path: string) => {
@@ -472,7 +465,7 @@ describe("PatientSearchDialog", () => {
   });
 
   test("comunica carregamento, falha recuperável e busca vazia", async () => {
-    const response = deferred<Patient[]>();
+    const response = deferred<PatientListItem[]>();
     const request = vi
       .fn()
       .mockReturnValueOnce(response.promise)

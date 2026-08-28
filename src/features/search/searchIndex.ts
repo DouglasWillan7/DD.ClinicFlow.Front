@@ -1,7 +1,7 @@
 import type { Member, PatientListItem } from "../../api/types";
 import { getDoctorName, listDoctors } from "../appointments/agendaDoctors";
 import { getInitials, normalizeSearch } from "../appointments/appointmentLabels";
-import { formatMedicalRecord, getAge } from "../patients/patientFormatters";
+import { getAge } from "../patients/patientFormatters";
 
 export type SearchKind = "patient" | "doctor";
 
@@ -19,9 +19,9 @@ export interface SearchEntry {
   folded: string;
   /** Para cada caractere de `folded`, o índice equivalente em `title`. */
   foldedMap: number[];
-  /** Campos secundários em texto: especialidade, e-mail, prontuário. */
+  /** Campos secundários em texto, como a especialidade. */
   textAliases: string[];
-  /** CPF e telefone; só casam a partir de 3 dígitos, como na lista. */
+  /** Telefone; só casa a partir de 3 dígitos, como na lista. */
   digitAliases: string[];
 }
 
@@ -67,13 +67,6 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-/** A busca mostra só o final do documento para evitar repetir o identificador completo. */
-function formatDocumentSuffix(documentType: string, document: string) {
-  const normalized = document.replace(/\s/g, "");
-  if (normalized.length < 4) return null;
-  return `${documentType} final ${normalized.slice(-4)}`;
-}
-
 export function buildPatientEntries(
   patients: PatientListItem[],
   today = new Date(),
@@ -89,18 +82,15 @@ export function buildPatientEntries(
       subtitle: [
         patient.isActive ? null : "Inativo",
         age === null ? null : `${age} anos`,
-        `Pront. ${formatMedicalRecord(patient.medicalRecordNumber)}`,
-        formatDocumentSuffix(patient.documentType, patient.document),
+        patient.phone.trim() || null,
       ]
         .filter(Boolean)
         .join(" · "),
       initials: getInitials(patient.name),
       folded,
       foldedMap: map,
-      textAliases: [String(patient.medicalRecordNumber)],
-      digitAliases: [onlyDigits(patient.document), onlyDigits(patient.phone)].filter(
-        Boolean,
-      ),
+      textAliases: [],
+      digitAliases: [onlyDigits(patient.phone)].filter(Boolean),
     };
   });
 }

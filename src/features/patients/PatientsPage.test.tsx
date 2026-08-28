@@ -47,19 +47,10 @@ const clinic: Clinic = {
 function makePatient(overrides: Partial<PatientListItem>): PatientListItem {
   return {
     id: crypto.randomUUID(),
-    documentCountryCode: "BR",
-    documentType: "CPF",
-    document: "52998224725",
     name: "Paciente Teste",
     phone: "+5511999990000",
-    email: null,
-    medicalRecordNumber: 48213,
-    bloodType: null,
-    sexForClinicalUse: null,
     birthDate: "1984-03-12",
-    notes: null,
     isActive: true,
-    createdAtUtc: "2026-08-01T12:00:00Z",
     lastAppointmentUtc: "2026-08-03T14:00:00Z",
     nextAppointmentUtc: "2026-08-20T17:00:00Z",
     nextAppointmentType: "Teleconsultation",
@@ -69,10 +60,9 @@ function makePatient(overrides: Partial<PatientListItem>): PatientListItem {
 }
 
 const patients: PatientListItem[] = [
-  makePatient({ name: "Mohammad Jaber", document: "41288755601" }),
+  makePatient({ name: "Mohammad Jaber" }),
   makePatient({
     name: "Fernanda Costa",
-    document: "11144477735",
     situation: "NovoPaciente",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
@@ -80,7 +70,6 @@ const patients: PatientListItem[] = [
   }),
   makePatient({
     name: "Helena Martins",
-    document: "93541134780",
     situation: "Inativo",
     isActive: false,
     nextAppointmentUtc: null,
@@ -132,8 +121,7 @@ test("lista pacientes com resumo, contador e badges de situação", async () => 
   expect(screen.getByText("3 de 3")).toBeVisible();
 
   const mohammad = rows[2];
-  expect(within(mohammad).getByText(/Pront\. 48\.213/)).toBeVisible();
-  expect(within(mohammad).getByText(/CPF 412\.887\.556-01/)).toBeVisible();
+  expect(within(mohammad).getByText("+5511999990000")).toBeVisible();
   // 14:00 UTC → 11:00 em São Paulo.
   expect(within(mohammad).getByText("03/08/2026")).toBeVisible();
   expect(within(mohammad).getByText("20/08 · 14:00")).toBeVisible();

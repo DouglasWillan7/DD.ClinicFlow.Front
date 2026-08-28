@@ -12,18 +12,9 @@ function patient(
   overrides: Partial<PatientListItem> & Pick<PatientListItem, "id" | "name">,
 ): PatientListItem {
   return {
-    documentCountryCode: "BR",
-    documentType: "CPF",
-    document: "12345678901",
-    medicalRecordNumber: 1024,
-    bloodType: null,
-    sexForClinicalUse: null,
     phone: "+5511988887777",
-    email: null,
     birthDate: "1990-03-10",
-    notes: null,
     isActive: true,
-    createdAtUtc: "2026-01-01T12:00:00Z",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
     nextAppointmentType: null,
@@ -48,8 +39,6 @@ const mariana = patient({ id: "p1", name: "Mariana Souza Almeida" });
 const marcos = patient({
   id: "p2",
   name: "Marcos Vinícius Teles",
-  medicalRecordNumber: 88,
-  document: "98765432100",
   phone: "+5511977776666",
 });
 const amaral = patient({ id: "p3", name: "Bruno Amarante" });
@@ -62,8 +51,24 @@ const doctors = buildDoctorEntries([
 ]);
 
 describe("buildPatientEntries", () => {
-  test("descreve o paciente com idade, prontuário e final do CPF", () => {
-    expect(patients[0].subtitle).toBe("36 anos · Pront. 1.024 · CPF final 8901");
+  test("aceita a projeção operacional devolvida pela sessão validada", () => {
+    const operationalPatient = {
+      id: "p-operational",
+      name: "Paciente Operacional",
+      phone: "+5511987654321",
+      birthDate: "1990-03-10",
+      isActive: true,
+      lastAppointmentUtc: null,
+      nextAppointmentUtc: null,
+      nextAppointmentType: null,
+      situation: "NovoPaciente",
+    } as PatientListItem;
+
+    expect(() => buildPatientEntries([operationalPatient], today)).not.toThrow();
+  });
+
+  test("descreve o paciente apenas com os metadados operacionais", () => {
+    expect(patients[0].subtitle).toBe("36 anos · +5511988887777");
     expect(patients[0].initials).toBe("MA");
   });
 
@@ -80,7 +85,7 @@ describe("buildPatientEntries", () => {
       [patient({ id: "p5", name: "Ana Teixeira", birthDate: null })],
       today,
     );
-    expect(semData.subtitle).toBe("Pront. 1.024 · CPF final 8901");
+    expect(semData.subtitle).toBe("+5511988887777");
   });
 });
 
@@ -111,16 +116,11 @@ describe("searchEntries", () => {
     );
   });
 
-  test("casa CPF e telefone a partir de 3 dígitos, e prontuário direto", () => {
-    expect(searchEntries(patients, "9876", 3).map((hit) => hit.entry.id)).toEqual(
-      ["p2"],
-    );
+  test("casa telefone a partir de 3 dígitos", () => {
     expect(
       searchEntries(patients, "97777", 3).map((hit) => hit.entry.id),
     ).toEqual(["p2"]);
-    expect(searchEntries(patients, "88", 3).map((hit) => hit.entry.id)).toEqual([
-      "p2",
-    ]);
+    expect(searchEntries(patients, "97", 3)).toEqual([]);
   });
 
   test("respeita o limite por grupo e não abre com termo em branco", () => {
@@ -140,7 +140,7 @@ describe("searchEntries", () => {
   });
 
   test("resultado achado só pelo apelido não destaca nada no nome", () => {
-    const [hit] = searchEntries(patients, "9876", 3);
+    const [hit] = searchEntries(patients, "97777", 3);
     expect(hit.highlight).toBeNull();
     expect(splitHighlight(hit.entry.title, hit.highlight)).toEqual([
       { text: "Marcos Vinícius Teles", match: false },

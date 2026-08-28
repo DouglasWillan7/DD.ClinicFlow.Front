@@ -2,7 +2,7 @@ import type {
   AppointmentType,
   AvailabilitySlot,
   Member,
-  Patient,
+  PatientDemographic,
 } from "../../api/types";
 import { SCOPED_SESSION_STORAGE_PREFIX } from "../../auth/sessionScope";
 
@@ -10,7 +10,7 @@ const DRAFT_KEY_PREFIX = `${SCOPED_SESSION_STORAGE_PREFIX}new-appointment-draft:
 const DRAFT_VERSION = 1;
 
 export interface NewAppointmentSelection {
-  patient: Patient | null;
+  patient: PatientDemographic | null;
   doctor: Member | null;
   type: AppointmentType | null;
   date: string | null;
@@ -40,7 +40,7 @@ export const emptyNewAppointmentSelection: NewAppointmentSelection = {
 };
 
 export type NewAppointmentSelectionAction =
-  | { type: "patient"; patient: Patient | null }
+  | { type: "patient"; patient: PatientDemographic | null }
   | { type: "doctor"; doctor: Member | null }
   | { type: "appointmentType"; appointmentType: AppointmentType | null }
   | { type: "date"; date: string | null }

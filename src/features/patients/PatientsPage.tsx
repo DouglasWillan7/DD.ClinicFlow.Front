@@ -8,11 +8,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
 import { ErrorBlock } from "../../components/Feedback";
 import { getInitials } from "../appointments/appointmentLabels";
-import {
-  formatMedicalRecord,
-  formatPatientDocument,
-  getAge,
-} from "./patientFormatters";
+import { getAge } from "./patientFormatters";
 import {
   countBySituation,
   filterPatients,
@@ -84,7 +80,7 @@ export function PatientsPage() {
             type="search"
             value={search}
             onChange={(event) => updateSearch(event.target.value)}
-            placeholder="Filtrar por nome, CPF, prontuário ou telefone…"
+            placeholder="Filtrar por nome ou telefone…"
           />
         </label>
       </form>
@@ -175,9 +171,6 @@ export function PatientsPage() {
                       </span>
                       <span className={styles.identityCopy}>
                         <span className={styles.name}>{patient.name}</span>
-                        <span className={styles.record}>
-                          {`Pront. ${formatMedicalRecord(patient.medicalRecordNumber)} · ${patient.documentType} ${formatPatientDocument(patient.documentCountryCode, patient.documentType, patient.document)}`}
-                        </span>
                       </span>
                     </span>
                     <span className={styles.cell} data-label="Idade">

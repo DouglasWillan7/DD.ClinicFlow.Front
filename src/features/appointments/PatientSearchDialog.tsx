@@ -11,15 +11,11 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Patient } from "../../api/types";
+import type { PatientDemographic, PatientListItem } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { getAuthScope } from "../../auth/sessionScope";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
-import {
-  formatBirthDate,
-  formatMedicalRecord,
-  formatPatientDocument,
-} from "../patients/patientFormatters";
+import { formatBirthDate } from "../patients/patientFormatters";
 import { getInitials } from "./appointmentLabels";
 import styles from "./NewAppointmentPage.module.css";
 
@@ -30,7 +26,7 @@ const MAX_RECENT_PATIENTS = 3;
 export interface PatientSearchDialogProps {
   open: boolean;
   selectedId: string | null;
-  onSelect(patient: Patient): void;
+  onSelect(patient: PatientDemographic): void;
   onClose(): void;
   onCreate(): void;
 }
@@ -73,7 +69,7 @@ export function PatientSearchDialog({
   const patientsQuery = useQuery({
     queryKey: ["patients", authScope, "search-dialog", debouncedQuery],
     queryFn: () =>
-      request<Patient[]>(
+      request<PatientListItem[]>(
         debouncedQuery
           ? `/patients?search=${encodeURIComponent(debouncedQuery)}&includeInactive=false`
           : "/patients?includeInactive=false",
@@ -84,12 +80,7 @@ export function PatientSearchDialog({
   const patients = useMemo(() => {
     const data = patientsQuery.data ?? [];
     if (debouncedQuery) return data.slice(0, MAX_SEARCH_RESULTS);
-    return [...data]
-      .sort(
-        (first, second) =>
-          Date.parse(second.createdAtUtc) - Date.parse(first.createdAtUtc),
-      )
-      .slice(0, MAX_RECENT_PATIENTS);
+    return data.slice(0, MAX_RECENT_PATIENTS);
   }, [debouncedQuery, patientsQuery.data]);
 
   const activePatientIndex = patients.findIndex(
@@ -136,7 +127,7 @@ export function PatientSearchDialog({
     onClose();
   }
 
-  function selectPatient(patient: Patient) {
+  function selectPatient(patient: PatientDemographic) {
     onSelect(patient);
     closeDialog();
   }
@@ -325,17 +316,7 @@ export function PatientSearchDialog({
                         <span>Nasc.:</span>
                         <span>{formatBirthDate(patient.birthDate)}</span>
                         <span aria-hidden="true">·</span>
-                        <span>{patient.documentType}</span>
-                        <span>{formatPatientDocument(
-                          patient.documentCountryCode,
-                          patient.documentType,
-                          patient.document,
-                        )}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>
-                          Prontuário{" "}
-                          {formatMedicalRecord(patient.medicalRecordNumber)}
-                        </span>
+                        <span>{patient.phone}</span>
                       </span>
                     </span>
                     {patient.id === selectedId ? (

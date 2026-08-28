@@ -49,18 +49,9 @@ function patient(
   overrides: Partial<PatientListItem> & Pick<PatientListItem, "id" | "name">,
 ): PatientListItem {
   return {
-    documentCountryCode: "BR",
-    documentType: "CPF",
-    document: "12345678901",
-    medicalRecordNumber: 1024,
-    bloodType: null,
-    sexForClinicalUse: null,
     phone: "+5511988887777",
-    email: null,
     birthDate: "1990-03-10",
-    notes: null,
     isActive: true,
-    createdAtUtc: "2026-01-01T12:00:00Z",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
     nextAppointmentType: null,
@@ -71,7 +62,7 @@ function patient(
 
 const patients: PatientListItem[] = [
   patient({ id: "p1", name: "Mariana Souza Almeida" }),
-  patient({ id: "p2", name: "Marcos Vinícius Teles", medicalRecordNumber: 88 }),
+  patient({ id: "p2", name: "Marcos Vinícius Teles" }),
 ];
 const members: Member[] = [
   {

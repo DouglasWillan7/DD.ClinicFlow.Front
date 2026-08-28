@@ -25,7 +25,7 @@ import type {
   DoctorAvailability,
   HealthcarePlan,
   Member,
-  Patient,
+  PatientDemographic,
   UserClinicHealthcarePlans,
 } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
@@ -213,7 +213,9 @@ export function NewAppointmentPage() {
   const patient = useQuery({
     queryKey: ["new-appointment", authScope, "patient", requestedPatientId],
     queryFn: () =>
-      request<Patient>(`/patients/${encodeURIComponent(requestedPatientId!)}`),
+      request<PatientDemographic>(
+        `/patients/${encodeURIComponent(requestedPatientId!)}`,
+      ),
     enabled: Boolean(authScope && requestedPatientId),
   });
 

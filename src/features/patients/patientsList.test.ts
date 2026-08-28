@@ -6,24 +6,13 @@ import {
   matchesSearch,
 } from "./patientsList";
 
-let record = 1000;
 function makePatient(overrides: Partial<PatientListItem>): PatientListItem {
-  record += 1;
   return {
     id: crypto.randomUUID(),
-    documentCountryCode: "BR",
-    documentType: "CPF",
-    document: "52998224725",
     name: "Paciente Teste",
     phone: "+5511999990000",
-    email: null,
-    medicalRecordNumber: record,
-    bloodType: null,
-    sexForClinicalUse: null,
     birthDate: null,
-    notes: null,
     isActive: true,
-    createdAtUtc: "2026-08-01T12:00:00Z",
     lastAppointmentUtc: null,
     nextAppointmentUtc: null,
     nextAppointmentType: null,
@@ -40,19 +29,12 @@ describe("matchesSearch", () => {
     expect(matchesSearch(patient, "carlos")).toBe(false);
   });
 
-  test("busca por CPF exige 3+ dígitos e ignora máscara", () => {
-    const patient = makePatient({ document: "52998224725" });
-    expect(matchesSearch(patient, "529.982")).toBe(true);
-    expect(matchesSearch(patient, "52")).toBe(false);
-  });
-
-  test("busca por telefone e prontuário", () => {
+  test("busca por telefone exige ao menos três dígitos", () => {
     const patient = makePatient({
       phone: "+5511988887777",
-      medicalRecordNumber: 48213,
     });
     expect(matchesSearch(patient, "98888")).toBe(true);
-    expect(matchesSearch(patient, "48213")).toBe(true);
+    expect(matchesSearch(patient, "98")).toBe(false);
   });
 });
 
