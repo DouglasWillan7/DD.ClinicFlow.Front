@@ -7,8 +7,13 @@ import type {
   AuthResponse,
   AuthV2Authenticated,
   AuthV2LoginOutcome,
+  ClinicMembershipInvitationAcceptance,
 } from "../api/types";
-import { AuthProvider, useAuth } from "./AuthProvider";
+import {
+  AuthProvider,
+  type InvitationSessionResolution,
+  useAuth,
+} from "./AuthProvider";
 
 const { apiBlobRequestMock, apiRequestMock } = vi.hoisted(() => ({
   apiBlobRequestMock: vi.fn(),
@@ -26,6 +31,7 @@ let latestRefresh: Promise<AuthResponse> | null = null;
 let latestRecovery: Promise<AccountRecoveryOptions> | null = null;
 let latestRecoveryChallenge: Promise<void> | null = null;
 let latestSwitch: Promise<AuthResponse> | null = null;
+let latestInvitationResolution: InvitationSessionResolution | null = null;
 const persistentStore = new Map<string, string>();
 
 const authenticated: AuthV2Authenticated = {
@@ -43,6 +49,27 @@ const authenticated: AuthV2Authenticated = {
     email: "ana@clinica.test",
     phone: "+5511999999999",
   },
+};
+
+const existingAccountAuthenticated: AuthV2Authenticated = {
+  ...authenticated,
+  accessToken: "access-existing",
+  refreshToken: "refresh-existing",
+  user: { id: "user-existing", name: "Beatriz" },
+  clinicContext: {
+    ...authenticated.clinicContext,
+    userClinicId: "uc-existing",
+    clinicId: "clinic-existing",
+    clinicName: "Clínica Norte",
+    role: "Secretary",
+    isAdmin: false,
+    email: "beatriz@clinica.test",
+  },
+};
+
+const acceptedInvitation: ClinicMembershipInvitationAcceptance = {
+  outcome: "Accepted",
+  session: authenticated,
 };
 
 function storedSession(): AuthResponse {
@@ -177,6 +204,53 @@ function Controls() {
       >
         Trocar clínica
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          latestInvitationResolution = auth.persistInvitationSession(
+            acceptedInvitation,
+            false,
+          );
+        }}
+      >
+        Aceitar convite temporário
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          latestInvitationResolution = auth.persistInvitationSession(
+            {
+              outcome: "Accepted",
+              session: existingAccountAuthenticated,
+            },
+            true,
+          );
+        }}
+      >
+        Aceitar convite persistente
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          latestInvitationResolution = auth.persistInvitationSession(
+            { outcome: "AlreadyAccepted", session: null },
+            true,
+          );
+        }}
+      >
+        Repetir convite
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          latestInvitationResolution = auth.persistInvitationSession(
+            { outcome: "Accepted", session: null },
+            false,
+          );
+        }}
+      >
+        Aceite sem sessão
+      </button>
       <button type="button" onClick={auth.logout}>Sair</button>
     </>
   );
@@ -215,6 +289,7 @@ describe("AuthProvider identity v2", () => {
     latestRecovery = null;
     latestRecoveryChallenge = null;
     latestSwitch = null;
+    latestInvitationResolution = null;
   });
 
   test("autentica exclusivamente por documento e materializa o contexto da clínica", async () => {
@@ -357,6 +432,136 @@ describe("AuthProvider identity v2", () => {
     expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/logout", {
       method: "POST",
       body: JSON.stringify({ refreshToken: "refresh-v2" }),
+    });
+  });
+
+  test("materializa a sessão do primeiro aceite de identidade nova no storage da aba", async () => {
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(
+      screen.getByRole("button", { name: "Aceitar convite temporário" }),
+    );
+
+    expect(latestInvitationResolution).toMatchObject({
+      kind: "authenticated",
+      session: {
+        userId: "user-v2",
+        userClinicId: "uc-1",
+        clinicRole: "Doctor",
+        roles: ["Doctor", "Admin"],
+        tokens: { accessToken: "access-v2", refreshToken: "refresh-v2" },
+      },
+    });
+    expect(sessionStorage.getItem("clinicflow.session")).not.toBeNull();
+    expect(persistentStore.has("clinicflow.session")).toBe(false);
+  });
+
+  test("materializa a sessão de identidade existente no storage persistente", async () => {
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(
+      screen.getByRole("button", { name: "Aceitar convite persistente" }),
+    );
+
+    expect(latestInvitationResolution).toMatchObject({
+      kind: "authenticated",
+      session: {
+        userId: "user-existing",
+        userClinicId: "uc-existing",
+        clinicRole: "Secretary",
+        isAdmin: false,
+        roles: ["Secretary"],
+      },
+    });
+    expect(persistentStore.has("clinicflow.session")).toBe(true);
+    expect(sessionStorage.getItem("clinicflow.session")).toBeNull();
+  });
+
+  test("direciona ao login quando AlreadyAccepted chega sem a primeira sessão", async () => {
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(screen.getByRole("button", { name: "Repetir convite" }));
+
+    expect(latestInvitationResolution).toEqual({ kind: "login_required" });
+    expect(screen.getByLabelText("Sessão atual")).toHaveTextContent("sem sessão");
+  });
+
+  test("também direciona ao login se uma resposta Accepted inválida vier sem sessão", async () => {
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(screen.getByRole("button", { name: "Aceite sem sessão" }));
+
+    expect(latestInvitationResolution).toEqual({ kind: "login_required" });
+    expect(sessionStorage.getItem("clinicflow.session")).toBeNull();
+    expect(persistentStore.has("clinicflow.session")).toBe(false);
+  });
+
+  test("replay preserva e devolve a sessão válida já materializada", async () => {
+    const current = storedSession();
+    sessionStorage.setItem("clinicflow.session", JSON.stringify(current));
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(screen.getByRole("button", { name: "Repetir convite" }));
+
+    expect(latestInvitationResolution).toEqual({
+      kind: "authenticated",
+      session: current,
+    });
+    expect(screen.getByLabelText("Sessão atual")).toHaveTextContent(
+      '"accessToken":"access-old"',
+    );
+  });
+
+  test("replay não sobrescreve tokens nem migra a seleção original de storage", async () => {
+    const serialized = JSON.stringify(storedSession());
+    sessionStorage.setItem("clinicflow.session", serialized);
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(screen.getByRole("button", { name: "Repetir convite" }));
+
+    expect(sessionStorage.getItem("clinicflow.session")).toBe(serialized);
+    expect(persistentStore.has("clinicflow.session")).toBe(false);
+    expect(apiRequestMock).not.toHaveBeenCalled();
+  });
+
+  test("persiste somente a sessão canônica, sem envelope, referência ou senha", async () => {
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(
+      screen.getByRole("button", { name: "Aceitar convite temporário" }),
+    );
+
+    const serialized = sessionStorage.getItem("clinicflow.session")!;
+    const stored = JSON.parse(serialized) as Record<string, unknown>;
+    expect(stored).not.toHaveProperty("outcome");
+    expect(stored).not.toHaveProperty("session");
+    expect(serialized).not.toContain("reference");
+    expect(serialized).not.toContain("password");
+  });
+
+  test("logout após convite limpa o storage e revoga o refresh contextual recebido", async () => {
+    apiRequestMock.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderAuth();
+
+    await user.click(
+      screen.getByRole("button", { name: "Aceitar convite persistente" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Sair" }));
+
+    expect(screen.getByLabelText("Sessão atual")).toHaveTextContent("sem sessão");
+    expect(persistentStore.has("clinicflow.session")).toBe(false);
+    expect(sessionStorage.getItem("clinicflow.session")).toBeNull();
+    expect(apiRequestMock).toHaveBeenCalledWith("/auth/v2/logout", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: "refresh-existing" }),
     });
   });
 });

@@ -18,6 +18,7 @@ import type {
   AuthV2ClinicOption,
   AuthV2LoginOutcome,
   AuthV2LoginRequest,
+  ClinicMembershipInvitationAcceptance,
   RegisterClinicOwnerRequest,
 } from "../api/types";
 import { getRoles } from "./roles";
@@ -28,6 +29,10 @@ import {
 
 const SESSION_KEY = "clinicflow.session";
 
+export type InvitationSessionResolution =
+  | { kind: "authenticated"; session: AuthResponse }
+  | { kind: "login_required" };
+
 interface AuthContextValue {
   session: AuthResponse | null;
   registerClinicOwner(request: RegisterClinicOwnerRequest): Promise<AuthResponse>;
@@ -37,6 +42,10 @@ interface AuthContextValue {
     userClinicId: string,
     rememberConnection?: boolean,
   ): Promise<AuthResponse>;
+  persistInvitationSession(
+    acceptance: ClinicMembershipInvitationAcceptance,
+    rememberConnection?: boolean,
+  ): InvitationSessionResolution;
   getRecoveryOptions(
     identity: AccountRecoveryIdentity,
   ): Promise<AccountRecoveryOptions>;
@@ -315,6 +324,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
       );
       pendingClinicOptionsRef.current = undefined;
       return commitExplicitTransition(next, generation);
+    },
+    [beginExplicitTransition, commitExplicitTransition],
+  );
+
+  const persistInvitationSession = useCallback(
+    (
+      acceptance: ClinicMembershipInvitationAcceptance,
+      rememberConnection = false,
+    ): InvitationSessionResolution => {
+      if (!acceptance.session) {
+        const current = sessionRef.current;
+        return current
+          ? { kind: "authenticated", session: current }
+          : { kind: "login_required" };
+      }
+
+      const generation = beginExplicitTransition();
+      persistentSessionRef.current = rememberConnection;
+      pendingClinicOptionsRef.current = undefined;
+      const next = commitExplicitTransition(
+        mapAuthenticatedSession(acceptance.session),
+        generation,
+      );
+      return { kind: "authenticated", session: next };
     },
     [beginExplicitTransition, commitExplicitTransition],
   );
@@ -612,6 +645,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       registerClinicOwner,
       loginWithDocument,
       selectClinic,
+      persistInvitationSession,
       getRecoveryOptions,
       requestRecoveryChallenge,
       switchClinic,
@@ -632,6 +666,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       loginWithDocument,
       registerClinicOwner,
       selectClinic,
+      persistInvitationSession,
       getRecoveryOptions,
       requestRecoveryChallenge,
       switchClinic,
