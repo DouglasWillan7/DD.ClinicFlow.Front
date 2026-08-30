@@ -568,6 +568,36 @@
   background: var(--color-app-background);
 }
 
+.invitationEditNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--radius-control);
+  color: var(--color-text-body);
+  background: var(--color-primary-soft);
+}
+
+.invitationEditNote > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--color-primary);
+}
+
+.invitationEditNote strong {
+  color: var(--color-ink);
+  font-size: 14px;
+}
+
+.invitationEditNote p {
+  max-width: 72ch;
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .lifecycle {
   display: flex;
   align-items: center;
@@ -805,6 +835,140 @@
   color: var(--color-primary);
 }
 
+.invitationPanel,
+.invitationConfirmation {
+  grid-column: 2 / -1;
+}
+
+.invitationPanel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--color-app-background);
+}
+
+.invitationIcon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.invitationIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.invitationPanel[data-status="Queued"] .invitationIcon,
+.invitationPanel[data-status="Retrying"] .invitationIcon {
+  color: var(--color-attention-text);
+  background: var(--color-attention-tint);
+}
+
+.invitationPanel[data-status="Failed"] .invitationIcon,
+.invitationPanel[data-status="Expired"] .invitationIcon,
+.invitationPanel[data-status="Cancelled"] .invitationIcon {
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+}
+
+.invitationPanel[data-status="Accepted"] .invitationIcon,
+.invitationPanel[data-status="Sent"] .invitationIcon {
+  color: var(--color-success-text);
+  background: var(--color-success-tint);
+}
+
+.invitationIdentity {
+  display: flex;
+  min-width: 190px;
+  flex: 1;
+  flex-direction: column;
+}
+
+.invitationIdentity strong {
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+.invitationIdentity small {
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.invitationMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.invitationMeta > span + span::before {
+  margin-right: 8px;
+  color: var(--color-text-disabled);
+  content: "·";
+}
+
+.invitationActions,
+.invitationConfirmationActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.invitationAction {
+  min-height: 44px;
+  padding-inline: 14px;
+  font-size: 13px;
+}
+
+.invitationAction svg {
+  width: 16px;
+  height: 16px;
+}
+
+.invitationError {
+  flex-basis: 100%;
+  margin: 0 0 0 50px;
+  color: var(--color-danger-text);
+  font-size: 13px;
+}
+
+.invitationConfirmation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-attention) 42%, var(--color-border));
+  border-radius: var(--radius-control);
+  background: var(--color-attention-tint);
+}
+
+.invitationConfirmation strong {
+  color: var(--color-ink);
+  font-size: 14px;
+}
+
+.invitationConfirmation p {
+  max-width: 64ch;
+  margin: 4px 0 0;
+  color: var(--color-text-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .emptyDirectory {
   display: flex;
   min-height: 220px;
@@ -861,6 +1025,26 @@
     max-width: none;
     text-align: left;
   }
+
+  .invitationPanel,
+  .invitationConfirmation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .invitationActions,
+  .invitationConfirmationActions {
+    justify-content: stretch;
+  }
+
+  .invitationActions button,
+  .invitationConfirmationActions button {
+    flex: 1 1 180px;
+  }
+
+  .invitationError {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 520px) {
@@ -895,7 +1079,23 @@
     grid-column: 2;
   }
 
+  .invitationPanel,
+  .invitationConfirmation {
+    grid-column: 1 / -1;
+  }
+
   .editMember {
+    width: 100%;
+  }
+
+  .invitationActions,
+  .invitationConfirmationActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .invitationActions button,
+  .invitationConfirmationActions button {
     width: 100%;
   }
 }

@@ -1,5 +1,28 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { ApiError, apiBlobRequest } from "./client";
+import { ApiError, apiBlobRequest, apiRequest } from "./client";
+
+test("preserva Retry-After em segundos no erro da API", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ status: "rate_limited" }), {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": "12",
+        },
+      }),
+    ),
+  );
+
+  await expect(apiRequest("/limited")).rejects.toEqual(
+    expect.objectContaining<Partial<ApiError>>({
+      status: 429,
+      retryAfterSeconds: 12,
+    }),
+  );
+  vi.unstubAllGlobals();
+});
 
 describe("apiBlobRequest", () => {
   afterEach(() => vi.unstubAllGlobals());

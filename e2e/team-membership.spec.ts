@@ -11,6 +11,15 @@ const session = {
   clinicRole: "Secretary",
   isAdmin: true,
   roles: ["Secretary", "Admin"],
+  availableClinics: [
+    {
+      userClinicId: "owner-membership",
+      clinicId: "clinic-1",
+      clinicName: "Clínica Centro",
+      role: "Secretary",
+      isAdmin: true,
+    },
+  ],
   tokens: {
     accessToken: "access",
     refreshToken: "refresh",
@@ -71,6 +80,12 @@ test("gestão de equipe usa membership único com teclado e layout mobile", asyn
       body: JSON.stringify(members),
     });
   });
+  await page.route("**/clinics/clinic-1/members/summary", (route) =>
+    route.fulfill({ status: 200, json: members }),
+  );
+  await page.route("**/patients?includeInactive=true", (route) =>
+    route.fulfill({ status: 200, json: [] }),
+  );
 
   await page.goto("/app/equipe");
   await expect(page.getByRole("heading", { name: "Equipe", exact: true })).toBeVisible();

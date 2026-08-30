@@ -16,6 +16,7 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly problem?: ProblemDetails,
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -24,6 +25,13 @@ export class ApiError extends Error {
 
 export function getApiUrl(path: string) {
   return `${apiUrl}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function retryAfterSeconds(response: Response) {
+  const value = response.headers.get("Retry-After");
+  if (!value) return undefined;
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds >= 0 ? Math.ceil(seconds) : undefined;
 }
 
 export async function apiRequest<T>(
@@ -58,6 +66,7 @@ export async function apiRequest<T>(
         "Não foi possível concluir a operação.",
       response.status,
       problem,
+      retryAfterSeconds(response),
     );
   }
 

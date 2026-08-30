@@ -40,6 +40,37 @@ test("troca o contexto pelo menu da conta sem vazar o estado anterior", async ({
     window.sessionStorage.setItem("clinicflow.session", JSON.stringify(session));
     window.sessionStorage.setItem("clinicflow.scoped.draft", "clinic-centro-draft");
   }, currentSession);
+  await page.route("**/patients?includeInactive=true", (route) =>
+    route.fulfill({ status: 200, json: [] }),
+  );
+  await page.route("**/clinics/*/members/summary", (route) =>
+    route.fulfill({ status: 200, json: [] }),
+  );
+  await page.route("**/clinics/current", (route) =>
+    route.fulfill({
+      status: 200,
+      json: {
+        id: "clinic-norte",
+        name: "Clínica Norte",
+        timeZoneId: "America/Sao_Paulo",
+        phone: null,
+        address: null,
+        plan: "Clinic",
+        subscriptionStatus: "Active",
+        maxDoctors: null,
+        createdAtUtc: "2026-08-01T10:00:00Z",
+      },
+    }),
+  );
+  await page.route("**/onboarding/status", (route) =>
+    route.fulfill({
+      status: 200,
+      json: { completed: true, completedCount: 5, totalCount: 5, steps: [] },
+    }),
+  );
+  await page.route("**/appointments?**", (route) =>
+    route.fulfill({ status: 200, json: [] }),
+  );
 
   await page.route("**/users/me", async (route) => {
     await route.fulfill({

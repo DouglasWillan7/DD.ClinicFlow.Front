@@ -2,24 +2,31 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Clock3,
+  Mail,
   MailCheck,
   Pencil,
   PhoneCall,
   Plus,
+  RefreshCw,
   Search,
   ShieldCheck,
   Stethoscope,
+  TriangleAlert,
   UserRoundCheck,
   UsersRound,
+  XCircle,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../../api/client";
 import type {
   ClinicMember,
+  ClinicMembershipInvitationStatus,
+  ClinicMembershipInvitationSummary,
   ClinicRole,
   UserClinicStatus,
 } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
+import { can } from "../../auth/permissions";
 import { roleLabels } from "../../auth/roles";
 import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
@@ -40,6 +47,61 @@ const statusReasons: Record<UserClinicStatus, string> = {
   Suspended: "Suspensão administrativa pela gestão de equipe",
   Inactive: "Inativação administrativa pela gestão de equipe",
 };
+
+const invitationStatusLabels: Record<
+  ClinicMembershipInvitationStatus,
+  string
+> = {
+  Queued: "Envio aguardando",
+  Sent: "Convite enviado",
+  Retrying: "Nova tentativa agendada",
+  Failed: "Falha na entrega",
+  Expired: "Convite expirado",
+  Cancelled: "Convite cancelado",
+  Accepted: "Convite aceito",
+};
+
+function invitationDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "data indisponível";
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function invitationTiming(invitation: ClinicMembershipInvitationSummary) {
+  const prefix =
+    invitation.status === "Expired"
+      ? "Expirou em"
+      : invitation.status === "Accepted" || invitation.status === "Cancelled"
+        ? "Validade até"
+        : "Expira em";
+  return `${prefix} ${invitationDate(invitation.expiresAtUtc)}`;
+}
+
+function safeInvitationError(error: unknown, action: "reissue" | "cancel") {
+  if (error instanceof ApiError && error.status === 429) {
+    const seconds = error.retryAfterSeconds ?? 30;
+    return `Aguarde ${seconds} segundos antes de reenviar.`;
+  }
+  if (error instanceof ApiError && error.status === 403) {
+    return "Você não tem permissão para administrar este convite.";
+  }
+  if (error instanceof ApiError && (error.status === 409 || error.status === 410)) {
+    return "O estado deste convite mudou. Atualize a equipe e tente novamente.";
+  }
+  return action === "reissue"
+    ? "Não foi possível reenviar o convite."
+    : "Não foi possível cancelar o convite.";
+}
+
+function canCancelInvitation(invitation?: ClinicMembershipInvitationSummary | null) {
+  return Boolean(
+    invitation &&
+      ["Queued", "Sent", "Retrying", "Failed"].includes(invitation.status),
+  );
+}
 
 function clinicMembersKey(clinicId: string) {
   return ["clinic", clinicId, "memberships"] as const;
@@ -78,6 +140,22 @@ export function TeamPage({
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ClinicRole | "All">("All");
   const [feedback, setFeedback] = useState<string>();
+  const [cancelCandidate, setCancelCandidate] = useState<string>();
+  const [cooldown, setCooldown] = useState<{
+    userClinicId: string;
+    until: number;
+  }>();
+  const [cooldownClock, setCooldownClock] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!cooldown) return;
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setCooldownClock(now);
+      if (now >= cooldown.until) window.clearInterval(timer);
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
 
   const query = useQuery({
     queryKey: clinicMembersKey(clinicId),
@@ -105,7 +183,7 @@ export function TeamPage({
       save.reset();
       setFeedback(
         result.kind === "created"
-          ? "Integrante adicionado. O vínculo permanece pendente até a confirmação de contato."
+          ? "Integrante adicionado. O convite foi enfileirado para envio por e-mail."
           : "Vínculo atualizado.",
       );
       if (result.kind === "created") {
@@ -158,6 +236,47 @@ export function TeamPage({
     },
   });
 
+  const reissueInvitation = useMutation({
+    mutationFn: (member: ClinicMember) =>
+      request<ClinicMembershipInvitationSummary>(
+        `/clinics/${clinicId}/members/${member.userClinicId}/invitation/reissue`,
+        { method: "POST" },
+      ),
+    onSuccess: async () => {
+      setFeedback("Novo convite enfileirado para envio.");
+      setCooldown(undefined);
+      await queryClient.invalidateQueries({
+        queryKey: clinicMembersKey(clinicId),
+      });
+    },
+    onError: (error, member) => {
+      if (error instanceof ApiError && error.status === 429) {
+        const seconds = error.retryAfterSeconds ?? 30;
+        const now = Date.now();
+        setCooldownClock(now);
+        setCooldown({
+          userClinicId: member.userClinicId,
+          until: now + seconds * 1000,
+        });
+      }
+    },
+  });
+
+  const cancelInvitation = useMutation({
+    mutationFn: (member: ClinicMember) =>
+      request(
+        `/clinics/${clinicId}/members/${member.userClinicId}/invitation`,
+        { method: "DELETE" },
+      ),
+    onSuccess: async () => {
+      setCancelCandidate(undefined);
+      setFeedback("Convite cancelado.");
+      await queryClient.invalidateQueries({
+        queryKey: clinicMembersKey(clinicId),
+      });
+    },
+  });
+
   const members = useMemo(() => query.data ?? [], [query.data]);
   const filteredMembers = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase("pt-BR");
@@ -203,6 +322,9 @@ export function TeamPage({
   const hasConfirmedContact = Boolean(
     selectedMember?.emailConfirmedAtUtc ||
       selectedMember?.phoneConfirmedAtUtc,
+  );
+  const canManageInvitations = Boolean(
+    session && can(session, "ManageClinicMemberships"),
   );
 
   return (
@@ -274,6 +396,19 @@ export function TeamPage({
 
       {editor ? (
         <section className={styles.editorPanel} aria-label="Editor de vínculo">
+          {selectedMember?.status === "Pending" ? (
+            <aside className={styles.invitationEditNote}>
+              <Mail aria-hidden="true" />
+              <div>
+                <strong>O convite acompanha o e-mail deste vínculo</strong>
+                <p>
+                  Se o e-mail for alterado, o convite atual será invalidado.
+                  Depois de salvar, use Reenviar convite na lista para enviar um
+                  novo link.
+                </p>
+              </div>
+            </aside>
+          ) : null}
           <ClinicMemberForm
             key={
               editor.mode === "edit"
@@ -415,6 +550,27 @@ export function TeamPage({
           <ul className={styles.memberList}>
             {filteredMembers.map((member) => {
               const name = memberName(member);
+              const eligibleForInvitationActions =
+                canManageInvitations &&
+                member.status === "Pending" &&
+                !member.isOwner;
+              const cooldownSeconds =
+                cooldown?.userClinicId === member.userClinicId
+                  ? Math.max(
+                      0,
+                      Math.ceil((cooldown.until - cooldownClock) / 1000),
+                    )
+                  : 0;
+              const reissueError =
+                reissueInvitation.isError &&
+                reissueInvitation.variables?.userClinicId === member.userClinicId
+                  ? reissueInvitation.error
+                  : undefined;
+              const cancelError =
+                cancelInvitation.isError &&
+                cancelInvitation.variables?.userClinicId === member.userClinicId
+                  ? cancelInvitation.error
+                  : undefined;
               return (
                 <li key={member.userClinicId} aria-label={name}>
                   <span className={styles.memberAvatar} aria-hidden="true">
@@ -479,6 +635,130 @@ export function TeamPage({
                     <Pencil size={16} aria-hidden="true" />
                     Editar
                   </button>
+                  {member.invitation || member.status === "Pending" ? (
+                    <section
+                      className={styles.invitationPanel}
+                      aria-label={`Convite de ${name}`}
+                      data-status={member.invitation?.status ?? "Missing"}
+                    >
+                      <span className={styles.invitationIcon} aria-hidden="true">
+                        {member.invitation?.status === "Failed" ? (
+                          <TriangleAlert />
+                        ) : member.invitation?.status === "Accepted" ? (
+                          <CheckCircle2 />
+                        ) : member.invitation?.status === "Cancelled" ? (
+                          <XCircle />
+                        ) : (
+                          <Mail />
+                        )}
+                      </span>
+                      <span className={styles.invitationIdentity}>
+                        <strong>
+                          {member.invitation
+                            ? invitationStatusLabels[member.invitation.status]
+                            : "Nenhum convite emitido"}
+                        </strong>
+                        {member.invitation ? (
+                          <small className={styles.invitationMeta}>
+                            <span>{member.invitation.destinationMasked}</span>
+                            <span>Tentativa {member.invitation.attemptNumber}</span>
+                            <span>{invitationTiming(member.invitation)}</span>
+                          </small>
+                        ) : (
+                          <small>Envie um novo convite para o e-mail atual.</small>
+                        )}
+                      </span>
+                      {eligibleForInvitationActions ? (
+                        <span className={styles.invitationActions}>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className={styles.invitationAction}
+                            disabled={cooldownSeconds > 0}
+                            loading={
+                              reissueInvitation.isPending &&
+                              reissueInvitation.variables?.userClinicId ===
+                                member.userClinicId
+                            }
+                            onClick={() => {
+                              setFeedback(undefined);
+                              setCancelCandidate(undefined);
+                              cancelInvitation.reset();
+                              reissueInvitation.reset();
+                              reissueInvitation.mutate(member);
+                            }}
+                          >
+                            <RefreshCw aria-hidden="true" />
+                            {cooldownSeconds > 0
+                              ? `Reenviar em ${cooldownSeconds}s`
+                              : "Reenviar convite"}
+                          </Button>
+                          {canCancelInvitation(member.invitation) ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className={styles.invitationAction}
+                              onClick={() => {
+                                setFeedback(undefined);
+                                reissueInvitation.reset();
+                                cancelInvitation.reset();
+                                setCancelCandidate(member.userClinicId);
+                              }}
+                            >
+                              Cancelar convite
+                            </Button>
+                          ) : null}
+                        </span>
+                      ) : null}
+                      {reissueError || cancelError ? (
+                        <p className={styles.invitationError} role="alert">
+                          {safeInvitationError(
+                            reissueError ?? cancelError,
+                            reissueError ? "reissue" : "cancel",
+                          )}
+                        </p>
+                      ) : null}
+                    </section>
+                  ) : null}
+                  {cancelCandidate === member.userClinicId ? (
+                    <section
+                      className={styles.invitationConfirmation}
+                      role="alertdialog"
+                      aria-modal="true"
+                      aria-labelledby={`cancel-invitation-${member.userClinicId}`}
+                    >
+                      <div>
+                        <strong id={`cancel-invitation-${member.userClinicId}`}>
+                          Cancelar convite de {name}?
+                        </strong>
+                        <p>
+                          O link atual deixará de funcionar. O vínculo continuará
+                          pendente e poderá receber um novo convite depois.
+                        </p>
+                      </div>
+                      <span className={styles.invitationConfirmationActions}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={cancelInvitation.isPending}
+                          onClick={() => {
+                            cancelInvitation.reset();
+                            setCancelCandidate(undefined);
+                          }}
+                        >
+                          Manter convite
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          loading={cancelInvitation.isPending}
+                          onClick={() => cancelInvitation.mutate(member)}
+                        >
+                          Confirmar cancelamento
+                        </Button>
+                      </span>
+                    </section>
+                  ) : null}
                 </li>
               );
             })}

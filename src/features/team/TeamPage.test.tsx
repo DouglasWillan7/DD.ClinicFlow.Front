@@ -3,7 +3,11 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
-import type { AuthResponse, ClinicMember } from "../../api/types";
+import type {
+  AuthResponse,
+  ClinicMember,
+  ClinicMembershipInvitationStatus,
+} from "../../api/types";
 import { ApiError } from "../../api/client";
 import { TeamPage } from "./TeamPage";
 
@@ -82,10 +86,57 @@ const members: ClinicMember[] = [
   },
 ];
 
+const statusCases: Array<
+  [ClinicMembershipInvitationStatus, string, string]
+> = [
+  ["Queued", "Envio aguardando", "Expira em"],
+  ["Sent", "Convite enviado", "Expira em"],
+  ["Retrying", "Nova tentativa agendada", "Expira em"],
+  ["Failed", "Falha na entrega", "Expira em"],
+  ["Expired", "Convite expirado", "Expirou em"],
+  ["Cancelled", "Convite cancelado", "Validade até"],
+  ["Accepted", "Convite aceito", "Validade até"],
+];
+
+function invitedDoctor(
+  invitationStatus: ClinicMembershipInvitationStatus = "Queued",
+  overrides: Partial<ClinicMember> = {},
+): ClinicMember {
+  return {
+    ...members[1],
+    userClinicId: "doctor-membership",
+    userId: "doctor-user",
+    displayName: "Dra. Helena Martins",
+    status: "Pending",
+    role: "Doctor",
+    phone: "+5511999998888",
+    email: "helena@centro.test",
+    emailConfirmedAtUtc: null,
+    phoneConfirmedAtUtc: null,
+    invitation: {
+      status: invitationStatus,
+      destinationMasked: "he***@centro.test",
+      attemptNumber: 2,
+      issuedAtUtc: "2026-08-29T12:00:00Z",
+      expiresAtUtc: "2026-08-30T12:00:00Z",
+      retryAtUtc:
+        invitationStatus === "Retrying" ? "2026-08-29T12:05:00Z" : null,
+      publicReference: "raw-secret-reference",
+      providerResponse: "provider-internal-message",
+    } as ClinicMember["invitation"],
+    ...overrides,
+  };
+}
+
 let requestMock = vi.fn();
+let currentSession = session;
 
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({ session, request: requestMock, refreshSession: vi.fn() }),
+  useAuth: () => ({
+    session: currentSession,
+    request: requestMock,
+    refreshSession: vi.fn(),
+  }),
 }));
 
 function Harness({ children }: PropsWithChildren) {
@@ -96,6 +147,7 @@ function Harness({ children }: PropsWithChildren) {
 }
 
 beforeEach(() => {
+  currentSession = session;
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/clinic-1/members") return members;
     throw new Error(`Rota inesperada: ${path}`);
@@ -169,4 +221,257 @@ test("mostra o erro seguro da API sem descartar o formulário", async () => {
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/preservar ao menos um contato confirmado/i);
   expect(screen.getByRole("heading", { name: "Editar vínculo" })).toBeVisible();
+});
+
+test.each(statusCases)(
+  "mostra o estado seguro %s com destino mascarado e validade",
+  async (status, label, timingLabel) => {
+    const member = invitedDoctor(status, {
+      status: status === "Accepted" ? "Active" : "Pending",
+    });
+    requestMock = vi.fn(async () => [member]);
+
+    render(<Harness><TeamPage /></Harness>);
+
+    const row = await screen.findByRole("listitem", {
+      name: "Dra. Helena Martins",
+    });
+    expect(within(row).getByText(label)).toBeVisible();
+    expect(within(row).getByText("he***@centro.test")).toBeVisible();
+    expect(within(row).getByText(new RegExp(timingLabel))).toHaveTextContent(
+      "30 de agosto de 2026",
+    );
+    expect(screen.queryByText("raw-secret-reference")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("provider-internal-message"),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test("reenvia o convite pelo endpoint e atualiza a projeção da lista", async () => {
+  const user = userEvent.setup();
+  let member = invitedDoctor("Failed");
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.endsWith("/invitation/reissue")) {
+      expect(init?.method).toBe("POST");
+      member = invitedDoctor("Queued", {
+        invitation: {
+          ...member.invitation!,
+          status: "Queued",
+          attemptNumber: 3,
+        },
+      });
+      return member.invitation;
+    }
+    return [member];
+  });
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", { name: "Reenviar convite" }),
+  );
+
+  expect(
+    await screen.findByText("Novo convite enfileirado para envio."),
+  ).toBeVisible();
+  expect(await screen.findByText("Envio aguardando")).toBeVisible();
+  expect(requestMock).toHaveBeenCalledWith(
+    "/clinics/clinic-1/members/doctor-membership/invitation/reissue",
+    { method: "POST" },
+  );
+  await waitFor(() =>
+    expect(
+      requestMock.mock.calls.filter(
+        ([path]) => path === "/clinics/clinic-1/members",
+      ),
+    ).toHaveLength(2),
+  );
+});
+
+test("respeita Retry-After e bloqueia novo reenvio durante o cooldown", async () => {
+  const user = userEvent.setup();
+  const member = invitedDoctor("Sent");
+  requestMock = vi.fn(async (path: string) => {
+    if (path.endsWith("/invitation/reissue")) {
+      throw new ApiError("rate_limited", 429, undefined, 12);
+    }
+    return [member];
+  });
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", { name: "Reenviar convite" }),
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Aguarde 12 segundos antes de reenviar.",
+  );
+  expect(
+    screen.getByRole("button", { name: "Reenviar em 12s" }),
+  ).toBeDisabled();
+  expect(screen.queryByText("rate_limited")).not.toBeInTheDocument();
+});
+
+test("exige confirmação para cancelar e mantém o vínculo pendente", async () => {
+  const user = userEvent.setup();
+  let member = invitedDoctor("Sent");
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.endsWith("/invitation") && init?.method === "DELETE") {
+      member = invitedDoctor("Cancelled");
+      return undefined;
+    }
+    return [member];
+  });
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", { name: "Cancelar convite" }),
+  );
+  const confirmation = screen.getByRole("alertdialog", {
+    name: "Cancelar convite de Dra. Helena Martins?",
+  });
+  expect(within(confirmation).getByText(/vínculo continuará pendente/i)).toBeVisible();
+  expect(
+    requestMock.mock.calls.some(([, init]) => init?.method === "DELETE"),
+  ).toBe(false);
+
+  await user.click(
+    within(confirmation).getByRole("button", {
+      name: "Confirmar cancelamento",
+    }),
+  );
+
+  expect(await screen.findByText("Convite cancelado.")).toBeVisible();
+  const row = screen.getByRole("listitem", { name: "Dra. Helena Martins" });
+  expect(within(row).getByText("Pendente")).toBeVisible();
+  expect(within(row).getByText("Convite cancelado")).toBeVisible();
+  expect(requestMock).toHaveBeenCalledWith(
+    "/clinics/clinic-1/members/doctor-membership/invitation",
+    { method: "DELETE" },
+  );
+});
+
+test("permite desistir do cancelamento sem chamar a API", async () => {
+  const user = userEvent.setup();
+  requestMock = vi.fn(async () => [invitedDoctor("Sent")]);
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", { name: "Cancelar convite" }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Manter convite" }),
+  );
+
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  expect(
+    requestMock.mock.calls.some(([, init]) => init?.method === "DELETE"),
+  ).toBe(false);
+});
+
+test("explica a invalidação e o reenvio explícito ao editar e-mail pendente", async () => {
+  const user = userEvent.setup();
+  requestMock = vi.fn(async () => [invitedDoctor("Sent")]);
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", {
+      name: "Editar vínculo de Dra. Helena Martins",
+    }),
+  );
+
+  expect(
+    screen.getByText(/o convite atual será invalidado/i),
+  ).toHaveTextContent(/depois de salvar, use Reenviar convite/i);
+});
+
+test("oculta ações de convite de usuário sem capacidade administrativa", async () => {
+  currentSession = { ...session, isAdmin: false, roles: ["Doctor"] };
+  requestMock = vi.fn(async () => [invitedDoctor("Sent")]);
+  render(<Harness><TeamPage /></Harness>);
+
+  await screen.findByRole("listitem", { name: "Dra. Helena Martins" });
+  expect(
+    screen.queryByRole("button", { name: "Reenviar convite" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Cancelar convite" }),
+  ).not.toBeInTheDocument();
+});
+
+test("oculta ações de convite para proprietário mesmo quando pendente", async () => {
+  requestMock = vi.fn(async () => [
+    invitedDoctor("Sent", { isOwner: true }),
+  ]);
+  render(<Harness><TeamPage /></Harness>);
+
+  await screen.findByRole("listitem", { name: "Dra. Helena Martins" });
+  expect(
+    screen.queryByRole("button", { name: "Reenviar convite" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Cancelar convite" }),
+  ).not.toBeInTheDocument();
+});
+
+test("oculta ações de convite para vínculo não pendente", async () => {
+  requestMock = vi.fn(async () => [
+    invitedDoctor("Accepted", { status: "Active" }),
+  ]);
+  render(<Harness><TeamPage /></Harness>);
+
+  expect(await screen.findByText("Convite aceito")).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Reenviar convite" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Cancelar convite" }),
+  ).not.toBeInTheDocument();
+});
+
+test("mostra erro seguro de reenvio e preserva as ações", async () => {
+  const user = userEvent.setup();
+  requestMock = vi.fn(async (path: string) => {
+    if (path.endsWith("/invitation/reissue")) {
+      throw new ApiError("resend-api-key=secret", 500);
+    }
+    return [invitedDoctor("Failed")];
+  });
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", { name: "Reenviar convite" }),
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Não foi possível reenviar o convite.",
+  );
+  expect(screen.queryByText(/resend-api-key/i)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Reenviar convite" }),
+  ).toBeEnabled();
+});
+
+test("mostra erro seguro quando o cancelamento falha", async () => {
+  const user = userEvent.setup();
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.endsWith("/invitation") && init?.method === "DELETE") {
+      throw new ApiError("challenge-id=secret", 500);
+    }
+    return [invitedDoctor("Sent")];
+  });
+  render(<Harness><TeamPage /></Harness>);
+
+  await user.click(
+    await screen.findByRole("button", { name: "Cancelar convite" }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Confirmar cancelamento" }),
+  );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Não foi possível cancelar o convite.",
+  );
+  expect(screen.queryByText(/challenge-id/i)).not.toBeInTheDocument();
+  expect(screen.getByRole("alertdialog")).toBeVisible();
 });
