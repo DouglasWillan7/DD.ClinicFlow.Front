@@ -118,6 +118,63 @@ export type AuthV2LoginOutcome =
   | AuthV2Authenticated
   | AuthV2ClinicSelectionRequired;
 
+export type ClinicMembershipInvitationStatus =
+  | "Queued"
+  | "Sent"
+  | "Retrying"
+  | "Failed"
+  | "Expired"
+  | "Cancelled"
+  | "Accepted";
+
+export type ClinicMembershipInvitationMode =
+  | "SetInitialPassword"
+  | "AuthenticateExistingAccount"
+  | "Accepted"
+  | "Expired"
+  | "Cancelled";
+
+export type ClinicMembershipInvitationAcceptanceOutcome =
+  | "Accepted"
+  | "AlreadyAccepted";
+
+export interface ClinicMembershipInvitationSummary {
+  status: ClinicMembershipInvitationStatus;
+  destinationMasked: string;
+  attemptNumber: number;
+  issuedAtUtc: string;
+  expiresAtUtc: string;
+  retryAtUtc: string | null;
+}
+
+export interface ClinicMembershipInvitationPublicView {
+  clinicName: string;
+  inviteeName: string;
+  role: ClinicRole;
+  emailMasked: string;
+  expiresAtUtc: string;
+  mode: ClinicMembershipInvitationMode;
+}
+
+export interface ResolveClinicMembershipInvitationRequest {
+  reference: string;
+}
+
+export interface AcceptNewClinicMembershipInvitationRequest
+  extends ResolveClinicMembershipInvitationRequest {
+  password: string;
+}
+
+export interface AcceptExistingClinicMembershipInvitationRequest
+  extends ResolveClinicMembershipInvitationRequest {
+  currentPassword: string | null;
+}
+
+export interface ClinicMembershipInvitationAcceptance {
+  outcome: ClinicMembershipInvitationAcceptanceOutcome;
+  session: AuthV2Authenticated | null;
+}
+
 export interface AccountRecoveryDestination {
   kind: "email" | "sms";
   masked: string;
@@ -189,6 +246,7 @@ export interface ClinicMember {
   sessionVersion: number;
   createdAtUtc: string;
   updatedAtUtc: string;
+  invitation?: ClinicMembershipInvitationSummary | null;
 }
 
 export interface HealthcarePlan {
