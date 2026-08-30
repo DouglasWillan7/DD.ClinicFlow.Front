@@ -102,6 +102,11 @@ const PublicPatientActionPage = lazy(() =>
     (module) => ({ default: module.PublicPatientActionPage }),
   ),
 );
+const ClinicMembershipInvitationPage = lazy(() =>
+  import(
+    "../features/clinic-invitation/ClinicMembershipInvitationPage"
+  ).then((module) => ({ default: module.ClinicMembershipInvitationPage })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -129,6 +134,17 @@ function AppRoutes() {
       reference = "";
     }
     return <PublicPatientActionPage reference={reference} />;
+  }
+
+  const clinicInvitationMatch = path.match(/^\/convite-medico\/([^/]+)$/i);
+  if (clinicInvitationMatch) {
+    let reference: string;
+    try {
+      reference = decodeURIComponent(clinicInvitationMatch[1]);
+    } catch {
+      reference = "";
+    }
+    return <ClinicMembershipInvitationPage reference={reference} />;
   }
 
   if (path === "/") {

@@ -108,7 +108,6 @@ export function requiredCapabilityForAppPath(
     return "ManageClinicMemberships";
   }
   if (
-    pathname === "/app/onboarding" ||
     pathname === "/app/configuracoes/clinica" ||
     pathname === "/app/configuracoes/whatsapp"
   ) {

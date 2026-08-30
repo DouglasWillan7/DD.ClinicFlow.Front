@@ -11,6 +11,7 @@ import {
   documentTypesFor,
   recoveryIdentitySchema,
 } from "./documentIdentity";
+import { validPassword } from "./passwordPolicy";
 import styles from "./RegisterPage.module.css";
 
 const termsVersion = "clinicflow-terms-v1";
@@ -88,14 +89,6 @@ function passwordStrength(password: string) {
   if (/[^a-zA-Z0-9]/.test(password)) score += 1;
   if (password.length >= 12) score += 1;
   return score;
-}
-
-function validPassword(password: string) {
-  return password.length >= 8 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /\d/.test(password) &&
-    /[^a-zA-Z0-9]/.test(password);
 }
 
 export function RegisterPage() {

@@ -104,6 +104,32 @@ describe("App routing", () => {
     );
   });
 
+  test("abre o convite médico público sem exigir sessão e mantém a referência fora da URL da API", async () => {
+    window.history.replaceState({}, "", "/convite-medico/opaque-reference");
+    apiRequest.mockResolvedValue({
+      clinicName: "Clínica Horizonte",
+      inviteeName: "Dra. Helena Costa",
+      role: "Doctor",
+      emailMasked: "he***@exemplo.com",
+      expiresAtUtc: "2099-08-31T12:00:00Z",
+      mode: "SetInitialPassword",
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Ative seu acesso à clínica" }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe("/convite-medico/opaque-reference");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/public/clinic-membership-invitations/resolve",
+      {
+        method: "POST",
+        body: JSON.stringify({ reference: "opaque-reference" }),
+      },
+    );
+  });
+
   test("admin de secretaria não entra em rota clínica profunda", async () => {
     sessionStorage.setItem(
       "clinicflow.session",
