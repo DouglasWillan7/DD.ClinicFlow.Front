@@ -90,7 +90,12 @@ test("administração cria médico por documento com contato e duração context
   });
 
   await page.goto("/app/equipe");
-  await page.getByRole("button", { name: "Novo integrante" }).click();
+  await expect(
+    page.getByRole("listitem", { name: "Ana Martins" }),
+  ).toBeVisible();
+  const createMember = page.getByRole("button", { name: "Novo integrante" });
+  await expect(createMember).toBeVisible();
+  await createMember.click();
   await page.getByLabel("Nome completo").fill("Dra. Helena Martins");
   await page.getByRole("textbox", { name: "Documento", exact: true }).fill("41288732090");
   await page.getByLabel("E-mail na clínica").fill("helena@centro.test");

@@ -86,6 +86,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000004",
     name: "Carlos Souza Filho",
+    phone: "+5511999990004",
     document: "10659948233",
     birthDate: "1975-06-19",
     situation: "ExamePendente",
@@ -93,6 +94,7 @@ const patients = [
   makePatient({
     id: "60000000-0000-4000-8000-000000000005",
     name: "Carlos Eduardo Souza",
+    phone: "+5511999990005",
     document: "74302195840",
     birthDate: "1981-11-02",
     situation: "ExamePendente",
@@ -313,7 +315,7 @@ test("lista completa: 9 pacientes em ordem alfabética com resumo", async ({
   await expect(rows.last()).toContainText("Rita de Cássia Alves");
 
   const mohammad = rows.filter({ hasText: "Mohammad Jaber Abdullah" });
-  await expect(mohammad).toContainText("CPF 412.887.556-01");
+  await expect(mohammad).toContainText("+5511999990000");
   await expect(mohammad).toContainText("42 anos");
   await expect(mohammad).toContainText("03/08/2026");
   await expect(mohammad).toContainText("10/08 · 14:00");
@@ -357,8 +359,8 @@ test("filtro da lista responde a cada tecla e desambigua homônimos", async ({
   await expect(page.getByText("2 de 9")).toBeVisible();
   const rows = page.getByRole("button", { name: /Abrir detalhes de/ });
   await expect(rows).toHaveCount(2);
-  await expect(rows.first()).toContainText("CPF 743.021.958-40");
-  await expect(rows.last()).toContainText("CPF 106.599.482-33");
+  await expect(rows.first()).toContainText("+5511999990005");
+  await expect(rows.last()).toContainText("+5511999990004");
 
   await page.screenshot({
     path: "test-results/pacientes-03-busca-carlos.png",

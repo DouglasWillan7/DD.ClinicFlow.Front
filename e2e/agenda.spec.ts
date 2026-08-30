@@ -648,7 +648,7 @@ test("agenda consulta completa somente com teclado", async ({ page }) => {
   await expect(search).toBeFocused();
   await search.fill("Carlos");
   await expect(
-    page.getByRole("button", { name: /Carlos Souza.*111\.444\.777-35/ }),
+    page.getByRole("button", { name: /Carlos Souza.*\+5511999990001/ }),
   ).toBeVisible();
   await search.focus();
   await page.keyboard.press("Enter");
@@ -692,10 +692,8 @@ test("exibe pacientes recentes e distingue homônimos na busca", async ({
   await expect(resultList.getByText("Carlos Souza", { exact: true })).toHaveCount(
     2,
   );
-  await expect(resultList.getByText("111.444.777-35")).toBeVisible();
-  await expect(resultList.getByText("123.456.789-09")).toBeVisible();
-  await expect(resultList.getByText("Prontuário 46.990")).toBeVisible();
-  await expect(resultList.getByText("Prontuário 50.871")).toBeVisible();
+  await expect(resultList.getByText("+5511999990001")).toBeVisible();
+  await expect(resultList.getByText("+5511999990002")).toBeVisible();
   await page.screenshot({
     path: "/private/tmp/clinicflow-booking-dialog-carlos.png",
   });
