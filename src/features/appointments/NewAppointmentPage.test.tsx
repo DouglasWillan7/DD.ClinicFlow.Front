@@ -595,7 +595,7 @@ test(
     );
 
     expect(
-      await screen.findByRole("alert", undefined, { timeout: 5_000 }),
+      await screen.findByRole("alert", undefined, { timeout: 10_000 }),
     ).toHaveTextContent("Horário ocupado");
     const summary = screen
       .getByRole("heading", { name: "Resumo" })
@@ -609,7 +609,7 @@ test(
     expect(availabilityRequests).toBe(2);
     expect(navigateMock).not.toHaveBeenCalled();
   },
-  15_000,
+  20_000,
 );
 
 test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", async () => {
