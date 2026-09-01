@@ -569,6 +569,7 @@ test(
       ],
     };
     let availabilityRequests = 0;
+    const appointmentAttempt = deferred<Appointment>();
     requestMock = vi.fn(async (path: string, init?: RequestInit) => {
       if (path === "/clinics/current") return clinic;
       if (path === `/clinics/${clinicId}/members/summary`) return members;
@@ -578,7 +579,7 @@ test(
         return availabilityRequests === 1 ? availability : nextAvailability;
       }
       if (path === "/appointments" && init?.method === "POST") {
-        throw new ApiError("Horário ocupado", 409);
+        return appointmentAttempt.promise;
       }
       throw new Error(`Unexpected request: ${path}`);
     });
@@ -594,9 +595,20 @@ test(
       await screen.findByRole("button", { name: "Confirmar agendamento" }),
     );
 
-    expect(
-      await screen.findByRole("alert", undefined, { timeout: 10_000 }),
-    ).toHaveTextContent("Horário ocupado");
+    await waitFor(() =>
+      expect(requestMock).toHaveBeenCalledWith(
+        "/appointments",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    await act(async () => {
+      appointmentAttempt.reject(new ApiError("Horário ocupado", 409));
+      await appointmentAttempt.promise.catch(() => undefined);
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Horário ocupado",
+    );
     const summary = screen
       .getByRole("heading", { name: "Resumo" })
       .closest("section")!;
@@ -609,7 +621,7 @@ test(
     expect(availabilityRequests).toBe(2);
     expect(navigateMock).not.toHaveBeenCalled();
   },
-  20_000,
+  15_000,
 );
 
 test("consulta rápida preserva o modo e as escolhas ao cadastrar paciente", async () => {
