@@ -1,34 +1,75 @@
+/* Mesmo padrão de abas de PatientSectionNav (Visão geral / Avaliações / Exames). */
+.scroller {
+  max-width: 100%;
+  margin-bottom: var(--space-5);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
 .tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
+  width: max-content;
+  min-width: 100%;
+  align-items: stretch;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border-hairline);
 }
 
 .tab {
+  position: relative;
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  padding: 0 var(--space-5);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
+  justify-content: center;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
   color: var(--color-text-body);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 600;
   text-decoration: none;
-  transition: background var(--transition-fast);
+  white-space: nowrap;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .tab:hover {
-  background: var(--color-hover);
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
 }
 
-.active,
-.active:hover {
-  border-color: var(--color-ink);
-  background: var(--color-ink);
-  color: var(--color-surface);
+.active {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.active::after {
+  position: absolute;
+  right: var(--space-3);
+  bottom: 0;
+  left: var(--space-3);
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  content: "";
+}
+
+.tab:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    width: 100%;
+  }
+
+  .tab {
+    min-width: 0;
+    flex: 1 1 auto;
+    padding-inline: var(--space-2);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

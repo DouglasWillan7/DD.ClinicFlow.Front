@@ -9,21 +9,26 @@ const tabs = [
   { to: clinicHealthcarePlansPath, label: "Convênios" },
 ];
 
-/** Seções da configuração da clínica; cada uma é uma rota, para o link ser compartilhável. */
+/**
+ * Seções da configuração da clínica, no mesmo padrão de abas das seções do paciente.
+ * Cada aba é uma rota, para o link ser compartilhável.
+ */
 export function ClinicSettingsTabs() {
   return (
-    <nav className={styles.tabs} aria-label="Configuração da clínica">
-      {tabs.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          className={({ isActive }) =>
-            isActive ? `${styles.tab} ${styles.active}` : styles.tab
-          }
-        >
-          {tab.label}
-        </NavLink>
-      ))}
+    <nav className={styles.scroller} aria-label="Configuração da clínica">
+      <div className={styles.tabs}>
+        {tabs.map((tab) => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            className={({ isActive }) =>
+              isActive ? `${styles.tab} ${styles.active}` : styles.tab
+            }
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </div>
     </nav>
   );
 }
