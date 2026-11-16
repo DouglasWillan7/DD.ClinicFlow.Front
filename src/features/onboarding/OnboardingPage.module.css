@@ -3,7 +3,7 @@
   max-width: 980px;
   grid-template-columns: minmax(0, 620px) minmax(220px, 1fr);
   gap: 24px;
-  padding: 0 clamp(20px, 3.5vw, 48px) 48px;
+  padding-bottom: 48px;
 }
 
 .content aside {

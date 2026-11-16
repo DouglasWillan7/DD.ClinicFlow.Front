@@ -7,7 +7,7 @@
   min-width: 0;
   flex-direction: column;
   gap: var(--space-5);
-  padding: 0 clamp(20px, 3.5vw, 48px) 52px;
+  padding-bottom: 52px;
   color: var(--color-ink);
 }
 
@@ -432,7 +432,7 @@
 
 @media (max-width: 640px) {
   .content {
-    padding: 0 var(--space-4) 40px;
+    padding-bottom: 40px;
   }
 
   .contextRow {
@@ -464,17 +464,16 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-5);
-  padding-top: 4px;
+  gap: 20px;
 }
 
 .teamHeader h1 {
-  margin: 3px 0 0;
+  margin: 0;
   color: var(--color-ink);
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: clamp(26px, 2vw, 32px);
   font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 .teamHeader p,
@@ -487,12 +486,17 @@
   line-height: 1.5;
 }
 
+.teamHeader p {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
 .overline {
+  display: block;
+  margin-bottom: 6px;
   color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .addMember {
@@ -1048,10 +1052,6 @@
 }
 
 @media (max-width: 520px) {
-  .content {
-    padding-inline: 16px;
-  }
-
   .metrics {
     grid-template-columns: 1fr 1fr;
   }
