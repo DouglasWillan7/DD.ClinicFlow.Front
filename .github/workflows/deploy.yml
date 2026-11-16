@@ -79,8 +79,13 @@ jobs:
           script: |
             set -eu
             cd /opt/dwexpenses/clinicflow-api
+            # O Compose é compartilhado com a API e exige a chave do Resend, que só o
+            # workflow da API injeta. O Compose interpola o arquivo inteiro mesmo ao agir
+            # em um serviço só, então aqui entra um valor de preenchimento; --no-deps
+            # garante que apenas o clinicflow-web seja recriado e a API nunca o receba.
+            export CLINICFLOW_RESEND_API_KEY="${CLINICFLOW_RESEND_API_KEY:-nao-usada-no-deploy-da-web}"
             docker compose pull clinicflow-web
-            docker compose up -d clinicflow-web
+            docker compose up -d --no-deps clinicflow-web
 
             container_id="$(docker compose ps -q clinicflow-web)"
             if [ -z "$container_id" ]; then
