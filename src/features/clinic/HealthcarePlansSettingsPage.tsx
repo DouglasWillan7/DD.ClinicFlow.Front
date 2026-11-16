@@ -15,10 +15,10 @@ import type {
 } from "../../api/types";
 import { useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { can } from "../../auth/permissions";
 import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
 import { PageHeader } from "../../components/PageHeader";
 import { ClinicPlansDetail } from "./ClinicPlansDetail";
+import { ClinicSettingsTabs } from "./ClinicSettingsTabs";
 import { type CopySource, DoctorPlansDetail } from "./DoctorPlansDetail";
 import {
   clinicSummaryLabel,
@@ -61,7 +61,6 @@ export function HealthcarePlansSettingsPage() {
   const { request, session } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const canManageClinic = can(session, "ManageHealthcarePlans");
   const clinicId = session?.clinicId;
   // Rascunhos por item: trocar de item não perde o que foi editado.
   const [clinicDraft, setClinicDraft] = useState<ClinicDraft | null>(null);
@@ -80,7 +79,7 @@ export function HealthcarePlansSettingsPage() {
   });
   const members = useQuery({
     queryKey: membersKey,
-    enabled: Boolean(canManageClinic && clinicId),
+    enabled: Boolean(clinicId),
     queryFn: () => request<Member[]>(`/clinics/${clinicId}/members/summary`),
   });
 
@@ -88,15 +87,9 @@ export function HealthcarePlansSettingsPage() {
     () => (members.data ?? []).filter((member) => member.role === "Doctor"),
     [members.data],
   );
-  // O administrador vê todos os médicos; quem não é administrador, só o próprio vínculo.
-  const ownDoctorId =
-    !canManageClinic && session?.clinicRole === "Doctor" ? session.userClinicId : null;
   const doctorIds = useMemo(
-    () =>
-      canManageClinic
-        ? doctors.map((doctor) => doctor.userClinicId)
-        : ownDoctorId ? [ownDoctorId] : [],
-    [canManageClinic, doctors, ownDoctorId],
+    () => doctors.map((doctor) => doctor.userClinicId),
+    [doctors],
   );
   // As listas de todos os médicos alimentam a contagem por convênio e o "copiar de outro".
   const doctorQueries = useQueries({
@@ -111,9 +104,8 @@ export function HealthcarePlansSettingsPage() {
   });
 
   const requestedItem = searchParams.get("item");
-  const selectedItem = canManageClinic
-    ? requestedItem && doctorIds.includes(requestedItem) ? requestedItem : CLINIC_ITEM
-    : ownDoctorId ?? "";
+  const selectedItem =
+    requestedItem && doctorIds.includes(requestedItem) ? requestedItem : CLINIC_ITEM;
 
   function select(item: string) {
     setSavedItem(null);
@@ -193,7 +185,7 @@ export function HealthcarePlansSettingsPage() {
   });
 
   const loading =
-    catalog.isLoading || clinicPlans.isLoading || (canManageClinic && members.isLoading);
+    catalog.isLoading || clinicPlans.isLoading || members.isLoading;
   if (loading) {
     return (
       <Shell>
@@ -209,7 +201,7 @@ export function HealthcarePlansSettingsPage() {
           retry={() => {
             void catalog.refetch();
             void clinicPlans.refetch();
-            if (canManageClinic) void members.refetch();
+            void members.refetch();
           }}
         />
       </Shell>
@@ -303,38 +295,34 @@ export function HealthcarePlansSettingsPage() {
     }
   }
 
-  const copySources: CopySource[] = canManageClinic
-    ? doctors
-        .filter((doctor) => doctor.userClinicId !== selectedItem)
-        .flatMap((doctor) => {
-          const saved = savedDoctors.get(doctor.userClinicId);
-          return saved
-            ? [{
-                userClinicId: doctor.userClinicId,
-                displayName: doctor.displayName,
-                planIds: saved.healthcarePlanIds,
-              }]
-            : [];
-        })
-    : [];
+  const copySources: CopySource[] = doctors
+    .filter((doctor) => doctor.userClinicId !== selectedItem)
+    .flatMap((doctor) => {
+      const saved = savedDoctors.get(doctor.userClinicId);
+      return saved
+        ? [{
+            userClinicId: doctor.userClinicId,
+            displayName: doctor.displayName,
+            planIds: saved.healthcarePlanIds,
+          }]
+        : [];
+    });
 
   const currentClinic = normalizeClinicDraft(clinicDraft ?? savedClinic);
 
   return (
     <Shell>
-      <div className={canManageClinic ? styles.layout : styles.layoutSingle}>
-        {canManageClinic ? (
-          <PlansNavigation
-            selectedItem={selectedItem}
-            clinicSummary={clinicSummaryLabel(
-              savedClinic.accepted.length,
-              savedClinic.defaults.length,
-            )}
-            clinicDirty={clinicDirty}
-            doctors={navDoctors}
-            onSelect={select}
-          />
-        ) : null}
+      <div className={styles.layout}>
+        <PlansNavigation
+          selectedItem={selectedItem}
+          clinicSummary={clinicSummaryLabel(
+            savedClinic.accepted.length,
+            savedClinic.defaults.length,
+          )}
+          clinicDirty={clinicDirty}
+          doctors={navDoctors}
+          onSelect={select}
+        />
 
         <section className={styles.detail} aria-labelledby="plans-detail-title">
           {isClinicSelected ? (
@@ -344,13 +332,6 @@ export function HealthcarePlansSettingsPage() {
               doctorCounts={doctorCounts}
               onChange={editClinic}
             />
-          ) : !selectedItem ? (
-            <>
-              <h2 id="plans-detail-title">Meus convênios</h2>
-              <p className={styles.hint}>
-                Só médicos configuram os convênios que atendem.
-              </p>
-            </>
           ) : selectedDoctorQuery?.isError ? (
             <>
               <h2 id="plans-detail-title" className="srOnly">Convênios do médico</h2>
@@ -367,10 +348,8 @@ export function HealthcarePlansSettingsPage() {
           ) : (
             <DoctorPlansDetail
               doctorName={
-                canManageClinic
-                  ? doctors.find((doctor) => doctor.userClinicId === selectedItem)
-                      ?.displayName ?? "Médico"
-                  : null
+                doctors.find((doctor) => doctor.userClinicId === selectedItem)
+                  ?.displayName ?? "Médico"
               }
               plans={plans}
               clinic={savedClinic}
@@ -380,9 +359,7 @@ export function HealthcarePlansSettingsPage() {
               }
               copySources={copySources}
               onChange={editDoctor}
-              onEditClinicDefault={
-                canManageClinic ? () => select(CLINIC_ITEM) : undefined
-              }
+              onEditClinicDefault={() => select(CLINIC_ITEM)}
             />
           )}
 
@@ -422,14 +399,16 @@ export function HealthcarePlansSettingsPage() {
   );
 }
 
+/** Convênios é uma seção da configuração da clínica, exclusiva do administrador. */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <PageHeader
-        eyebrow="Configuração"
+        eyebrow="Configuração da clínica"
         title="Convênios"
         description="Defina os convênios aceitos pela clínica e quais deles cada médico atende. Consulta particular está sempre disponível no agendamento."
       />
+      <ClinicSettingsTabs />
       <div className={styles.content}>{children}</div>
     </>
   );

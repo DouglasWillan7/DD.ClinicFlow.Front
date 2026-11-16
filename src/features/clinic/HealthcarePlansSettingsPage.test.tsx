@@ -105,6 +105,9 @@ vi.mock("../../auth/AuthProvider", () => ({
 
 // A página guarda o item selecionado na URL; o mock mantém essa busca em estado.
 vi.mock("../../app/navigation", () => ({
+  NavLink: ({ to, children }: { to: string; children: React.ReactNode }) => (
+    <a href={to}>{children}</a>
+  ),
   useSearchParams: () => {
     const [params, setParams] = useState(() => new URLSearchParams(initialSearch));
     return [
@@ -218,6 +221,20 @@ async function openDoctor(user: ReturnType<typeof userEvent.setup>, name: RegExp
 const saveButton = () => screen.getByRole("button", { name: "Salvar convênios" });
 
 describe("HealthcarePlansSettingsPage", () => {
+  test("para o administrador, é uma seção da configuração da clínica", async () => {
+    renderPage();
+
+    const tabs = await screen.findByRole("navigation", { name: "Configuração da clínica" });
+    expect(within(tabs).getByRole("link", { name: "Dados da clínica" })).toHaveAttribute(
+      "href",
+      "/app/configuracoes/clinica",
+    );
+    expect(within(tabs).getByRole("link", { name: "Convênios" })).toHaveAttribute(
+      "href",
+      "/app/configuracoes/clinica/convenios",
+    );
+  });
+
   test("lista a clínica e a situação de cada médico", async () => {
     renderPage();
 
@@ -587,40 +604,18 @@ describe("HealthcarePlansSettingsPage", () => {
     });
   });
 
-  test("médico sem administração vê só os próprios convênios", async () => {
-    session = doctorSession(false);
-    renderPage();
-
-    expect(
-      await screen.findByRole("heading", { name: "Meus convênios" }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("group", { name: "Convênios que você atende" }),
-    ).toBeVisible();
-    expect(screen.queryByRole("navigation", { name: "Clínica e médicos" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Convênios da clínica" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("combobox", { name: "Copiar de outro médico" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Alterar o padrão da clínica" }),
-    ).not.toBeInTheDocument();
-    expect(requestMock).not.toHaveBeenCalledWith(
-      `/clinics/${clinicId}/members/summary`,
-    );
-  });
-
-  test("sem convênios na clínica, orienta em vez de mostrar lista vazia", async () => {
-    session = doctorSession(false);
+  test("sem convênios aceitos, o detalhe do médico orienta a configurar a clínica", async () => {
     clinicPlanIds = [];
     clinicDefaultIds = [];
+    initialSearch = "item=membership-2";
     renderPage();
 
     expect(
-      await screen.findByText(
-        "A clínica ainda não aceita convênios. Peça ao administrador para configurá-los.",
-      ),
+      await screen.findByText(/A clínica ainda não aceita convênios\. Marque os aceitos em Clínica/),
     ).toBeVisible();
+    expect(
+      screen.queryByRole("group", { name: "Convênios atendidos por Dr. André Costa" }),
+    ).not.toBeInTheDocument();
   });
 
   test("falha ao carregar oferece tentar de novo", async () => {

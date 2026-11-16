@@ -10,10 +10,6 @@
   align-items: start;
 }
 
-.layoutSingle {
-  width: min(100%, 920px);
-}
-
 /* Lista "Clínica + médicos" */
 .nav,
 .detail {

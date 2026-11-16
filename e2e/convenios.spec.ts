@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mockHealthcarePlans } from "./convenios.fixture";
 
-const path = "/app/configuracoes/convenios";
+const path = "/app/configuracoes/clinica/convenios";
 
 test("administrador vê a clínica, a situação dos médicos e salva com confirmação de impacto", async ({
   page,
@@ -9,6 +9,17 @@ test("administrador vê a clínica, a situação dos médicos e salva com confir
   const { writes } = await mockHealthcarePlans(page, { admin: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(path);
+
+  // Convênios é uma seção da configuração da clínica; o link antigo redireciona.
+  await page.goto("/app/configuracoes/convenios");
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica\/convenios$/);
+  const tabs = page.getByRole("navigation", { name: "Configuração da clínica" });
+  await expect(tabs.getByRole("link", { name: "Convênios" }))
+    .toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: "Dados da clínica" }).click();
+  await expect(page.getByRole("heading", { name: "Dados da clínica", level: 1 })).toBeVisible();
+  await page.getByRole("navigation", { name: "Configuração da clínica" })
+    .getByRole("link", { name: "Convênios" }).click();
 
   const list = page.getByRole("navigation", { name: "Clínica e médicos" });
   await expect(list.getByRole("button", { name: /Clínica.*5 aceitos · 3 padrão/ }))
@@ -99,15 +110,13 @@ test("médico no padrão fica travado e o personalizado mostra a diferença e ap
   }]);
 });
 
-test("médico sem administração vê só os próprios convênios", async ({ page }) => {
+test("médico sem administração não acessa os convênios da clínica", async ({ page }) => {
   await mockHealthcarePlans(page, { admin: false });
   await page.goto(path);
 
-  await expect(page.getByRole("heading", { name: "Meus convênios" })).toBeVisible();
-  await expect(page.getByRole("radio", { name: /Personalizado/ })).toBeChecked();
-  await expect(page.getByRole("navigation", { name: "Clínica e médicos" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Convênios da clínica" })).toHaveCount(0);
-  await expect(page.getByRole("combobox", { name: "Copiar de outro médico" })).toHaveCount(0);
+  await expect(page).not.toHaveURL(/configuracoes\/clinica/);
+  await expect(page.getByRole("heading", { name: "Convênios", level: 1 })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /convênios/i })).toHaveCount(0);
 });
 
 test("em 390 px a lista vira seletor, sem rolagem horizontal e com alvos de 44 px", async ({

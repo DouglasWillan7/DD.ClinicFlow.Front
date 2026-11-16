@@ -36,8 +36,7 @@ export function DoctorPlansDetail({
   onChange,
   onEditClinicDefault,
 }: {
-  /** `null` na visão do próprio médico ("Meus convênios"). */
-  doctorName: string | null;
+  doctorName: string;
   plans: HealthcarePlan[];
   clinic: ClinicDraft;
   draft: DoctorDraft;
@@ -45,7 +44,7 @@ export function DoctorPlansDetail({
   savedCustomPlanIds: string[] | null;
   copySources: CopySource[];
   onChange(draft: DoctorDraft): void;
-  onEditClinicDefault?: () => void;
+  onEditClinicDefault(): void;
 }) {
   const accepted = plans.filter((plan) => clinic.accepted.includes(plan.id));
   const selected = doctorSelectedIds(draft, clinic);
@@ -69,18 +68,12 @@ export function DoctorPlansDetail({
   return (
     <div className={styles.detailBody}>
       <header className={styles.detailHeader}>
-        {doctorName ? (
-          <span className={`${styles.avatar} ${styles.avatarLarge}`} aria-hidden="true">
-            {getInitials(doctorName)}
-          </span>
-        ) : null}
+        <span className={`${styles.avatar} ${styles.avatarLarge}`} aria-hidden="true">
+          {getInitials(doctorName)}
+        </span>
         <div>
-          <h2 id="plans-detail-title">{doctorName ?? "Meus convênios"}</h2>
-          <p>
-            {doctorName
-              ? "Quais convênios atende nesta clínica."
-              : "Quais convênios você atende nesta clínica."}
-          </p>
+          <h2 id="plans-detail-title">{doctorName}</h2>
+          <p>Quais convênios atende nesta clínica.</p>
         </div>
         {isCustom && copySources.length > 0 ? (
           <select
@@ -129,9 +122,8 @@ export function DoctorPlansDetail({
 
       {accepted.length === 0 ? (
         <p className={styles.hint}>
-          {onEditClinicDefault
-            ? "A clínica ainda não aceita convênios. Marque os aceitos em Clínica para atribuí-los aos médicos."
-            : "A clínica ainda não aceita convênios. Peça ao administrador para configurá-los."}
+          A clínica ainda não aceita convênios. Marque os aceitos em Clínica para
+          atribuí-los aos médicos.
         </p>
       ) : (
         <>
@@ -187,9 +179,7 @@ export function DoctorPlansDetail({
             </div>
             <fieldset className={styles.planGrid} disabled={!isCustom}>
               <legend className="srOnly">
-                {doctorName
-                  ? `Convênios atendidos por ${doctorName}`
-                  : "Convênios que você atende"}
+                {`Convênios atendidos por ${doctorName}`}
               </legend>
               {accepted.map((plan) => (
                 <label className={styles.planOption} key={plan.id}>
@@ -222,15 +212,13 @@ export function DoctorPlansDetail({
           <Info size={16} aria-hidden="true" />
           <span>
             Consulta particular está sempre disponível.{" "}
-            {onEditClinicDefault ? (
-              <button
-                type="button"
-                className={styles.inlineLink}
-                onClick={onEditClinicDefault}
-              >
-                Alterar o padrão da clínica
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className={styles.inlineLink}
+              onClick={onEditClinicDefault}
+            >
+              Alterar o padrão da clínica
+            </button>
           </span>
         </p>
       ) : null}

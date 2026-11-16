@@ -170,6 +170,16 @@ function AppRoutes() {
       return <Redirect to="/app/equipe" replace />;
     }
 
+    // Convênios passou para dentro da configuração da clínica; o link antigo continua valendo.
+    if (path === "/app/configuracoes/convenios") {
+      return (
+        <Redirect
+          to={`/app/configuracoes/clinica/convenios${window.location.search}`}
+          replace
+        />
+      );
+    }
+
     if (!canAccessAppPath(session, path)) {
       return <Redirect to={appStart} replace />;
     }
@@ -178,6 +188,7 @@ function AppRoutes() {
       "/app/onboarding": <OnboardingPage />,
       "/app/equipe/novo": <TeamPage initialMode="create" initialRole="Doctor" />,
       "/app/configuracoes/clinica": <ClinicSettingsPage />,
+      "/app/configuracoes/clinica/convenios": <HealthcarePlansSettingsPage />,
       "/app/configuracoes/whatsapp": <WhatsAppSettingsPage />,
     };
     const commonRoutes: Record<string, React.ReactNode> = {
@@ -189,7 +200,6 @@ function AppRoutes() {
       "/app/equipe": <TeamPage />,
       "/app/configuracoes/perfil": <ProfileSettingsPage />,
       "/app/configuracoes/agenda": <ScheduleSettingsPage />,
-      "/app/configuracoes/convenios": <HealthcarePlansSettingsPage />,
     };
 
     // Só hexadecimal, então /equipe/novo nunca cai aqui.
