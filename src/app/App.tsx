@@ -40,7 +40,7 @@ const NewAppointmentPage = lazy(() =>
   })),
 );
 const ClinicSettingsPage = lazy(() =>
-  import("../features/clinic/ClinicSettingsPage").then((module) => ({
+  import("../features/clinic/clinicSettingsPages").then((module) => ({
     default: module.ClinicSettingsPage,
   })),
 );
@@ -60,7 +60,7 @@ const ProfileSettingsPage = lazy(() =>
   })),
 );
 const HealthcarePlansSettingsPage = lazy(() =>
-  import("../features/clinic/HealthcarePlansSettingsPage").then((module) => ({
+  import("../features/clinic/clinicSettingsPages").then((module) => ({
     default: module.HealthcarePlansSettingsPage,
   })),
 );
