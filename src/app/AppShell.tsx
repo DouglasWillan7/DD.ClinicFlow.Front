@@ -18,6 +18,7 @@ import {
 import {
   type FocusEvent,
   type PropsWithChildren,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -27,6 +28,7 @@ import { can, getAppStart } from "../auth/permissions";
 import { formatRoles, roleLabels } from "../auth/roles";
 import { getAuthScope } from "../auth/sessionScope";
 import { BrandMark } from "../components/BrandMark";
+import { LoadingBlock } from "../components/Feedback";
 import { ClinicContextSelector } from "../features/clinic-context/ClinicContextSelector";
 import { GlobalSearch } from "../features/search/GlobalSearch";
 import { NavLink, useNavigate } from "./navigation";
@@ -330,7 +332,10 @@ export function AppShell({ children }: PropsWithChildren) {
           </div>
         </header>
 
-        <main className={styles.main}>{children}</main>
+        <main className={styles.main}>
+          {/* Página ainda baixando: o menu e o topo continuam na tela, só o conteúdo espera. */}
+          <Suspense fallback={<LoadingBlock label="Carregando…" />}>{children}</Suspense>
+        </main>
       </div>
     </div>
   );

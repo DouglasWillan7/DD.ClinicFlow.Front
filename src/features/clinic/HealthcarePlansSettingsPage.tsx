@@ -16,9 +16,8 @@ import type {
 import { useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
-import { PageHeader } from "../../components/PageHeader";
 import { ClinicPlansDetail } from "./ClinicPlansDetail";
-import { ClinicSettingsTabs } from "./ClinicSettingsTabs";
+import { ClinicSettingsHeader } from "./ClinicSettingsHeader";
 import { type CopySource, DoctorPlansDetail } from "./DoctorPlansDetail";
 import {
   clinicSummaryLabel,
@@ -403,12 +402,7 @@ export function HealthcarePlansSettingsPage() {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <PageHeader
-        eyebrow="Configuração da clínica"
-        title="Convênios"
-        description="Defina os convênios aceitos pela clínica e quais deles cada médico atende. Consulta particular está sempre disponível no agendamento."
-      />
-      <ClinicSettingsTabs />
+      <ClinicSettingsHeader />
       <div className={styles.content}>{children}</div>
     </>
   );
