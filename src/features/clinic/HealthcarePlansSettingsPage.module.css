@@ -1,0 +1,277 @@
+.sectionHeading {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.planForm {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.planGrid legend {
+  margin-bottom: var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.planOption {
+  display: flex;
+  min-height: 48px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.planOption:hover {
+  background: var(--color-hover);
+}
+
+.planOption:has(input:checked) {
+  border-color: var(--color-selected-border);
+  background: var(--color-selected-background);
+}
+
+.planOption input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.formFooter {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.formError {
+  color: var(--color-danger-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.doctorSelect {
+  max-width: 360px;
+}
+
+@media (max-width: 650px) {
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .formFooter button {
+    width: 100%;
+  }
+}
+
+/* Convênios da clínica: aceitar à esquerda, entrar no padrão à direita. */
+.clinicList {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.clinicList legend,
+.modeGroup legend {
+  margin-bottom: var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.clinicRow {
+  display: flex;
+  min-height: 48px;
+  align-items: stretch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.clinicRow[data-accepted] {
+  border-color: var(--color-selected-border);
+  background: var(--color-selected-background);
+}
+
+.rowAccept,
+.rowDefault {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.rowAccept {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rowDefault {
+  flex: 0 0 auto;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.rowDefault:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.clinicRow input,
+.modeOption input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.modeGroup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.modeOption {
+  display: flex;
+  min-height: 48px;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.modeOption:has(input:checked) {
+  border-color: var(--color-selected-border);
+  background: var(--color-selected-background);
+}
+
+.modeOption span {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.modeOption small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.inherited h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inheritedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.inheritedList li {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.impact {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-tint);
+  color: var(--color-warning-text);
+  font-size: 13px;
+}
+
+.impact > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.impactBody {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: var(--space-2);
+}
+
+.impactBody ul {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+  margin: 0;
+}
+
+.impactBody p {
+  margin: 0;
+}
+
+.impactPlan {
+  font-weight: 700;
+}
+
+.impactActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+}
+
+@media (max-width: 650px) {
+  .modeGroup {
+    grid-template-columns: 1fr;
+  }
+
+  .impactActions {
+    flex-direction: column;
+  }
+
+  .impactActions button {
+    width: 100%;
+  }
+}

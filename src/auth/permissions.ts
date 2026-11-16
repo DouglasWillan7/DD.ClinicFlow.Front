@@ -113,7 +113,12 @@ export function requiredCapabilityForAppPath(
   ) {
     return "ManageClinicSettings";
   }
-  if (pathname === "/app/configuracoes/agenda") {
+  if (
+    pathname === "/app/configuracoes/agenda" ||
+    // Mesmo público da disponibilidade: o administrador e o próprio médico. O que cada um
+    // pode alterar em Convênios é decidido pelo backend.
+    pathname === "/app/configuracoes/convenios"
+  ) {
     return "ConfigureDoctorSchedule";
   }
   if (pathname === "/app/inicio") return "ReadClinicalRecord";

@@ -268,6 +268,8 @@ test("oferece somente planos aceitos pelo médico e envia a relação escolhida"
     if (path === `/clinics/${clinicId}/members/uc-doctor-1/healthcare-plans`) {
       return {
         userClinicId: "uc-doctor-1",
+        // Médico no padrão da clínica: a API já devolve a lista efetiva.
+        mode: "ClinicDefault",
         healthcarePlanIds: [acceptedPlanId],
       };
     }

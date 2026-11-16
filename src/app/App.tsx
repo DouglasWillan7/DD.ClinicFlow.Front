@@ -59,6 +59,11 @@ const ProfileSettingsPage = lazy(() =>
     default: module.ProfileSettingsPage,
   })),
 );
+const HealthcarePlansSettingsPage = lazy(() =>
+  import("../features/clinic/HealthcarePlansSettingsPage").then((module) => ({
+    default: module.HealthcarePlansSettingsPage,
+  })),
+);
 const ScheduleSettingsPage = lazy(() =>
   import("../features/clinic/ScheduleSettingsPage").then((module) => ({
     default: module.ScheduleSettingsPage,
@@ -184,6 +189,7 @@ function AppRoutes() {
       "/app/equipe": <TeamPage />,
       "/app/configuracoes/perfil": <ProfileSettingsPage />,
       "/app/configuracoes/agenda": <ScheduleSettingsPage />,
+      "/app/configuracoes/convenios": <HealthcarePlansSettingsPage />,
     };
 
     // Só hexadecimal, então /equipe/novo nunca cai aqui.

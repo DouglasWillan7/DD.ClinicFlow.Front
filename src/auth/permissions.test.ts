@@ -117,4 +117,7 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/agenda")).toBe(true);
   expect(canAccessAppPath(session("Doctor"), "/app/onboarding")).toBe(true);
   expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/agenda")).toBe(false);
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/convenios")).toBe(true);
+  expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/convenios")).toBe(true);
+  expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/convenios")).toBe(false);
 });

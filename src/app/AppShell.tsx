@@ -4,6 +4,7 @@ import {
   CalendarClock,
   CalendarDays,
   ChevronDown,
+  HeartHandshake,
   House,
   LogOut,
   Menu,
@@ -111,6 +112,13 @@ export function AppShell({ children }: PropsWithChildren) {
           to: "/app/configuracoes/agenda",
           label: "Disponibilidade",
           icon: CalendarClock,
+        }
+      : undefined,
+    can(session, "ConfigureDoctorSchedule")
+      ? {
+          to: "/app/configuracoes/convenios",
+          label: "Convênios",
+          icon: HeartHandshake,
         }
       : undefined,
     can(session, "ManageClinicSettings")
