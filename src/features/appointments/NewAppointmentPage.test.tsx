@@ -576,6 +576,15 @@ test(
       if (path === "/clinics/current") return clinic;
       if (path === `/clinics/${clinicId}/members/summary`) return members;
       if (path === `/patients/${patientId}`) return patient;
+      // Sem convênios: só particular, como o restante do fluxo rápido.
+      if (path === "/healthcare-plans") return [];
+      if (path === `/clinics/${clinicId}/members/uc-doctor-1/healthcare-plans`) {
+        return {
+          userClinicId: "uc-doctor-1",
+          mode: "ClinicDefault",
+          healthcarePlanIds: [],
+        };
+      }
       if (path.startsWith(`/doctors/${doctorId}/availability`)) {
         availabilityRequests += 1;
         return availabilityRequests === 1 ? availability : nextAvailability;
@@ -593,9 +602,13 @@ test(
       </QueryHarness>,
     );
 
-    await user.click(
-      await screen.findByRole("button", { name: "Confirmar agendamento" }),
-    );
+    // O botão aparece desabilitado até o horário livre ser escolhido; clicar antes disso
+    // não faz nada e deixava o teste instável em CI.
+    const confirm = await screen.findByRole("button", {
+      name: "Confirmar agendamento",
+    });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    await user.click(confirm);
 
     await waitFor(() =>
       expect(requestMock).toHaveBeenCalledWith(
