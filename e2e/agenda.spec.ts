@@ -234,10 +234,10 @@ async function mockClinicFlow(
     } else if (url.pathname === `/clinics/${currentSession.clinicId}/members/summary`) {
       body = hasDoctor ? members : [];
     } else if (url.pathname === "/healthcare-plans") {
-      body = [{ id: "c0000000-0000-0000-0000-000000000001", name: "Particular" }];
+      body = [{ id: "c0000000-0000-0000-0000-000000000002", name: "Amil" }];
     } else if (/^\/clinics\/[^/]+\/members\/[^/]+\/healthcare-plans$/.test(url.pathname)) {
       const userClinicId = url.pathname.split("/").at(-2)!;
-      body = { userClinicId, healthcarePlanIds: [] };
+      body = { userClinicId, mode: "ClinicDefault", healthcarePlanIds: [] };
     } else if (url.pathname === "/users/me") {
       body = {
         userId: currentSession.userId,

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PropsWithChildren } from "react";
+import { type PropsWithChildren, useState } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type {
   AuthResponse,
@@ -48,6 +48,17 @@ const members: Member[] = [
     effectiveHealthcarePlanCount: 1,
   },
   {
+    userClinicId: "membership-4",
+    userId: "user-4",
+    displayName: "Dr. Rafael Souza",
+    role: "Doctor",
+    isAdmin: false,
+    specialty: null,
+    defaultAppointmentDurationMinutes: 30,
+    healthcarePlanMode: "Custom",
+    effectiveHealthcarePlanCount: 0,
+  },
+  {
     userClinicId: "membership-3",
     userId: "user-3",
     displayName: "Enf. Beatriz Lima",
@@ -86,8 +97,22 @@ let clinicDefaultIds: string[];
 let doctorPlans: Record<string, { mode: HealthcarePlanMode; ids: string[] }>;
 let impact: ClinicHealthcarePlansImpact;
 
+let initialSearch: string;
+
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: () => ({ session, request: requestMock }),
+}));
+
+// A página guarda o item selecionado na URL; o mock mantém essa busca em estado.
+vi.mock("../../app/navigation", () => ({
+  useSearchParams: () => {
+    const [params, setParams] = useState(() => new URLSearchParams(initialSearch));
+    return [
+      params,
+      (next: URLSearchParams | ((current: URLSearchParams) => URLSearchParams)) =>
+        setParams((current) => (typeof next === "function" ? next(current) : next)),
+    ];
+  },
 }));
 
 function Harness({ children }: PropsWithChildren) {
@@ -124,7 +149,9 @@ beforeEach(() => {
   doctorPlans = {
     "membership-1": { mode: "Custom", ids: ["plan-unimed"] },
     "membership-2": { mode: "ClinicDefault", ids: [] },
+    "membership-4": { mode: "Custom", ids: [] },
   };
+  initialSearch = "";
   impact = { removals: [] };
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     const body = init?.body
@@ -169,84 +196,132 @@ beforeEach(() => {
   });
 });
 
+const unimedImpact: ClinicHealthcarePlansImpact = {
+  removals: [
+    {
+      healthcarePlanId: "plan-unimed",
+      doctors: [
+        { userClinicId: "membership-1", displayName: "Dra. Marina Lopes", mode: "Custom" },
+      ],
+    },
+  ],
+};
+
+function nav() {
+  return screen.findByRole("navigation", { name: "Clínica e médicos" });
+}
+
+async function openDoctor(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await user.click(within(await nav()).getByRole("button", { name }));
+}
+
+const saveButton = () => screen.getByRole("button", { name: "Salvar convênios" });
+
 describe("HealthcarePlansSettingsPage", () => {
-  test("administrador marca convênios aceitos e padrão e salva as duas listas", async () => {
+  test("lista a clínica e a situação de cada médico", async () => {
+    renderPage();
+
+    const list = await nav();
+    expect(
+      within(list).getByRole("button", { name: /Clínica.*2 aceitos · 1 padrão/ }),
+    ).toHaveAttribute("aria-current", "true");
+    expect(
+      await within(list).findByRole("button", {
+        name: /Dra\. Marina Lopes.*Personalizado · 1 convênio/,
+      }),
+    ).toBeVisible();
+    expect(
+      within(list).getByRole("button", { name: /Dr\. André Costa.*Padrão da clínica/ }),
+    ).toBeVisible();
+    expect(
+      within(list).getByRole("button", { name: /Dr\. Rafael Souza.*Só particular/ }),
+    ).toBeVisible();
+    // Enfermagem não atende convênios e não entra na lista.
+    expect(within(list).queryByText("Enf. Beatriz Lima")).not.toBeInTheDocument();
+  });
+
+  test("visão da clínica mostra aceitos com contagem, padrão e o resto do catálogo", async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Aceitos · 2 de 3" }),
+    ).toBeVisible();
+    expect(screen.getByLabelText("Amil")).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "Amil no padrão da clínica", pressed: true }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Unimed no padrão da clínica", pressed: false }),
+    ).toBeVisible();
+    // Amil: só quem segue o padrão. Unimed: só a lista própria da Dra. Marina.
+    const amilRow = screen.getByLabelText("Amil").closest("li")!;
+    expect(await within(amilRow).findByText("1 médico")).toBeVisible();
+    const others = screen.getByRole("group", { name: "Outros do catálogo" });
+    expect(within(others).getByLabelText("Bradesco Saúde")).not.toBeChecked();
+    expect(
+      screen.queryByRole("button", { name: "Bradesco Saúde no padrão da clínica" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Salvar convênios" })).not.toBeInTheDocument();
+  });
+
+  test("alerta quando nenhum médico atende um convênio aceito", async () => {
+    clinicPlanIds = ["plan-amil", "plan-unimed", "plan-bradesco"];
+    renderPage();
+
+    const row = (await screen.findByLabelText("Bradesco Saúde")).closest("li")!;
+    expect(await within(row).findByText("Nenhum médico")).toBeVisible();
+  });
+
+  test("aceitar um convênio e marcá-lo como padrão salva as duas listas", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const clinicGroup = await screen.findByRole("group", {
-      name: "Convênios aceitos pela clínica",
-    });
-    expect(within(clinicGroup).getByLabelText("Amil")).toBeChecked();
-    expect(within(clinicGroup).getByLabelText("Amil no padrão da clínica")).toBeChecked();
-    expect(
-      within(clinicGroup).getByLabelText("Unimed no padrão da clínica"),
-    ).not.toBeChecked();
-    // Só um convênio aceito pode entrar no padrão.
-    expect(
-      within(clinicGroup).getByLabelText("Bradesco Saúde no padrão da clínica"),
-    ).toBeDisabled();
-    const save = screen.getByRole("button", { name: "Salvar convênios da clínica" });
-    expect(save).toBeDisabled();
-
-    await user.click(within(clinicGroup).getByLabelText("Bradesco Saúde"));
+    await user.click(await screen.findByLabelText("Bradesco Saúde"));
     await user.click(
-      within(clinicGroup).getByLabelText("Bradesco Saúde no padrão da clínica"),
+      screen.getByRole("button", { name: "Bradesco Saúde no padrão da clínica" }),
     );
-    await user.click(save);
 
-    expect(await screen.findByText("Convênios da clínica atualizados.")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Aceitos · 3 de 3" })).toBeVisible();
+    expect(
+      within(await nav()).getByRole("button", { name: /Clínica.*Alterações não salvas/ }),
+    ).toBeVisible();
+    await user.click(saveButton());
+
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
     expect(clinicPlanIds).toEqual(["plan-amil", "plan-unimed", "plan-bradesco"]);
     expect(clinicDefaultIds).toEqual(["plan-amil", "plan-bradesco"]);
+    expect(screen.queryByRole("button", { name: "Salvar convênios" })).not.toBeInTheDocument();
   });
 
-  test("desmarcar um convênio aceito também o tira do padrão", async () => {
+  test("descartar volta ao que está salvo sem chamar a API", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const clinicGroup = await screen.findByRole("group", {
-      name: "Convênios aceitos pela clínica",
-    });
-    await user.click(within(clinicGroup).getByLabelText("Amil"));
+    await user.click(
+      await screen.findByRole("button", { name: "Unimed no padrão da clínica" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Descartar" }));
 
-    const amilDefault = within(clinicGroup).getByLabelText("Amil no padrão da clínica");
-    expect(amilDefault).not.toBeChecked();
-    expect(amilDefault).toBeDisabled();
-
-    await user.click(screen.getByRole("button", { name: "Salvar convênios da clínica" }));
-
-    expect(await screen.findByText("Convênios da clínica atualizados.")).toBeVisible();
-    expect(clinicPlanIds).toEqual(["plan-unimed"]);
-    expect(clinicDefaultIds).toEqual([]);
+    expect(
+      screen.getByRole("button", { name: "Unimed no padrão da clínica", pressed: false }),
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Salvar convênios" })).not.toBeInTheDocument();
+    expect(putCalls(clinicPath)).toHaveLength(0);
   });
 
-  test("mostra quem perde cada convênio e só grava depois da confirmação", async () => {
+  test("deixar de aceitar um convênio pede confirmação com os médicos afetados", async () => {
     const user = userEvent.setup();
-    impact = {
-      removals: [
-        {
-          healthcarePlanId: "plan-unimed",
-          doctors: [
-            {
-              userClinicId: "membership-1",
-              displayName: "Dra. Marina Lopes",
-              mode: "Custom",
-            },
-          ],
-        },
-      ],
-    };
+    impact = unimedImpact;
     renderPage();
 
-    const clinicGroup = await screen.findByRole("group", {
-      name: "Convênios aceitos pela clínica",
-    });
-    await user.click(within(clinicGroup).getByLabelText("Unimed"));
-    await user.click(screen.getByRole("button", { name: "Salvar convênios da clínica" }));
+    await user.click(await screen.findByLabelText("Unimed"));
+    await user.click(saveButton());
 
-    const warning = await screen.findByRole("alert");
-    expect(warning).toHaveTextContent("Esta mudança tira convênios de médicos");
-    expect(warning).toHaveTextContent("Unimed: Dra. Marina Lopes");
+    const dialog = await screen.findByRole("dialog", {
+      name: "Deixar de aceitar Unimed?",
+    });
+    expect(within(dialog).getByText("Dra. Marina Lopes")).toBeVisible();
+    expect(within(dialog).getByText("Personalizado")).toBeVisible();
     expect(putCalls(clinicPath)).toHaveLength(0);
     expect(requestMock).toHaveBeenCalledWith(
       impactPath,
@@ -259,24 +334,39 @@ describe("HealthcarePlansSettingsPage", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: "Salvar mesmo assim" }));
+    await user.click(within(dialog).getByRole("button", { name: "Deixar de aceitar" }));
 
-    expect(await screen.findByText("Convênios da clínica atualizados.")).toBeVisible();
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
     expect(clinicPlanIds).toEqual(["plan-amil"]);
-    expect(screen.queryByText("Esta mudança tira convênios de médicos")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  test("voltar do aviso de impacto não grava nada", async () => {
+  test("manter o convênio no diálogo o devolve à lista e não grava", async () => {
+    const user = userEvent.setup();
+    impact = unimedImpact;
+    renderPage();
+
+    await user.click(await screen.findByLabelText("Unimed"));
+    await user.click(saveButton());
+    await user.click(await screen.findByRole("button", { name: "Manter Unimed" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Unimed")).toBeChecked();
+    expect(putCalls(clinicPath)).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "Salvar convênios" })).not.toBeInTheDocument();
+  });
+
+  test("tirar o padrão de um convênio confirma só com quem segue o padrão", async () => {
     const user = userEvent.setup();
     impact = {
       removals: [
         {
-          healthcarePlanId: "plan-unimed",
+          healthcarePlanId: "plan-amil",
           doctors: [
             {
-              userClinicId: "membership-1",
-              displayName: "Dra. Marina Lopes",
-              mode: "Custom",
+              userClinicId: "membership-2",
+              displayName: "Dr. André Costa",
+              mode: "ClinicDefault",
             },
           ],
         },
@@ -284,125 +374,237 @@ describe("HealthcarePlansSettingsPage", () => {
     };
     renderPage();
 
-    const clinicGroup = await screen.findByRole("group", {
-      name: "Convênios aceitos pela clínica",
-    });
-    await user.click(within(clinicGroup).getByLabelText("Unimed"));
-    await user.click(screen.getByRole("button", { name: "Salvar convênios da clínica" }));
-    await user.click(await screen.findByRole("button", { name: "Voltar" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Amil no padrão da clínica" }),
+    );
+    await user.click(saveButton());
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Tirar Amil do padrão?" });
+    expect(within(dialog).getByText("Dr. André Costa")).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "Tirar do padrão" }));
+
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
+    expect(clinicPlanIds).toEqual(["plan-amil", "plan-unimed"]);
+    expect(clinicDefaultIds).toEqual([]);
+  });
+
+  test("várias mudanças de uma vez viram um diálogo com um bloco por convênio", async () => {
+    const user = userEvent.setup();
+    impact = {
+      removals: [
+        {
+          healthcarePlanId: "plan-amil",
+          doctors: [
+            {
+              userClinicId: "membership-2",
+              displayName: "Dr. André Costa",
+              mode: "ClinicDefault",
+            },
+          ],
+        },
+        ...unimedImpact.removals,
+      ],
+    };
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Amil no padrão da clínica" }),
+    );
+    await user.click(screen.getByLabelText("Unimed"));
+    await user.click(saveButton());
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Confirmar mudanças nos convênios?",
+    });
+    expect(within(dialog).getByRole("heading", { name: /Amil.*sai do padrão/ })).toBeVisible();
+    expect(
+      within(dialog).getByRole("heading", { name: /Unimed.*deixa de ser aceito/ }),
+    ).toBeVisible();
+
+    await user.click(within(dialog).getByRole("button", { name: "Voltar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(putCalls(clinicPath)).toHaveLength(0);
-    expect(
-      screen.getByRole("button", { name: "Salvar convênios da clínica" }),
-    ).toBeEnabled();
+    expect(saveButton()).toBeEnabled();
   });
 
-  test("médico personalizado escolhe só entre os convênios aceitos pela clínica", async () => {
+  test("médico no padrão vê a lista da clínica travada", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const doctorGroup = await screen.findByRole("group", {
-      name: "Convênios atendidos por Dra. Marina Lopes",
+    await openDoctor(user, /Dr\. André Costa/);
+
+    expect(await screen.findByRole("radio", { name: /Padrão da clínica/ })).toBeChecked();
+    expect(screen.getByText("definido pela clínica")).toBeVisible();
+    const group = screen.getByRole("group", {
+      name: "Convênios atendidos por Dr. André Costa",
     });
+    expect(within(group).getByLabelText("Amil")).toBeChecked();
+    expect(within(group).getByLabelText("Amil")).toBeDisabled();
+    expect(within(group).getByLabelText("Unimed")).not.toBeChecked();
+    expect(screen.getByRole("heading", { name: "Convênios atendidos · 1 de 2" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Alterar o padrão da clínica" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Convênios da clínica" }),
+    ).toBeVisible();
+  });
+
+  test("personalizar parte do padrão, mostra a diferença e salva a lista própria", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await openDoctor(user, /Dr\. André Costa/);
+    await user.click(await screen.findByRole("radio", { name: /Personalizado/ }));
+
+    const group = screen.getByRole("group", {
+      name: "Convênios atendidos por Dr. André Costa",
+    });
+    // Começa com o padrão marcado e liberado.
+    expect(within(group).getByLabelText(/Amil/)).toBeChecked();
+    expect(within(group).getByLabelText(/Amil/)).toBeEnabled();
+    expect(screen.queryByText("Difere do padrão:")).not.toBeInTheDocument();
+
+    await user.click(within(group).getByLabelText(/Amil/));
+    await user.click(within(group).getByLabelText("Unimed"));
+
+    const diff = screen.getByRole("list", { name: "Diferenças para o padrão da clínica" });
+    expect(within(diff).getByText("Unimed").closest("li")).toHaveTextContent("A mais: Unimed");
+    expect(within(diff).getByText("Amil").closest("li")).toHaveTextContent("A menos: Amil");
+    expect(
+      within(await nav()).getByRole("button", {
+        name: /Dr\. André Costa.*Personalizado · não salvo/,
+      }),
+    ).toBeVisible();
+
+    await user.click(saveButton());
+
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
+    expect(doctorPlans["membership-2"]).toEqual({ mode: "Custom", ids: ["plan-unimed"] });
+  });
+
+  test("aplicar padrão copia a seleção e o médico continua personalizado", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await openDoctor(user, /Dra\. Marina Lopes/);
+    await user.click(
+      await screen.findByRole("button", { name: "Aplicar padrão da clínica" }),
+    );
+
     expect(screen.getByRole("radio", { name: /Personalizado/ })).toBeChecked();
-    expect(within(doctorGroup).getByLabelText("Unimed")).toBeChecked();
-    expect(within(doctorGroup).getByLabelText("Amil")).not.toBeChecked();
-    expect(within(doctorGroup).queryByLabelText("Bradesco Saúde")).not.toBeInTheDocument();
+    expect(screen.queryByText("Difere do padrão:")).not.toBeInTheDocument();
+    await user.click(saveButton());
 
-    await user.click(within(doctorGroup).getByLabelText("Amil"));
-    await user.click(screen.getByRole("button", { name: "Salvar convênios do médico" }));
-
-    expect(await screen.findByText("Convênios do médico atualizados.")).toBeVisible();
-    expect(doctorPlans["membership-1"]).toEqual({
-      mode: "Custom",
-      ids: ["plan-unimed", "plan-amil"],
-    });
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
+    expect(doctorPlans["membership-1"]).toEqual({ mode: "Custom", ids: ["plan-amil"] });
   });
 
-  test("voltar ao padrão da clínica mostra os convênios herdados e não envia lista", async () => {
+  test("marcar todos e copiar de outro médico preenchem a lista", async () => {
     const user = userEvent.setup();
     renderPage();
 
+    await openDoctor(user, /Dr\. Rafael Souza/);
+    await user.click(await screen.findByRole("button", { name: "Marcar todos" }));
+
+    const group = screen.getByRole("group", {
+      name: "Convênios atendidos por Dr. Rafael Souza",
+    });
+    expect(within(group).getByLabelText(/Amil/)).toBeChecked();
+    expect(within(group).getByLabelText("Unimed")).toBeChecked();
+    expect(screen.getByRole("button", { name: "Marcar todos" })).toBeDisabled();
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Copiar de outro médico" }),
+      "Dra. Marina Lopes",
+    );
+
+    expect(within(group).getByLabelText(/Amil/)).not.toBeChecked();
+    expect(within(group).getByLabelText("Unimed")).toBeChecked();
+    await user.click(saveButton());
+
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
+    expect(doctorPlans["membership-4"]).toEqual({ mode: "Custom", ids: ["plan-unimed"] });
+  });
+
+  test("voltar ao padrão da clínica não envia lista", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await openDoctor(user, /Dra\. Marina Lopes/);
     await user.click(await screen.findByRole("radio", { name: /Padrão da clínica/ }));
+    await user.click(saveButton());
 
-    expect(
-      screen.queryByRole("group", { name: "Convênios atendidos por Dra. Marina Lopes" }),
-    ).not.toBeInTheDocument();
-    const inherited = screen.getByRole("heading", { name: "Convênios padrão da clínica" })
-      .parentElement!;
-    expect(within(inherited).getByText("Amil")).toBeVisible();
-    expect(within(inherited).queryByText("Unimed")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Salvar convênios do médico" }));
-
-    expect(await screen.findByText("Convênios do médico atualizados.")).toBeVisible();
+    expect(await screen.findByText("Convênios atualizados.")).toBeVisible();
     expect(doctorPlans["membership-1"]).toEqual({ mode: "ClinicDefault", ids: [] });
   });
 
-  test("administrador troca de médico e personaliza a partir da lista herdada", async () => {
+  test("o rascunho de um médico sobrevive à troca de item", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const select = await screen.findByLabelText("Médico");
+    await openDoctor(user, /Dra\. Marina Lopes/);
+    await user.click(await screen.findByLabelText(/Amil/));
+    await openDoctor(user, /Dr\. André Costa/);
+
+    expect(screen.queryByRole("button", { name: "Salvar convênios" })).not.toBeInTheDocument();
     expect(
-      within(select).getByRole("option", {
-        name: "Dr. André Costa · Padrão da clínica (1 convênio)",
+      within(await nav()).getByRole("button", {
+        name: /Dra\. Marina Lopes.*Personalizado · não salvo/,
       }),
-    ).toBeInTheDocument();
-    await user.selectOptions(select, "membership-2");
+    ).toBeVisible();
 
-    await waitFor(() =>
-      expect(screen.getByRole("radio", { name: /Padrão da clínica/ })).toBeChecked(),
-    );
-    await user.click(screen.getByRole("radio", { name: /Personalizado/ }));
+    await openDoctor(user, /Dra\. Marina Lopes/);
 
-    const doctorGroup = screen.getByRole("group", {
-      name: "Convênios atendidos por Dr. André Costa",
-    });
-    // Parte do que ele atendia pelo padrão.
-    expect(within(doctorGroup).getByLabelText("Amil")).toBeChecked();
-    expect(within(doctorGroup).getByLabelText("Unimed")).not.toBeChecked();
+    expect(await screen.findByLabelText(/Amil/)).toBeChecked();
+    expect(saveButton()).toBeEnabled();
+  });
 
-    await user.click(screen.getByRole("button", { name: "Salvar convênios do médico" }));
+  test("o item da URL abre direto o médico", async () => {
+    initialSearch = "item=membership-2";
+    renderPage();
 
-    expect(await screen.findByText("Convênios do médico atualizados.")).toBeVisible();
-    expect(doctorPlans["membership-2"]).toEqual({ mode: "Custom", ids: ["plan-amil"] });
+    expect(
+      await screen.findByRole("heading", { name: "Dr. André Costa", level: 2 }),
+    ).toBeVisible();
   });
 
   test("retirar um convênio da clínica atualiza a lista do médico", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const clinicGroup = await screen.findByRole("group", {
-      name: "Convênios aceitos pela clínica",
-    });
-    await screen.findByRole("group", {
-      name: "Convênios atendidos por Dra. Marina Lopes",
-    });
-    await user.click(within(clinicGroup).getByLabelText("Unimed"));
-    await user.click(screen.getByRole("button", { name: "Salvar convênios da clínica" }));
+    await user.click(await screen.findByLabelText("Unimed"));
+    await user.click(saveButton());
+    await screen.findByText("Convênios atualizados.");
+    await openDoctor(user, /Dra\. Marina Lopes/);
 
     await waitFor(() => {
-      const doctorGroup = screen.getByRole("group", {
+      const group = screen.getByRole("group", {
         name: "Convênios atendidos por Dra. Marina Lopes",
       });
-      expect(within(doctorGroup).queryByLabelText("Unimed")).not.toBeInTheDocument();
+      expect(within(group).queryByLabelText("Unimed")).not.toBeInTheDocument();
     });
   });
 
-  test("médico sem administração configura apenas os próprios convênios", async () => {
+  test("médico sem administração vê só os próprios convênios", async () => {
     session = doctorSession(false);
     renderPage();
 
     expect(
-      await screen.findByRole("group", { name: "Convênios que você atende" }),
+      await screen.findByRole("heading", { name: "Meus convênios" }),
     ).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Meus convênios" })).toBeVisible();
     expect(
-      screen.queryByRole("group", { name: "Convênios aceitos pela clínica" }),
+      screen.getByRole("group", { name: "Convênios que você atende" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("navigation", { name: "Clínica e médicos" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Convênios da clínica" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "Copiar de outro médico" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Médico")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Alterar o padrão da clínica" }),
+    ).not.toBeInTheDocument();
     expect(requestMock).not.toHaveBeenCalledWith(
       `/clinics/${clinicId}/members/summary`,
     );
@@ -419,5 +621,17 @@ describe("HealthcarePlansSettingsPage", () => {
         "A clínica ainda não aceita convênios. Peça ao administrador para configurá-los.",
       ),
     ).toBeVisible();
+  });
+
+  test("falha ao carregar oferece tentar de novo", async () => {
+    requestMock.mockImplementationOnce(async () => {
+      throw new Error("offline");
+    });
+    renderPage();
+
+    expect(
+      await screen.findByText("Não foi possível carregar os convênios."),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeVisible();
   });
 });
