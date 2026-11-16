@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -71,6 +71,24 @@ describe("ClinicSettingsPage", () => {
       expect(savedBody).toMatchObject({ phone: "+351912345678" }),
     );
     expect(await screen.findByText("Dados atualizados.")).toBeVisible();
+  });
+
+  test("leva à seção de convênios da clínica", async () => {
+    render(
+      <QueryHarness>
+        <ClinicSettingsPage />
+      </QueryHarness>,
+    );
+
+    const tabs = await screen.findByRole("navigation", { name: "Configuração da clínica" });
+    expect(within(tabs).getByRole("link", { name: "Convênios" })).toHaveAttribute(
+      "href",
+      "/app/configuracoes/clinica/convenios",
+    );
+    expect(within(tabs).getByRole("link", { name: "Dados da clínica" })).toHaveAttribute(
+      "href",
+      "/app/configuracoes/clinica",
+    );
   });
 
   test("não envia um número impossível para o país selecionado", async () => {

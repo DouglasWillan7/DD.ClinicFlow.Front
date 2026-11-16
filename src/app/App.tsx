@@ -59,6 +59,11 @@ const ProfileSettingsPage = lazy(() =>
     default: module.ProfileSettingsPage,
   })),
 );
+const HealthcarePlansSettingsPage = lazy(() =>
+  import("../features/clinic/HealthcarePlansSettingsPage").then((module) => ({
+    default: module.HealthcarePlansSettingsPage,
+  })),
+);
 const ScheduleSettingsPage = lazy(() =>
   import("../features/clinic/ScheduleSettingsPage").then((module) => ({
     default: module.ScheduleSettingsPage,
@@ -165,6 +170,16 @@ function AppRoutes() {
       return <Redirect to="/app/equipe" replace />;
     }
 
+    // Convênios passou para dentro da configuração da clínica; o link antigo continua valendo.
+    if (path === "/app/configuracoes/convenios") {
+      return (
+        <Redirect
+          to={`/app/configuracoes/clinica/convenios${window.location.search}`}
+          replace
+        />
+      );
+    }
+
     if (!canAccessAppPath(session, path)) {
       return <Redirect to={appStart} replace />;
     }
@@ -173,6 +188,7 @@ function AppRoutes() {
       "/app/onboarding": <OnboardingPage />,
       "/app/equipe/novo": <TeamPage initialMode="create" initialRole="Doctor" />,
       "/app/configuracoes/clinica": <ClinicSettingsPage />,
+      "/app/configuracoes/clinica/convenios": <HealthcarePlansSettingsPage />,
       "/app/configuracoes/whatsapp": <WhatsAppSettingsPage />,
     };
     const commonRoutes: Record<string, React.ReactNode> = {

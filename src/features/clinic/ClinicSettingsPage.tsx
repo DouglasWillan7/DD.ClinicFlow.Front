@@ -13,6 +13,7 @@ import { Field, SelectField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
+import { ClinicSettingsTabs } from "./ClinicSettingsTabs";
 import styles from "./SettingsLayout.module.css";
 
 const clinicSchema = z.object({
@@ -97,10 +98,11 @@ export function ClinicSettingsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Configuração"
+        eyebrow="Configuração da clínica"
         title="Dados da clínica"
         description="Estas informações orientam horários, comunicação e identificação da unidade."
       />
+      <ClinicSettingsTabs />
       <div className={styles.content}>
         {query.isLoading ? (
           <LoadingBlock label="Carregando a clínica…" />

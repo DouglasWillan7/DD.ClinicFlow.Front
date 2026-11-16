@@ -211,6 +211,9 @@ export interface Member {
   isAdmin: boolean;
   specialty: string | null;
   defaultAppointmentDurationMinutes: number | null;
+  /** Só para médicos; ausente em respostas antigas guardadas em cache. */
+  healthcarePlanMode?: HealthcarePlanMode | null;
+  effectiveHealthcarePlanCount?: number | null;
 }
 
 export type UserClinicStatus = "Pending" | "Active" | "Suspended" | "Inactive";
@@ -254,9 +257,31 @@ export interface HealthcarePlan {
   name: string;
 }
 
+/** Convênios aceitos pela clínica e, entre eles, os do padrão herdado pelos médicos. */
+export interface ClinicHealthcarePlans {
+  healthcarePlanIds: string[];
+  defaultHealthcarePlanIds: string[];
+}
+
+export type HealthcarePlanMode = "ClinicDefault" | "Custom";
+
+/** `healthcarePlanIds` é a lista efetiva: o padrão da clínica ou a lista própria. */
 export interface UserClinicHealthcarePlans {
   userClinicId: string;
+  mode: HealthcarePlanMode;
   healthcarePlanIds: string[];
+}
+
+/** Prévia de uma troca nos convênios da clínica: quem deixa de atender cada um. */
+export interface ClinicHealthcarePlansImpact {
+  removals: Array<{
+    healthcarePlanId: string;
+    doctors: Array<{
+      userClinicId: string;
+      displayName: string;
+      mode: HealthcarePlanMode;
+    }>;
+  }>;
 }
 
 export interface OnboardingStep {
