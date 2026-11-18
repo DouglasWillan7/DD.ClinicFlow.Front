@@ -30,7 +30,8 @@ import type {
 } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { can } from "../../auth/permissions";
+import { can, isLimitedToOwnSchedule } from "../../auth/permissions";
+import { listReachableDoctors } from "./agendaDoctors";
 import { getAuthScope } from "../../auth/sessionScope";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { onboardingKey } from "../onboarding/onboarding";
@@ -126,6 +127,7 @@ export function NewAppointmentPage() {
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const authScope = session ? getAuthScope(session) : "";
+  const ownScheduleOnly = isLimitedToOwnSchedule(session);
   const quickMode = params.get("mode") === "quick";
   const openedFromHome =
     params.get("origin") === "home" && can(session, "ReadClinicalRecord");
@@ -233,13 +235,23 @@ export function NewAppointmentPage() {
   useEffect(() => {
     if (restoredDoctor.current || !members.data) return;
     restoredDoctor.current = true;
+    const reachable = listReachableDoctors(members.data, session);
     const doctorId = doctorIdFromUrl ?? restoredDraft?.doctorId;
-    const doctor = doctorId
-      ? members.data.find((member) => member.userId === doctorId)
-      : null;
+    // O médico agenda só na própria agenda: ela já vem escolhida, venha ele da
+    // agenda, do Início ou do detalhe do paciente.
+    const doctor = ownScheduleOnly
+      ? reachable[0]
+      : reachable.find((member) => member.userId === doctorId);
     if (!doctor) return;
     dispatchSelection({ type: "doctor", doctor });
-  }, [dispatchSelection, doctorIdFromUrl, members.data, restoredDraft]);
+  }, [
+    dispatchSelection,
+    doctorIdFromUrl,
+    members.data,
+    ownScheduleOnly,
+    restoredDraft,
+    session,
+  ]);
 
   const monthFrom = format(startOfMonth(month), "yyyy-MM-dd");
   const monthTo = format(endOfMonth(month), "yyyy-MM-dd");
@@ -527,7 +539,8 @@ export function NewAppointmentPage() {
             ) : null}
 
             <DoctorPicker
-              members={members.data}
+              members={listReachableDoctors(members.data, session)}
+              searchable={!ownScheduleOnly}
               doctorId={selection.doctor?.userId ?? null}
               search={doctorSearch}
               onSearchChange={setDoctorSearch}

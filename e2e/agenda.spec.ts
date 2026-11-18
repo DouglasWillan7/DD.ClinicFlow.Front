@@ -887,14 +887,18 @@ test("médico administrador separa o Início pessoal das Agendas da clínica", a
   await expect(page.getByText("Por médico", { exact: true })).toBeVisible();
   await expect(page.getByText("Minha Agenda", { exact: true })).toHaveCount(0);
 
+  // Médico só alcança a própria agenda: a busca não oferece colegas e um
+  // ?doctorId= alheio continua abrindo a agenda dele.
   const search = page.getByRole("combobox", { name: "Busca global" });
   await search.fill("rafael");
-  await page.getByRole("option", { name: /Dr\. Rafael Lima/ }).click();
-  await expect(page).toHaveURL(/doctorId=44444444-4444-4444-4444-444444444444/);
+  await expect(page.getByRole("option", { name: /Dr\. Rafael Lima/ })).toHaveCount(0);
+  await search.fill("");
+  await page.goto("/app/agenda?doctorId=44444444-4444-4444-4444-444444444444");
   await expect(page.getByText("Por médico", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Dr. Rafael Lima" }).getByText("Paulo Mendes"),
-  ).toBeVisible();
+    page.getByRole("region", { name: "Dr. Rafael Lima" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Paulo Mendes")).toHaveCount(0);
 
   await page.getByRole("link", { name: "Início" }).click();
   await expect(page).toHaveURL("/app/inicio");

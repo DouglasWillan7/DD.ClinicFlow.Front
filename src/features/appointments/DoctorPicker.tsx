@@ -7,6 +7,8 @@ export interface DoctorPickerProps {
   members: Member[];
   doctorId: string | null;
   search: string;
+  /** Sem o que escolher (médico na própria agenda), a busca some. */
+  searchable?: boolean;
   onDoctorChange(doctor: Member): void;
   onSearchChange(search: string): void;
 }
@@ -16,6 +18,7 @@ export function DoctorPicker({
   members,
   doctorId,
   search,
+  searchable = true,
   onDoctorChange,
   onSearchChange,
 }: DoctorPickerProps) {
@@ -31,16 +34,18 @@ export function DoctorPicker({
         Médico
       </h2>
 
-      <label className={`${styles.searchPill} ${styles.doctorSearch}`}>
-        <span className={styles.srOnly}>Buscar médico</span>
-        <Search size={18} aria-hidden="true" />
-        <input
-          type="search"
-          value={search}
-          placeholder="Buscar médico ou especialidade..."
-          onChange={(event) => onSearchChange(event.currentTarget.value)}
-        />
-      </label>
+      {searchable ? (
+        <label className={`${styles.searchPill} ${styles.doctorSearch}`}>
+          <span className={styles.srOnly}>Buscar médico</span>
+          <Search size={18} aria-hidden="true" />
+          <input
+            type="search"
+            value={search}
+            placeholder="Buscar médico ou especialidade..."
+            onChange={(event) => onSearchChange(event.currentTarget.value)}
+          />
+        </label>
+      ) : null}
 
       {doctors.length ? (
         <div className={styles.doctorList} aria-label="Médicos disponíveis">

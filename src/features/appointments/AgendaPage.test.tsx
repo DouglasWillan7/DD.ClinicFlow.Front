@@ -714,6 +714,39 @@ test("abre a agenda do médico pedido na URL, sem misturar com o outro", async (
   );
 });
 
+test("médico que pede a agenda de um colega na URL continua na própria", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: true,
+    roles: ["Admin", "Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda?date=2026-08-10&doctorId=${secondDoctorId}`,
+  );
+  mockAgenda([appointment, otherDoctorAppointment]);
+  render(
+    <QueryHarness>
+      <AgendaPage />
+    </QueryHarness>,
+  );
+
+  const timeline = await findTimeline("Dra. Helena Costa");
+  expect(await within(timeline).findByText("Marina Oliveira")).toBeVisible();
+  expect(screen.queryByText("Bianca Souza")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Dr. Paulo Nunes" }),
+  ).not.toBeInTheDocument();
+  expect(requestMock).not.toHaveBeenCalledWith(
+    expect.stringContaining(`/doctors/${secondDoctorId}/`),
+  );
+});
+
 test("mantém datas indisponíveis sem consultar disponibilidade quando não há médico", async () => {
   window.history.replaceState({}, "", "/app/agenda?date=2000-08-10");
   requestMock = vi.fn(async (path: string) => {
