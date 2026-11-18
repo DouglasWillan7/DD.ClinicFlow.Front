@@ -93,7 +93,7 @@ export function PatientsPage() {
         onSubmit={(event) => event.preventDefault()}
       >
         <label>
-          <span className={styles.srOnly}>Filtrar pacientes</span>
+          <span className="srOnly">Filtrar pacientes</span>
           <Search size={18} aria-hidden="true" />
           <input
             type="search"

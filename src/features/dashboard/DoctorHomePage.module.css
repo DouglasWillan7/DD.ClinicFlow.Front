@@ -573,7 +573,7 @@
   }
 }
 
-@media (max-width: 799px) {
+@media (max-width: 959px) {
   .panelHeader {
     align-items: stretch;
     flex-direction: column;

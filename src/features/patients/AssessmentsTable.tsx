@@ -26,7 +26,7 @@ export function AssessmentsTable({
     <>
       <div className={styles.tableScroll}>
         <table className={styles.table}>
-          <caption className={styles.srOnly}>
+          <caption className="srOnly">
             Avaliações físicas de {patientName}, da mais recente para a mais antiga.
             Cada valor traz a variação em relação à avaliação anterior.
           </caption>
@@ -40,7 +40,7 @@ export function AssessmentsTable({
                 </th>
               ))}
               <th scope="col">
-                <span className={styles.srOnly}>Ações</span>
+                <span className="srOnly">Ações</span>
               </th>
             </tr>
           </thead>
@@ -65,7 +65,7 @@ export function AssessmentsTable({
                       {cell.delta !== null && tone ? (
                         <span className={clsx(styles.delta, styles[tone])}>
                           {formatSignedDelta(cell.delta)}
-                          <span className={styles.srOnly}> {describeDelta(tone)}</span>
+                          <span className="srOnly"> {describeDelta(tone)}</span>
                         </span>
                       ) : null}
                     </td>
@@ -80,7 +80,7 @@ export function AssessmentsTable({
                     disabled={removing}
                     aria-label={`Remover avaliação de ${formatDateOnly(row.assessment.assessedOn)}`}
                   >
-                    <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+                    <Trash2 size={16} aria-hidden="true" />
                   </button>
                 </td>
               </tr>

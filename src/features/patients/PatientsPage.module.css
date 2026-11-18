@@ -9,18 +9,6 @@
   color: var(--color-ink);
 }
 
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 /* Fallback da busca global: a topbar some abaixo de 640px. */
 /* Filtro da própria lista: a busca da topbar é global e navega, não filtra. */
 .pageSearch {

@@ -53,7 +53,7 @@ function DeltaTag({ series }: { series: MetricSeries }) {
     <span className={styles.deltaLine}>
       <span className={clsx(styles.delta, styles[tone])}>
         {formatSignedDelta(series.delta)}
-        <span className={styles.srOnly}> {describeDelta(tone)}</span>
+        <span className="srOnly"> {describeDelta(tone)}</span>
       </span>{" "}
       vs anterior
     </span>

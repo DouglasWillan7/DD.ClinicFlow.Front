@@ -675,6 +675,8 @@ header > .backButton {
   margin-bottom: 26px;
 }
 
+/* Exceção aos breakpoints do sistema: abaixo de 920px a vitrine não cabe ao
+   lado do formulário e some. */
 @media (max-width: 920px) {
   .page {
     padding: 20px;

@@ -33,26 +33,11 @@
   /* Borda de controle solto sobre o fundo do app (chips, pílulas secundárias). */
   --color-border-control: color-mix(in srgb, var(--color-ink) 10%, transparent);
 
-  /* Aliases mantidos durante a migração dos consumidores existentes. */
-  --color-text-secondary: var(--color-text-body);
-  --color-attention: var(--color-danger);
-  --color-attention-text: var(--color-danger-text);
-  --color-attention-tint: var(--color-danger-tint);
-  --color-selected-background: var(--color-primary-subtle);
-  --color-selected-border: var(--color-primary-soft);
-  --color-hover: var(--color-primary-subtle);
-  --color-blue-tint: var(--color-primary-soft);
-  --color-border: var(--color-border-hairline);
-  --color-border-soft: var(--color-border-hairline);
-
   --radius-control: 16px;
   --radius-annotation: 18px;
   --radius-panel: 24px;
   --radius-rail: 28px;
   --radius-pill: 999px;
-  --radius-sm: var(--radius-control);
-  --radius-md: var(--radius-control);
-  --radius-lg: var(--radius-panel);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -62,15 +47,12 @@
   --space-6: 24px;
   --space-7: 32px;
   --space-8: 40px;
-  --space-10: var(--space-8);
 
   --shadow-card: 0 6px 18px rgba(23, 63, 84, 0.08);
   --shadow-floating: 0 12px 32px rgba(23, 63, 84, 0.1);
   --shadow-overlay: 0 16px 40px rgba(23, 63, 84, 0.16);
   /* Anel de foco de campos e da busca; acompanha a borda em Azul de Ação. */
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
-  --shadow-low: none;
-  --shadow-raised: none;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: 160ms var(--ease-out-expo);

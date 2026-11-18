@@ -122,7 +122,7 @@ export function ClinicalAccessEmailAction({ patientId }: { patientId: string }) 
   return (
     <div className={styles.action}>
       <div className={styles.state}>
-        <Mail size={18} strokeWidth={1.8} aria-hidden="true" />
+        <Mail size={18} aria-hidden="true" />
         {isActiveEmailLink(challenge) && maskedDestination ? (
           <p role="status" aria-live="polite">
             Enviado para <strong>{maskedDestination}</strong>. Aguardando o paciente.
@@ -140,9 +140,9 @@ export function ClinicalAccessEmailAction({ patientId }: { patientId: string }) 
         onClick={() => send.mutate()}
       >
         {canReissue ? (
-          <RefreshCw size={16} strokeWidth={1.8} aria-hidden="true" />
+          <RefreshCw size={16} aria-hidden="true" />
         ) : (
-          <Send size={16} strokeWidth={1.8} aria-hidden="true" />
+          <Send size={16} aria-hidden="true" />
         )}
         {buttonLabel}
       </Button>

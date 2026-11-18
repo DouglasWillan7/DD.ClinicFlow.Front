@@ -77,7 +77,7 @@ function ExamRow({
       onClick={onSelect}
     >
       <span className={styles.categoryIcon} aria-hidden="true">
-        <CategoryIcon size={18} strokeWidth={1.8} />
+        <CategoryIcon size={18} />
       </span>
       <span className={styles.examCopy}>
         <strong>{exam.name}</strong>
@@ -108,7 +108,7 @@ export function ExamListPanel(props: ExamListPanelProps) {
       </header>
 
       <div className={styles.searchWrap}>
-        <Search size={18} strokeWidth={1.8} aria-hidden="true" />
+        <Search size={18} aria-hidden="true" />
         <input
           type="search"
           aria-label="Buscar exames"

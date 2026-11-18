@@ -329,7 +329,6 @@
   border: 0;
 }
 
-.planGrid legend:not(:global(.srOnly)),
 .modeGroup legend {
   margin-bottom: var(--space-2);
   color: var(--color-text-muted);

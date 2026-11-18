@@ -105,7 +105,7 @@ export function PatientRegistrationForm({
                 <span className={styles.connector} aria-hidden="true" />
               ) : null}
               <span className={styles.stepCircle} aria-hidden="true">
-                {completed ? <Check size={13} strokeWidth={2.4} /> : number}
+                {completed ? <Check size={13} /> : number}
               </span>
               <span className={styles.stepLabel}>{item.label}</span>
             </li>
@@ -123,7 +123,7 @@ export function PatientRegistrationForm({
         noValidate
       >
         <header className={styles.header} aria-live="polite">
-          <span className={styles.srOnly}>Etapa {step} de 3.</span>
+          <span className="srOnly">Etapa {step} de 3.</span>
           <h1>{currentStep.title}</h1>
           <p>{currentStep.description}</p>
         </header>

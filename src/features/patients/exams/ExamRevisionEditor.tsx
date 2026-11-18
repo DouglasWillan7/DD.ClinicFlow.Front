@@ -541,7 +541,7 @@ function AuthorizedRevisionEditor({ exam, revision, loadDocument, onClassify, on
                 const stateIsCalculated = original?.referenceLowerBound != null || original?.referenceUpperBound != null;
                 return (
                   <fieldset key={field.formKey} className={clsx(styles.resultRow, checked && styles.itemConfirmed)} aria-label={field.editorKey}>
-                    <legend className={styles.srOnly}>{field.editorKey}</legend>
+                    <legend className="srOnly">{field.editorKey}</legend>
                     <div className={styles.resultSummary}>
                       <div className={styles.resultIdentity}>
                         <Field id={controlId(field.editorKey, "name")} className={styles.resultNameField} label={`${field.editorKey} — nome`} error={errors.structuredResults?.[index]?.name?.message} {...nameRegistration} />
@@ -665,7 +665,7 @@ function AuthorizedRevisionEditor({ exam, revision, loadDocument, onClassify, on
                 const low = current.confidence !== "" && Number.isFinite(Number(current.confidence)) && Number(current.confidence) < LOW_CONFIDENCE_THRESHOLD;
                 return (
                   <fieldset key={field.formKey} className={clsx(styles.findingRow, checked && styles.itemConfirmed)} aria-label={field.editorKey}>
-                    <legend className={styles.srOnly}>{field.editorKey}</legend>
+                    <legend className="srOnly">{field.editorKey}</legend>
                     <div className={styles.findingFields}>
                       <Field id={controlId(field.editorKey, "key")} label={`${field.editorKey} — chave`} error={errors.structuredFindings?.[index]?.key?.message} {...trackedRegistration(`structuredFindings.${index}.key`, key)} />
                       <Field id={controlId(field.editorKey, "value")} label={`${field.editorKey} — valor`} error={errors.structuredFindings?.[index]?.value?.message} {...trackedRegistration(`structuredFindings.${index}.value`, key)} />

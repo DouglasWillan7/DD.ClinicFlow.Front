@@ -261,7 +261,7 @@ export function ExamUploadComposer({
               onDrop={dropFile}
             >
               <span className={styles.dropIcon} aria-hidden="true">
-                {file ? <FileText size={20} strokeWidth={1.8} /> : <Upload size={20} strokeWidth={1.8} />}
+                {file ? <FileText size={20} /> : <Upload size={20} />}
               </span>
               <strong>{file ? file.name : "Arraste o PDF aqui ou clique para escolher"}</strong>
               <span className={styles.dropHint}>
@@ -357,7 +357,7 @@ export function ExamUploadComposer({
         {stage === "processing" ? (
           <>
             <div className={styles.fileCard}>
-              <FileText size={18} strokeWidth={1.6} aria-hidden="true" />
+              <FileText size={18} aria-hidden="true" />
               <div>
                 <strong>{file?.name ?? tracked?.document?.fileName ?? "Laudo enviado"}</strong>
                 <span>{file ? formatFileSize(file.size) : null}</span>
@@ -380,10 +380,10 @@ export function ExamUploadComposer({
                     className={done ? styles.stageDone : active ? styles.stageActive : styles.stageWaiting}
                   >
                     <span className={styles.stageMark} aria-hidden="true">
-                      {done ? <Check size={11} strokeWidth={3} /> : null}
+                      {done ? <Check size={11} /> : null}
                     </span>
                     {item.label}
-                    <span className={styles.srOnly}>
+                    <span className="srOnly">
                       {done ? " — concluído" : active ? " — em andamento" : " — aguardando"}
                     </span>
                   </li>
@@ -401,7 +401,7 @@ export function ExamUploadComposer({
           <>
             <div className={styles.successHeader}>
               <span className={styles.successIcon} aria-hidden="true">
-                <Check size={20} strokeWidth={2.4} />
+                <Check size={20} />
               </span>
               <div>
                 <strong>Extração concluída — pendente de revisão</strong>
@@ -437,7 +437,7 @@ export function ExamUploadComposer({
           <>
             <div className={styles.failureHeader} role="alert">
               <span className={styles.failureIcon} aria-hidden="true">
-                <AlertTriangle size={20} strokeWidth={2} />
+                <AlertTriangle size={20} />
               </span>
               <div>
                 <strong>A extração falhou</strong>

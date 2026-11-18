@@ -121,18 +121,6 @@
   margin-top: var(--space-3);
 }
 
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 @media (max-width: 639px) {
   .stepper {
     gap: 6px;
@@ -158,6 +146,8 @@
   }
 }
 
+/* Exceção aos breakpoints do sistema: em telas de até 430px os rótulos das
+   etapas não cabem ao lado dos números. */
 @media (max-width: 430px) {
   .stepLabel {
     position: absolute;

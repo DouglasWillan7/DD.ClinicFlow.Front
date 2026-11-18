@@ -246,7 +246,7 @@ export function RegisterPage() {
             <li key={label} className={number <= step ? styles.reached : undefined}>
               {index > 0 ? <span className={styles.connector} aria-hidden="true" /> : null}
               <span className={styles.stepCircle} aria-hidden="true">
-                {completed ? <Check size={13} strokeWidth={2.4} /> : number}
+                {completed ? <Check size={13} /> : number}
               </span>
               <span className={number === step ? styles.activeLabel : undefined}>{label}</span>
             </li>
@@ -479,7 +479,7 @@ export function RegisterPage() {
                 }}
               />
               <span className={styles.checkbox} aria-hidden="true">
-                <Check size={13} strokeWidth={2.4} />
+                <Check size={13} />
               </span>
               {/* Sem página de termos publicada, o texto não pode parecer um link. */}
               <span>Li e aceito os Termos de Uso e a Política de Privacidade.</span>

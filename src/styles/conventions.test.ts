@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 
 /*
  * Convenções de CSS que DESIGN.md exige e que nenhum linter do projeto cobre.
- * A lista de breakpoints abaixo é a dívida conhecida: cada fase da migração
- * remove entradas. Arquivo novo ou arquivo já migrado não pode entrar nela.
+ * Breakpoint fora do conjunto só entra na lista de exceções abaixo, e só com um
+ * comentário no CSS dizendo por que o conjunto do sistema não serve ali.
  */
 const sources = import.meta.glob<string>("../**/*.css", {
   query: "?raw",
@@ -26,16 +26,11 @@ const canonicalBreakpoints = new Set([
   "min-1280",
 ]);
 
-/** Breakpoints fora do conjunto ainda tolerados, por arquivo. */
-const breakpointDebt: Record<string, string[]> = {
-  "auth/AuthLayout.module.css": ["max-820"],
+/** Exceções justificadas, por arquivo (cada uma comentada no próprio CSS). */
+const breakpointExceptions: Record<string, string[]> = {
   "auth/LoginPage.module.css": ["max-920"],
   "auth/RegisterPage.module.css": ["max-390"],
   "components/InternationalPhoneField.module.css": ["max-430"],
-  "features/appointments/AgendaPage.module.css": ["max-899", "min-1180"],
-  "features/appointments/NewAppointmentPage.module.css": ["min-1180"],
-  "features/dashboard/DoctorHomePage.module.css": ["max-799"],
-  "features/patient-actions/ClinicalAccessEmailAction.module.css": ["max-720"],
   "features/patients/PatientRegistrationForm.module.css": ["max-430"],
 };
 
@@ -67,8 +62,8 @@ describe.each(files)("$path", ({ path, css }) => {
     expect(sizes.filter((size) => size < 12)).toEqual([]);
   });
 
-  test("usa só os breakpoints do sistema, além da dívida registrada", () => {
-    const allowed = new Set(breakpointDebt[path] ?? []);
+  test("usa só os breakpoints do sistema, além das exceções justificadas", () => {
+    const allowed = new Set(breakpointExceptions[path] ?? []);
     const offenders = breakpointsOf(css).filter(
       (breakpoint) => !canonicalBreakpoints.has(breakpoint) && !allowed.has(breakpoint),
     );
@@ -80,9 +75,9 @@ describe.each(files)("$path", ({ path, css }) => {
   });
 });
 
-test("a dívida registrada ainda existe: entradas resolvidas saem da lista", () => {
+test("toda exceção registrada ainda existe: as resolvidas saem da lista", () => {
   const stale: string[] = [];
-  for (const [path, allowed] of Object.entries(breakpointDebt)) {
+  for (const [path, allowed] of Object.entries(breakpointExceptions)) {
     const css = files.find((file) => file.path === path)?.css;
     const present = css ? breakpointsOf(css) : [];
     for (const breakpoint of allowed) {

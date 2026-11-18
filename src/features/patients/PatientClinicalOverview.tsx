@@ -40,12 +40,12 @@ function collectionDate(value: string | null | undefined) {
 
 function findingIcon(state: ClinicalReferenceState) {
   if (state === "elevado") {
-    return <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />;
+    return <ArrowUp size={16} aria-hidden="true" />;
   }
   if (state === "baixo") {
-    return <ArrowDown size={16} strokeWidth={2} aria-hidden="true" />;
+    return <ArrowDown size={16} aria-hidden="true" />;
   }
-  return <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />;
+  return <ArrowRight size={16} aria-hidden="true" />;
 }
 
 function findingAccessibleName(finding: ClinicalExamFinding) {
@@ -147,7 +147,7 @@ export function PatientClinicalOverview({
               </div>
 
               <span className={styles.validated}>
-                <CheckCircle2 size={16} strokeWidth={1.9} aria-hidden="true" />
+                <CheckCircle2 size={16} aria-hidden="true" />
                 Validado
               </span>
 
@@ -242,7 +242,7 @@ export function PatientClinicalOverview({
           </>
         ) : (
           <div className={styles.emptyState}>
-            <FileCheck2 size={28} strokeWidth={1.7} aria-hidden="true" />
+            <FileCheck2 size={28} aria-hidden="true" />
             <div>
               <h2>Nenhum laudo validado</h2>
               <p>

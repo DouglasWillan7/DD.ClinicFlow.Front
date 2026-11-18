@@ -127,7 +127,7 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
             ) : upcoming ? (
               <div className={styles.appointment}>
                 <p className={styles.appointmentDate}>
-                  <CalendarDays size={17} strokeWidth={1.8} aria-hidden="true" />
+                  <CalendarDays size={17} aria-hidden="true" />
                   {formatInTimeZone(
                     upcoming.startUtc,
                     timeZone,
@@ -136,7 +136,7 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
                 </p>
                 <p className={styles.appointmentMeta}>
                   {upcoming.type === "Teleconsultation" ? (
-                    <Video size={15} strokeWidth={1.8} aria-hidden="true" />
+                    <Video size={15} aria-hidden="true" />
                   ) : null}
                   {appointmentTypeLabels[upcoming.type]} · {appointmentStatusLabels[upcoming.status]}
                 </p>

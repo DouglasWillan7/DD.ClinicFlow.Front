@@ -405,7 +405,7 @@ export function AgendaPage({
                 onClick={() => bookSlot(null)}
               >
                 <span className={styles.appointmentActionIcon} aria-hidden="true">
-                  <CalendarPlus size={18} strokeWidth={1.8} />
+                  <CalendarPlus size={18} />
                 </span>
                 <span className={styles.appointmentActionCopy}>
                   <strong>Agendar consulta</strong>
@@ -421,7 +421,7 @@ export function AgendaPage({
                 onClick={bookQuickAppointment}
               >
                 <span className={styles.appointmentActionIcon} aria-hidden="true">
-                  <Zap size={18} strokeWidth={1.8} />
+                  <Zap size={18} />
                 </span>
                 <span className={styles.appointmentActionCopy}>
                   <strong>Consulta rápida</strong>

@@ -47,7 +47,7 @@ export function TimeSlotPicker({
                   ) : null}
                   <span>{slot.label}</span>
                   {selected ? (
-                    <span className={styles.srOnly}>Selecionado</span>
+                    <span className="srOnly">Selecionado</span>
                   ) : null}
                 </button>
               );

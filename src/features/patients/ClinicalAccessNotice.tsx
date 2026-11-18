@@ -17,7 +17,7 @@ export function ClinicalAccessNotice({
       aria-labelledby="clinical-access-title"
     >
       <span className={styles.icon} aria-hidden="true">
-        <LockKeyhole size={22} strokeWidth={1.8} />
+        <LockKeyhole size={22} />
       </span>
 
       <div className={styles.copy}>
@@ -32,7 +32,7 @@ export function ClinicalAccessNotice({
         <ClinicalAccessEmailAction patientId={patientId} />
         {onRetry ? (
           <Button type="button" variant="ghost" onClick={onRetry}>
-            <RefreshCw size={16} strokeWidth={1.8} aria-hidden="true" />
+            <RefreshCw size={16} aria-hidden="true" />
             Verificar novamente
           </Button>
         ) : null}
