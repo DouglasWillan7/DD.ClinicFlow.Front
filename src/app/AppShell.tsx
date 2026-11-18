@@ -33,11 +33,13 @@ import { ClinicContextSelector } from "../features/clinic-context/ClinicContextS
 import { GlobalSearch } from "../features/search/GlobalSearch";
 import { NavLink, useNavigate } from "./navigation";
 import { readRailPinned, saveRailPinned } from "./railPreference";
+import { useConfirmDiscard } from "./unsavedChanges";
 import styles from "./AppShell.module.css";
 
 export function AppShell({ children }: PropsWithChildren) {
   const { session, logout, switchClinic } = useAuth();
   const navigate = useNavigate();
+  const confirmDiscard = useConfirmDiscard();
   const railScope = session ? getAuthScope(session) : "";
   const [menuOpen, setMenuOpen] = useState(false);
   const [railPinned, setRailPinned] = useState(() => readRailPinned(railScope));
@@ -239,7 +241,7 @@ export function AppShell({ children }: PropsWithChildren) {
         <button
           type="button"
           className={clsx(styles.railItem, styles.logoutButton)}
-          onClick={logout}
+          onClick={() => confirmDiscard(logout)}
           aria-label="Sair"
         >
           <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
@@ -311,7 +313,9 @@ export function AppShell({ children }: PropsWithChildren) {
                       clinics={otherClinics}
                       busyUserClinicId={switchingClinicId}
                       focusFirstOnMount
-                      onSelect={(userClinicId) => void chooseClinic(userClinicId)}
+                      onSelect={(userClinicId) =>
+                        confirmDiscard(() => void chooseClinic(userClinicId))
+                      }
                     />
                   </section>
                 ) : null}

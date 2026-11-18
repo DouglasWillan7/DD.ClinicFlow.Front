@@ -1,6 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShieldCheck, Stethoscope } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import {
+  useConfirmDiscard,
+  useUnsavedChangesGuard,
+} from "../../app/unsavedChanges";
 import type { ClinicMember, ClinicRole } from "../../api/types";
 import {
   documentCountries,
@@ -69,7 +73,7 @@ export function ClinicMemberForm({
     getValues,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<ClinicMemberFormValue>({
     resolver: zodResolver(createClinicMemberSchema(mode)),
     defaultValues: {
@@ -77,6 +81,9 @@ export function ClinicMemberForm({
       role: member?.role ?? initialRole ?? "Secretary",
     },
   });
+  // Cancelar e os links do menu só descartam o que foi digitado após confirmação.
+  useUnsavedChangesGuard(isDirty);
+  const confirmDiscard = useConfirmDiscard();
   const [countryCode, documentType, role] = useWatch({
     control,
     name: ["countryCode", "documentType", "role"],
@@ -329,7 +336,9 @@ export function ClinicMemberForm({
       {serverError ? <p className={styles.serverError} role="alert">{serverError}</p> : null}
 
       <footer className={styles.actions}>
-        <Button type="button" variant="secondary" disabled={pending} onClick={onCancel}>
+        <Button type="button" variant="secondary" disabled={pending}
+          onClick={() => confirmDiscard(onCancel)}
+        >
           Cancelar
         </Button>
         <Button type="submit" loading={pending}>

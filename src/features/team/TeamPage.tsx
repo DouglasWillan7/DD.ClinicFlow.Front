@@ -25,6 +25,7 @@ import type {
   ClinicRole,
   UserClinicStatus,
 } from "../../api/types";
+import { Link, useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
 import { roleLabels } from "../../auth/roles";
@@ -111,6 +112,11 @@ type EditorState =
   | { mode: "create" }
   | { mode: "edit"; member: ClinicMember };
 
+const TEAM_PATH = "/app/equipe";
+// O editor mora na URL: assim "Equipe" no menu e o Voltar do navegador devolvem a listagem.
+const EDITOR_PARAM = "vinculo";
+const NEW_MEMBER = "novo";
+
 function memberName(member: ClinicMember) {
   return member.displayName?.trim() || member.email || "Integrante sem nome";
 }
@@ -133,10 +139,12 @@ export function TeamPage({
 }) {
   const { request, session, refreshSession } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const editorParam = initialMode === "create" ? NEW_MEMBER : params.get(EDITOR_PARAM);
   const clinicId = session?.clinicId ?? "";
-  const [editor, setEditor] = useState<EditorState | undefined>(
-    initialMode === "create" ? { mode: "create" } : undefined,
-  );
+  // Remonta o formulário depois de salvar, para ele voltar a ficar "sem alterações".
+  const [formRevision, setFormRevision] = useState(0);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ClinicRole | "All">("All");
   const [feedback, setFeedback] = useState<string>();
@@ -163,6 +171,32 @@ export function TeamPage({
     enabled: Boolean(clinicId),
   });
 
+  const members = useMemo(() => query.data ?? [], [query.data]);
+  const editor = useMemo<EditorState | undefined>(() => {
+    if (!editorParam) return undefined;
+    if (editorParam === NEW_MEMBER) return { mode: "create" };
+    const member = members.find((item) => item.userClinicId === editorParam);
+    return member ? { mode: "edit", member } : undefined;
+  }, [editorParam, members]);
+
+  // A resposta da API entra na lista em cache na hora; o editor lê o vínculo dali.
+  function storeMember(updated: ClinicMember) {
+    queryClient.setQueryData<ClinicMember[]>(
+      clinicMembersKey(clinicId),
+      (current) =>
+        current?.map((item) =>
+          item.userClinicId === updated.userClinicId ? updated : item,
+        ),
+    );
+  }
+
+  function openEditor(target: string) {
+    setFeedback(undefined);
+    save.reset();
+    changeStatus.reset();
+    navigate(`${TEAM_PATH}?${EDITOR_PARAM}=${encodeURIComponent(target)}`);
+  }
+
   const save = useMutation({
     mutationFn: async (payload: ClinicMemberPayload) => {
       if (!editor) throw new Error("Nenhum vínculo selecionado.");
@@ -187,9 +221,10 @@ export function TeamPage({
           : "Vínculo atualizado.",
       );
       if (result.kind === "created") {
-        setEditor(undefined);
+        navigate(TEAM_PATH);
       } else {
-        setEditor({ mode: "edit", member: result.member });
+        storeMember(result.member);
+        setFormRevision((revision) => revision + 1);
         if (result.member.userClinicId === session?.userClinicId) {
           try {
             await refreshSession();
@@ -222,7 +257,7 @@ export function TeamPage({
         },
       ),
     onSuccess: async (updated) => {
-      setEditor({ mode: "edit", member: updated });
+      storeMember(updated);
       setFeedback(
         updated.status === "Active"
           ? "Vínculo reativado."
@@ -277,7 +312,6 @@ export function TeamPage({
     },
   });
 
-  const members = useMemo(() => query.data ?? [], [query.data]);
   const filteredMembers = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase("pt-BR");
     return members.filter((member) => {
@@ -327,74 +361,22 @@ export function TeamPage({
     session && can(session, "ManageClinicMemberships"),
   );
 
-  return (
-    <main className={styles.content}>
-      <header className={styles.teamHeader}>
-        <div>
-          <span className={styles.overline}>
-            {session?.clinicName ?? "Clínica atual"}
-          </span>
-          <h1>Equipe</h1>
-          <p>
-            Um vínculo por pessoa, com papel hierárquico, administração e
-            contatos próprios desta clínica.
-          </p>
+  // Cadastro e edição ocupam a tela sozinhos: sem listagem, resumo nem "Novo integrante".
+  if (editor) {
+    const editorTitle =
+      editor.mode === "create" ? "Novo integrante" : memberName(editor.member);
+    return (
+      <main className={styles.content}>
+        <div className={styles.contextRow}>
+          <nav className={styles.breadcrumb} aria-label="Você está em">
+            <Link to={TEAM_PATH}>Equipe</Link>
+            <span aria-hidden="true">/</span>
+            <strong aria-current="page">{editorTitle}</strong>
+          </nav>
         </div>
-        <Button
-          type="button"
-          className={styles.addMember}
-          onClick={() => {
-            setFeedback(undefined);
-            setEditor({ mode: "create" });
-          }}
-        >
-          <Plus size={18} aria-hidden="true" />
-          Novo integrante
-        </Button>
-      </header>
 
-      <section className={styles.metrics} aria-label="Resumo da equipe">
-        <article>
-          <span className={styles.metricIcon}>
-            <UsersRound aria-hidden="true" />
-          </span>
-          <div>
-            <strong>{members.length}</strong>
-            <small>vínculos</small>
-          </div>
-        </article>
-        <article>
-          <span className={styles.metricIcon}>
-            <UserRoundCheck aria-hidden="true" />
-          </span>
-          <div>
-            <strong>{activeCount}</strong>
-            <small>ativos</small>
-          </div>
-        </article>
-        <article>
-          <span className={styles.metricIcon}>
-            <Stethoscope aria-hidden="true" />
-          </span>
-          <div>
-            <strong>{doctorCount}</strong>
-            <small>médicos</small>
-          </div>
-        </article>
-        <article>
-          <span className={styles.metricIcon}>
-            <Clock3 aria-hidden="true" />
-          </span>
-          <div>
-            <strong>{pendingCount}</strong>
-            <small>pendentes</small>
-          </div>
-        </article>
-      </section>
+        {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
 
-      {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
-
-      {editor ? (
         <section className={styles.editorPanel} aria-label="Editor de vínculo">
           {selectedMember?.status === "Pending" ? (
             <aside className={styles.invitationEditNote}>
@@ -412,7 +394,7 @@ export function TeamPage({
           <ClinicMemberForm
             key={
               editor.mode === "edit"
-                ? editor.member.userClinicId
+                ? `${editor.member.userClinicId}:${formRevision}`
                 : "new-member"
             }
             mode={editor.mode}
@@ -429,7 +411,8 @@ export function TeamPage({
             }
             onCancel={() => {
               save.reset();
-              setEditor(undefined);
+              setFeedback(undefined);
+              navigate(TEAM_PATH);
             }}
             onSubmit={(payload) => save.mutate(payload)}
           />
@@ -499,7 +482,73 @@ export function TeamPage({
             </section>
           ) : null}
         </section>
-      ) : null}
+      </main>
+    );
+  }
+
+  return (
+    <main className={styles.content}>
+      <header className={styles.teamHeader}>
+        <div>
+          <span className={styles.overline}>
+            {session?.clinicName ?? "Clínica atual"}
+          </span>
+          <h1>Equipe</h1>
+          <p>
+            Um vínculo por pessoa, com papel hierárquico, administração e
+            contatos próprios desta clínica.
+          </p>
+        </div>
+        <Button
+          type="button"
+          className={styles.addMember}
+          onClick={() => openEditor(NEW_MEMBER)}
+        >
+          <Plus size={18} aria-hidden="true" />
+          Novo integrante
+        </Button>
+      </header>
+
+      <section className={styles.metrics} aria-label="Resumo da equipe">
+        <article>
+          <span className={styles.metricIcon}>
+            <UsersRound aria-hidden="true" />
+          </span>
+          <div>
+            <strong>{members.length}</strong>
+            <small>vínculos</small>
+          </div>
+        </article>
+        <article>
+          <span className={styles.metricIcon}>
+            <UserRoundCheck aria-hidden="true" />
+          </span>
+          <div>
+            <strong>{activeCount}</strong>
+            <small>ativos</small>
+          </div>
+        </article>
+        <article>
+          <span className={styles.metricIcon}>
+            <Stethoscope aria-hidden="true" />
+          </span>
+          <div>
+            <strong>{doctorCount}</strong>
+            <small>médicos</small>
+          </div>
+        </article>
+        <article>
+          <span className={styles.metricIcon}>
+            <Clock3 aria-hidden="true" />
+          </span>
+          <div>
+            <strong>{pendingCount}</strong>
+            <small>pendentes</small>
+          </div>
+        </article>
+      </section>
+
+      {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
 
       <section
         className={styles.directory}
@@ -625,12 +674,7 @@ export function TeamPage({
                     type="button"
                     className={styles.editMember}
                     aria-label={`Editar vínculo de ${name}`}
-                    onClick={() => {
-                      setFeedback(undefined);
-                      save.reset();
-                      changeStatus.reset();
-                      setEditor({ mode: "edit", member });
-                    }}
+                    onClick={() => openEditor(member.userClinicId)}
                   >
                     <Pencil size={16} aria-hidden="true" />
                     Editar

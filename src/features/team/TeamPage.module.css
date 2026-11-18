@@ -34,6 +34,9 @@
 }
 
 .breadcrumb a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   color: var(--color-text-muted);
   text-decoration: none;
 }

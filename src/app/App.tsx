@@ -7,6 +7,7 @@ import { canAccessAppPath, getAppStart } from "../auth/permissions";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppShell } from "./AppShell";
 import { NotFoundPage } from "./NotFoundPage";
+import { UnsavedChangesProvider } from "./unsavedChanges";
 import { ExamRealtimeProvider } from "../features/patients/exams/ExamRealtimeProvider";
 
 const LoginPage = lazy(() =>
@@ -262,9 +263,11 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ExamRealtimeProvider>
-            <Suspense fallback={<LoadingBlock label="Abrindo o ClinicFlow…" />}>
-              <AppRoutes />
-            </Suspense>
+            <UnsavedChangesProvider>
+              <Suspense fallback={<LoadingBlock label="Abrindo o ClinicFlow…" />}>
+                <AppRoutes />
+              </Suspense>
+            </UnsavedChangesProvider>
           </ExamRealtimeProvider>
         </AuthProvider>
       </QueryClientProvider>

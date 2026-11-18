@@ -9,6 +9,7 @@ import type {
   ClinicMembershipInvitationStatus,
 } from "../../api/types";
 import { ApiError } from "../../api/client";
+import { UnsavedChangesProvider } from "../../app/unsavedChanges";
 import { TeamPage } from "./TeamPage";
 
 const session: AuthResponse = {
@@ -143,10 +144,16 @@ function Harness({ children }: PropsWithChildren) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {
+  // O editor mora na URL; cada teste começa na listagem.
+  window.history.replaceState({}, "", "/app/equipe");
   currentSession = session;
   requestMock = vi.fn(async (path: string) => {
     if (path === "/clinics/clinic-1/members") return members;
@@ -474,4 +481,87 @@ test("mostra erro seguro quando o cancelamento falha", async () => {
   );
   expect(screen.queryByText(/challenge-id/i)).not.toBeInTheDocument();
   expect(screen.getByRole("alertdialog")).toBeVisible();
+});
+
+test("cadastro ocupa a tela sozinho, sem listagem nem botão de novo integrante", async () => {
+  const user = userEvent.setup();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Novo integrante" }));
+
+  expect(screen.getByRole("heading", { name: "Adicionar integrante" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Novo integrante" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Pessoas da clínica" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("listitem", { name: /Ana Martins/ })).not.toBeInTheDocument();
+  expect(window.location.search).toBe("?vinculo=novo");
+});
+
+test("link Equipe devolve a listagem durante um cadastro sem alterações", async () => {
+  const user = userEvent.setup();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Novo integrante" }));
+  await user.click(screen.getByRole("link", { name: "Equipe" }));
+
+  expect(await screen.findByRole("heading", { name: "Pessoas da clínica" })).toBeVisible();
+  expect(screen.queryByRole("heading", { name: "Adicionar integrante" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("cancelar sem alterações volta direto para a listagem", async () => {
+  const user = userEvent.setup();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Beatriz Lima" }));
+  await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Pessoas da clínica" })).toBeVisible();
+});
+
+test("cancelar com dados preenchidos pede confirmação antes de descartar", async () => {
+  const user = userEvent.setup();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Novo integrante" }));
+  await user.type(screen.getByLabelText("Nome completo"), "Joana Ribeiro");
+  await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+  const dialog = screen.getByRole("dialog", { name: "Descartar alterações?" });
+  await user.click(within(dialog).getByRole("button", { name: "Continuar editando" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Nome completo")).toHaveValue("Joana Ribeiro");
+
+  await user.click(screen.getByRole("button", { name: "Cancelar" }));
+  await user.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Descartar alterações" }),
+  );
+  expect(await screen.findByRole("heading", { name: "Pessoas da clínica" })).toBeVisible();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("sair pelo link com dados preenchidos também pede confirmação", async () => {
+  const user = userEvent.setup();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Novo integrante" }));
+  await user.type(screen.getByLabelText("Nome completo"), "Joana Ribeiro");
+  await user.click(screen.getByRole("link", { name: "Equipe" }));
+
+  expect(screen.getByRole("dialog", { name: "Descartar alterações?" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Adicionar integrante" })).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Descartar alterações" }));
+  expect(await screen.findByRole("heading", { name: "Pessoas da clínica" })).toBeVisible();
+});
+
+test("depois de salvar, o formulário deixa de pedir confirmação", async () => {
+  const user = userEvent.setup();
+  requestMock = vi.fn(async (_path: string, init?: RequestInit) =>
+    init ? { ...members[1], isAdmin: true } : members,
+  );
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Beatriz Lima" }));
+  await user.click(screen.getByRole("checkbox", { name: /Administrador da clínica/ }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  expect(await screen.findByText("Vínculo atualizado.")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Cancelar" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Pessoas da clínica" })).toBeVisible();
 });
