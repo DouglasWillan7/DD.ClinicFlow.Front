@@ -370,6 +370,12 @@ test("alterar e-mail pendente invalida o convite e exige reenvio explícito", as
   await page.getByRole("button", { name: "Salvar vínculo" }).click();
 
   await expect(page.getByText("Vínculo atualizado.")).toBeVisible();
+  // O editor ocupa a tela sozinho; depois de salvar, o menu volta à lista sem pedir confirmação.
+  await page
+    .getByRole("navigation", { name: "Navegação principal" })
+    .getByRole("link", { name: "Equipe" })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("Convite cancelado", { exact: true })).toBeVisible();
   expect(state.updateRequests).toBe(1);
   expect(state.reissueRequests).toBe(0);
@@ -411,4 +417,39 @@ test("reenvio pode ser concluído somente com teclado", async ({ page }) => {
   await expect(page.getByText("Novo convite enfileirado para envio.")).toBeVisible();
   await expect(page.getByText("Envio aguardando")).toBeVisible();
   expect(state.reissueRequests).toBe(1);
+});
+
+test("cadastro mostra só o formulário e o menu Equipe confirma antes de descartar", async ({
+  page,
+}) => {
+  await authenticate(page);
+  await mockInvitationTeam(page, pendingDoctor("Sent"));
+  await page.goto("/app/equipe");
+  const teamLink = page
+    .getByRole("navigation", { name: "Navegação principal" })
+    .getByRole("link", { name: "Equipe" });
+  const createMember = page.getByRole("button", { name: "Novo integrante" });
+  const directory = page.getByRole("heading", { name: "Pessoas da clínica" });
+
+  await createMember.click();
+  await expect(page.getByRole("heading", { name: "Adicionar integrante" })).toBeVisible();
+  await expect(createMember).toHaveCount(0);
+  await expect(directory).toHaveCount(0);
+
+  // Sem nada preenchido, o menu devolve a listagem direto.
+  await teamLink.click();
+  await expect(directory).toBeVisible();
+
+  await createMember.click();
+  await page.getByLabel("Nome completo").fill("Joana Ribeiro");
+  await teamLink.click();
+  const dialog = page.getByRole("dialog", { name: "Descartar alterações?" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Continuar editando" }).click();
+  await expect(page.getByLabel("Nome completo")).toHaveValue("Joana Ribeiro");
+
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await dialog.getByRole("button", { name: "Descartar alterações" }).click();
+  await expect(directory).toBeVisible();
+  await expect(page).toHaveURL("/app/equipe");
 });

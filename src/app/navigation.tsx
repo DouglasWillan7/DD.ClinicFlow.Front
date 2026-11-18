@@ -6,19 +6,49 @@ import {
 } from "wouter";
 import type {
   AnchorHTMLAttributes,
+  MouseEvent,
   ReactNode,
 } from "react";
+import { useConfirmDiscard, useHasUnsavedChanges } from "./unsavedChanges";
+
+/**
+ * Clique em link com formulário alterado: segura a navegação e só a conclui
+ * depois que a pessoa confirma o descarte (regra geral do portal).
+ */
+function useGuardedLinkClick(to: string, target?: string) {
+  const [, navigate] = useWouterLocation();
+  const hasUnsavedChanges = useHasUnsavedChanges();
+  const confirmDiscard = useConfirmDiscard();
+
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || target === "_blank" || !hasUnsavedChanges()) {
+      return;
+    }
+    event.preventDefault();
+    confirmDiscard(() => navigate(to));
+  };
+}
 
 export function Link({
   to,
   children,
+  onClick,
   ...props
 }: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   to: string;
   children: ReactNode;
 }) {
+  const guardClick = useGuardedLinkClick(to, props.target);
+
   return (
-    <WouterLink href={to} {...props}>
+    <WouterLink
+      href={to}
+      {...props}
+      onClick={(event) => {
+        onClick?.(event);
+        guardClick(event);
+      }}
+    >
       {children}
     </WouterLink>
   );
@@ -37,6 +67,7 @@ export function NavLink({
   onClick?: () => void;
 }) {
   const [location] = useWouterLocation();
+  const guardClick = useGuardedLinkClick(to, props.target);
   const isActive = location === to;
   const resolvedClassName =
     typeof className === "function" ? className({ isActive }) : className;
@@ -46,7 +77,10 @@ export function NavLink({
       href={to}
       {...props}
       className={resolvedClassName}
-      onClick={onClick}
+      onClick={(event) => {
+        onClick?.();
+        guardClick(event);
+      }}
       aria-current={isActive ? "page" : undefined}
     >
       {children}
