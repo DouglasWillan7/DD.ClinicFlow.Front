@@ -8,7 +8,12 @@ import { ApiError } from "../../api/client";
 import type { Clinic, ClinicPlan } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
-import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
+import {
+  ErrorBlock,
+  InlineError,
+  LoadingBlock,
+  SuccessNote,
+} from "../../components/Feedback";
 import { Field, SelectField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import { onboardingKey } from "../onboarding/onboarding";
@@ -161,11 +166,11 @@ export function ClinicSettingsPage() {
                 <div className={styles.actions}>
                   {saved ? <SuccessNote>Dados atualizados.</SuccessNote> : null}
                   {mutation.isError ? (
-                    <span role="alert">
+                    <InlineError>
                       {mutation.error instanceof ApiError
                         ? mutation.error.message
                         : "Não foi possível salvar."}
-                    </span>
+                    </InlineError>
                   ) : null}
                   <Button type="submit" loading={mutation.isPending}>
                     Salvar dados
@@ -222,11 +227,11 @@ export function ClinicSettingsPage() {
                 </button>
               </div>
               {planMutation.isError ? (
-                <p className={styles.fieldError} role="alert">
+                <InlineError>
                   {planMutation.error instanceof ApiError
                     ? planMutation.error.message
                     : "Não foi possível alterar o plano."}
-                </p>
+                </InlineError>
               ) : null}
             </section>
           </div>

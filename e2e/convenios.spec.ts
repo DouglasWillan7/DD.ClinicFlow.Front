@@ -17,7 +17,10 @@ test("administrador vê a clínica, a situação dos médicos e salva com confir
   await expect(tabs.getByRole("link", { name: "Convênios" }))
     .toHaveAttribute("aria-current", "page");
   await tabs.getByRole("link", { name: "Dados da clínica" }).click();
-  await expect(page.getByRole("heading", { name: "Dados da clínica", level: 1 })).toBeVisible();
+  // O título é o mesmo em todas as abas (8575d3f); a aba ativa é quem muda.
+  await expect(page.getByRole("heading", { name: "Clínica", level: 1 })).toBeVisible();
+  await expect(tabs.getByRole("link", { name: "Dados da clínica" }))
+    .toHaveAttribute("aria-current", "page");
   await page.getByRole("navigation", { name: "Configuração da clínica" })
     .getByRole("link", { name: "Convênios" }).click();
 

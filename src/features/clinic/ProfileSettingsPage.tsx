@@ -10,6 +10,7 @@ import { roleLabels } from "../../auth/roles";
 import { Button } from "../../components/Button";
 import {
   ErrorBlock,
+  InlineError,
   LoadingBlock,
   SuccessNote,
 } from "../../components/Feedback";
@@ -148,11 +149,11 @@ export function ProfileSettingsPage() {
                 <div className={styles.actions}>
                   {saved ? <SuccessNote>Perfil atualizado.</SuccessNote> : null}
                   {mutation.isError ? (
-                    <span role="alert">
+                    <InlineError>
                       {mutation.error instanceof ApiError
                         ? mutation.error.message
                         : "Não foi possível salvar o perfil."}
-                    </span>
+                    </InlineError>
                   ) : null}
                   <Button type="submit" loading={mutation.isPending}>
                     Salvar conta

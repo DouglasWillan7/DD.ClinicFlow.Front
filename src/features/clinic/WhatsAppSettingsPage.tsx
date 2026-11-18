@@ -8,7 +8,12 @@ import { ApiError } from "../../api/client";
 import type { WhatsAppConfig } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
-import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
+import {
+  ErrorBlock,
+  InlineError,
+  LoadingBlock,
+  SuccessNote,
+} from "../../components/Feedback";
 import { Field } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
@@ -152,11 +157,11 @@ export function WhatsAppSettingsPage() {
               <div className={styles.actions}>
                 {saved ? <SuccessNote>Configuração atualizada.</SuccessNote> : null}
                 {mutation.isError ? (
-                  <span role="alert">
+                  <InlineError>
                     {mutation.error instanceof ApiError
                       ? mutation.error.message
                       : "Não foi possível salvar."}
-                  </span>
+                  </InlineError>
                 ) : null}
                 <Button type="submit" loading={mutation.isPending}>
                   Salvar conexão

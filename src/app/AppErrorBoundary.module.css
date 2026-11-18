@@ -9,10 +9,10 @@
 .card {
   width: min(100%, 560px);
   padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
-  box-shadow: var(--shadow-low);
+  box-shadow: none;
 }
 
 .icon {
@@ -21,9 +21,9 @@
   height: 44px;
   place-items: center;
   margin-block: var(--space-8) var(--space-4);
-  color: var(--color-attention-text);
-  border-radius: var(--radius-md);
-  background: var(--color-attention-tint);
+  color: var(--color-danger-text);
+  border-radius: var(--radius-control);
+  background: var(--color-danger-tint);
 }
 
 .card h1 {
@@ -33,7 +33,7 @@
 .card p {
   max-width: 52ch;
   margin-bottom: var(--space-6);
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
 }
 
 .actions {

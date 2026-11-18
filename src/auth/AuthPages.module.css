@@ -11,7 +11,7 @@
 
 .card header p {
   margin-bottom: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
 }
 
 .form {
@@ -42,8 +42,8 @@
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   cursor: pointer;
   transition:
@@ -53,12 +53,12 @@
 
 .planGroup label:hover,
 .doctorToggle:hover {
-  background: var(--color-hover);
+  background: var(--color-primary-subtle);
 }
 
 .planGroup .planSelected {
   border-color: var(--color-primary);
-  background: var(--color-selected-background);
+  background: var(--color-primary-subtle);
 }
 
 .planGroup input,
@@ -87,7 +87,7 @@
 .planGroup small,
 .doctorToggle small {
   margin-top: 2px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
   font-size: 12px;
 }
 
@@ -100,14 +100,14 @@
   padding: 12px 14px;
   color: var(--color-danger-text);
   border: 1px solid #fecdca;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   background: var(--color-danger-tint);
   font-size: 13px;
 }
 
 .switch {
   margin-top: 24px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
   overflow-wrap: anywhere;
   text-align: center;
 }
@@ -126,7 +126,7 @@
 
 .invited {
   margin: 18px auto 0;
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
   font-size: 12px;
   line-height: 1.5;
   text-align: center;

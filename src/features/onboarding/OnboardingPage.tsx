@@ -18,7 +18,7 @@ export function OnboardingPage() {
     <>
       <PageHeader
         eyebrow="Configuração guiada"
-        title="Vamos colocar sua clínica em fluxo."
+        title="Vamos colocar sua clínica em fluxo"
         description="Conclua uma etapa por vez. A agenda continua disponível durante toda a configuração."
       />
       <div className={styles.content}>

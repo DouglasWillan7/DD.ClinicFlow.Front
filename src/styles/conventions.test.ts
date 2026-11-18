@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 
 /*
  * Convenções de CSS que DESIGN.md exige e que nenhum linter do projeto cobre.
- * As listas de exceção abaixo são a dívida conhecida: cada fase da migração
- * remove entradas. Arquivo novo ou arquivo já migrado não pode entrar nelas.
+ * A lista de breakpoints abaixo é a dívida conhecida: cada fase da migração
+ * remove entradas. Arquivo novo ou arquivo já migrado não pode entrar nela.
  */
 const sources = import.meta.glob<string>("../**/*.css", {
   query: "?raw",
@@ -36,34 +36,13 @@ const breakpointDebt: Record<string, string[]> = {
   "features/appointments/AgendaPage.module.css": ["max-899", "min-1180"],
   "features/appointments/NewAppointmentPage.module.css": ["min-1180"],
   "features/clinic-invitation/ClinicMembershipInvitationPage.module.css": ["max-560"],
-  "features/clinic/HealthcarePlansSettingsPage.module.css": ["max-650"],
-  "features/clinic/ScheduleSettingsPage.module.css": ["max-600", "max-820"],
-  "features/clinic/SettingsLayout.module.css": ["max-650"],
   "features/dashboard/DoctorHomePage.module.css": ["max-799"],
-  "features/onboarding/OnboardingPage.module.css": ["max-780"],
   "features/patient-actions/ClinicalAccessEmailAction.module.css": ["max-720"],
   "features/patients/PatientRegistrationForm.module.css": ["max-430"],
   "features/public-patient-action/PublicPatientActionPage.module.css": ["max-560"],
-  "features/team/ClinicMemberForm.module.css": ["max-520", "max-760"],
-  "features/team/TeamPage.module.css": ["max-520", "max-720", "max-980"],
 };
 
-/** Arquivos que ainda usam aliases do bloco de migração de tokens.css. */
-const aliasDebt = new Set([
-  "app/AppErrorBoundary.module.css",
-  "app/NotFoundPage.module.css",
-  "auth/AuthLayout.module.css",
-  "auth/AuthPages.module.css",
-  "features/clinic-invitation/ClinicMembershipInvitationPage.module.css",
-  "features/clinic/HealthcarePlansSettingsPage.module.css",
-  "features/clinic/SettingsLayout.module.css",
-  "features/onboarding/OnboardingChecklist.module.css",
-  "features/onboarding/OnboardingPage.module.css",
-  "features/public-patient-action/PublicPatientActionPage.module.css",
-  "features/team/ClinicMemberForm.module.css",
-  "features/team/TeamPage.module.css",
-]);
-
+/** Aliases do antigo bloco de migração de tokens.css: não existem mais e não voltam. */
 const migrationAlias =
   /var\(--(color-text-secondary|color-attention(-text|-tint)?|color-selected-(background|border)|color-hover|color-blue-tint|color-border(-soft)?|radius-(sm|md|lg)|space-10|shadow-(low|raised))\)/;
 
@@ -99,8 +78,7 @@ describe.each(files)("$path", ({ path, css }) => {
     expect(offenders).toEqual([]);
   });
 
-  test("não usa aliases de migração, além da dívida registrada", () => {
-    if (aliasDebt.has(path)) return;
+  test("não usa aliases de migração", () => {
     expect(css).not.toMatch(migrationAlias);
   });
 });
@@ -113,10 +91,6 @@ test("a dívida registrada ainda existe: entradas resolvidas saem da lista", () 
     for (const breakpoint of allowed) {
       if (!present.includes(breakpoint)) stale.push(`${path}: ${breakpoint}`);
     }
-  }
-  for (const path of aliasDebt) {
-    const css = files.find((file) => file.path === path)?.css;
-    if (!css || !migrationAlias.test(css)) stale.push(`${path}: aliases`);
   }
   expect(stale).toEqual([]);
 });
