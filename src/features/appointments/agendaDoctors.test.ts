@@ -3,6 +3,7 @@ import {
   formatFreeSlots,
   getShortDoctorName,
   listDoctors,
+  listReachableDoctors,
   resolveActiveDoctor,
 } from "./agendaDoctors";
 
@@ -43,6 +44,31 @@ describe("listDoctors", () => {
     expect(listDoctors([helena, secretary, rookie]).map((d) => d.userId)).toEqual(
       ["helena", "novo"],
     );
+  });
+});
+
+describe("listReachableDoctors", () => {
+  test("médico alcança somente a própria agenda, mesmo sendo administrador", () => {
+    expect(
+      listReachableDoctors(doctors, { clinicRole: "Doctor", userId: "ibrahim" }),
+    ).toEqual([ibrahim]);
+    // Com a lista reduzida, um ?doctorId= de colega cai na própria agenda.
+    expect(
+      resolveActiveDoctor(
+        listReachableDoctors(doctors, { clinicRole: "Doctor", userId: "ibrahim" }),
+        "paulo",
+        "ibrahim",
+      )?.userId,
+    ).toBe("ibrahim");
+  });
+
+  test("secretaria e enfermagem alcançam todos os médicos da clínica", () => {
+    expect(
+      listReachableDoctors(doctors, { clinicRole: "Secretary", userId: "camila" }),
+    ).toEqual(doctors);
+    expect(
+      listReachableDoctors(doctors, { clinicRole: "Nurse", userId: "lia" }),
+    ).toEqual(doctors);
   });
 });
 

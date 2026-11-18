@@ -77,6 +77,18 @@ export function can(
   return Boolean(role && requiredRole && roleLevel[role] >= roleLevel[requiredRole]);
 }
 
+/**
+ * Alcance de agenda: o médico vê e opera somente a própria agenda, mesmo sendo
+ * administrador; secretaria e enfermagem alcançam todos os médicos da clínica.
+ * As capacidades dizem se a pessoa opera agenda; isto diz a de quem. Espelha
+ * `AppointmentDoctorScope` no backend, que é quem de fato barra o acesso.
+ */
+export function isLimitedToOwnSchedule(
+  subject: PermissionSubject | null | undefined,
+) {
+  return subject?.clinicRole === "Doctor";
+}
+
 export function getAppStart(subject: PermissionSubject | null | undefined) {
   return can(subject, "ReadClinicalRecord") ? "/app/inicio" : "/app/agenda";
 }

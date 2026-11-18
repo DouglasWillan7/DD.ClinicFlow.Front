@@ -1662,3 +1662,51 @@ test("aceita o médico sem especialidade que a agenda mandou pela URL", async ()
     screen.queryByRole("group", { name: "Especialidade" }),
   ).not.toBeInTheDocument();
 });
+
+test("médico agenda somente na própria agenda, mesmo vindo do detalhe do paciente", async () => {
+  activeSession = {
+    ...session,
+    userId: doctorId,
+    userClinicId: "uc-doctor-1",
+    clinicRole: "Doctor",
+    isAdmin: true,
+    roles: ["Admin", "Doctor"],
+    name: "Dra. Helena Costa",
+  };
+  // O detalhe do paciente não informa médico; um ?doctorId= de colega é ignorado.
+  window.history.replaceState(
+    {},
+    "",
+    `/app/agenda/nova?patientId=${patientId}&doctorId=${secondDoctorId}`,
+  );
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/current") return clinic;
+    if (path === `/clinics/${clinicId}/members/summary`) return members;
+    if (path === `/patients/${patientId}`) return patient;
+    if (path.startsWith(`/doctors/${doctorId}/availability`)) return availability;
+    if (path === "/healthcare-plans") return [];
+    if (path.endsWith("/healthcare-plans")) {
+      return { inheritsClinicDefault: true, healthcarePlanIds: [] };
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  });
+
+  render(
+    <QueryHarness>
+      <NewAppointmentPage />
+    </QueryHarness>,
+  );
+
+  expect(
+    await screen.findByRole("button", {
+      name: "Dra. Helena Costa, selecionada",
+    }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: /Dr\. Paulo Nunes/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Buscar médico")).not.toBeInTheDocument();
+  expect(requestMock).not.toHaveBeenCalledWith(
+    expect.stringContaining(`/doctors/${secondDoctorId}/`),
+  );
+});

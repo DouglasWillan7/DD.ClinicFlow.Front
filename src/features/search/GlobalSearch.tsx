@@ -13,7 +13,7 @@ import {
 } from "react";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
-import { can } from "../../auth/permissions";
+import { can, isLimitedToOwnSchedule } from "../../auth/permissions";
 import { getAuthScope } from "../../auth/sessionScope";
 import {
   searchEntries,
@@ -79,7 +79,10 @@ export function GlobalSearch() {
   const { session } = useAuth();
   const index = useGlobalSearchIndex();
   const scope = session ? getAuthScope(session) : "";
-  const canSearchDoctors = can(session, "ViewSchedule");
+  // Médico só alcança a própria agenda, que já está no menu: não há agenda
+  // de colega para abrir pela busca.
+  const canSearchDoctors =
+    can(session, "ViewSchedule") && !isLimitedToOwnSchedule(session);
   const canReadClinicalRecord = can(session, "ReadClinicalRecord");
 
   const [query, setQuery] = useState("");

@@ -170,7 +170,7 @@ test("escolher o médico abre a agenda dele", async () => {
   expect(navigate).toHaveBeenCalledWith("/app/agenda?doctorId=d1");
 });
 
-test("médico sem acesso administrativo também encontra agendas de colegas", async () => {
+test("médico não encontra agendas de colegas pela busca", async () => {
   activeSession = {
     ...session,
     clinicRole: "Doctor",
@@ -181,10 +181,11 @@ test("médico sem acesso administrativo também encontra agendas de colegas", as
 
   await user.type(search, "cardio");
 
+  expect(await screen.findByText(/Nenhum resultado para/)).toBeVisible();
   expect(
-    await screen.findByRole("option", { name: /Médico Dra\. Helena Costa/ }),
-  ).toBeVisible();
-  expect(screen.getByText("Médicos")).toBeVisible();
+    screen.queryByRole("option", { name: /Helena Costa/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Médicos")).not.toBeInTheDocument();
 });
 
 test("sem paciente correspondente, oferece o cadastro com o nome preenchido", async () => {

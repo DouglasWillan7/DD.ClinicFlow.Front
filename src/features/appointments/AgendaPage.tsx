@@ -46,7 +46,7 @@ import {
 import {
   getDoctorName,
   getShortDoctorName,
-  listDoctors,
+  listReachableDoctors,
   resolveActiveDoctor,
 } from "./agendaDoctors";
 import { AgendaMonthCalendar } from "./AgendaMonthCalendar";
@@ -137,8 +137,8 @@ export function AgendaPage({
   });
 
   const doctors = useMemo(
-    () => listDoctors(members.data ?? []),
-    [members.data],
+    () => listReachableDoctors(members.data ?? [], session),
+    [members.data, session],
   );
   // O Início nunca pode cair silenciosamente na agenda de um colega caso o
   // vínculo do usuário logado esteja ausente ou ainda não tenha carregado.
