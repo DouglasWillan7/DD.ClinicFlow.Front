@@ -14,6 +14,8 @@ export type ClinicCapability =
   | "WriteExams"
   | "ReadAssessments"
   | "WriteAssessments"
+  | "ReadPrescriptions"
+  | "WritePrescriptions"
   | "ReadTranscription"
   | "WriteTranscription"
   | "ManageClinicMemberships"
@@ -47,6 +49,8 @@ const minimumRole: Partial<Record<ClinicCapability, ClinicRole>> = {
   WriteExams: "Doctor",
   ReadAssessments: "Doctor",
   WriteAssessments: "Doctor",
+  ReadPrescriptions: "Doctor",
+  WritePrescriptions: "Doctor",
   ReadTranscription: "Doctor",
   WriteTranscription: "Doctor",
 };
@@ -120,6 +124,9 @@ export function requiredCapabilityForAppPath(
   }
   if (/^\/app\/pacientes\/[^/]+\/exames$/i.test(pathname)) {
     return "ReadExams";
+  }
+  if (/^\/app\/pacientes\/[^/]+\/receitas$/i.test(pathname)) {
+    return "ReadPrescriptions";
   }
   if (/^\/app\/pacientes\/[^/]+$/i.test(pathname)) {
     return "ReadClinicalRecord";

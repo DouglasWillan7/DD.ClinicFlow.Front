@@ -100,6 +100,11 @@ const PatientExamsPage = lazy(() =>
     default: module.PatientExamsPage,
   })),
 );
+const PatientPrescriptionsPage = lazy(() =>
+  import("../features/patients/PatientPrescriptionsPage").then((module) => ({
+    default: module.PatientPrescriptionsPage,
+  })),
+);
 const ConsultationTranscriptionPage = lazy(() =>
   import("../features/transcription/ConsultationTranscriptionPage").then((module) => ({ default: module.ConsultationTranscriptionPage })),
 );
@@ -242,6 +247,17 @@ function AppRoutes() {
       return (
         <AppShell>
           <PatientExamsPage patientId={examsMatch[1]} />
+        </AppShell>
+      );
+    }
+
+    const prescriptionsMatch = path.match(
+      /^\/app\/pacientes\/([0-9a-f-]+)\/receitas$/i,
+    );
+    if (prescriptionsMatch) {
+      return (
+        <AppShell>
+          <PatientPrescriptionsPage patientId={prescriptionsMatch[1]} />
         </AppShell>
       );
     }

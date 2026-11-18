@@ -83,6 +83,38 @@ test("confirmação sem botão fechar deixa a decisão no rodapé", () => {
   expect(screen.getByRole("button", { name: "Remover" })).toBeVisible();
 });
 
+test("fechar é um pedido: se quem controla recusa, o diálogo continua aberto", async () => {
+  // jsdom não implementa close(); o dublê reproduz o efeito do navegador.
+  const close = vi.fn(function (this: HTMLDialogElement) {
+    this.removeAttribute("open");
+  });
+  const original = HTMLDialogElement.prototype.close;
+  HTMLDialogElement.prototype.close = close;
+  try {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <Dialog title="Nova receita" onClose={onClose}>
+        <textarea aria-label="Texto" />
+      </Dialog>,
+    );
+
+    screen.getByRole("textbox", { name: "Texto" }).focus();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(close).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Nova receita" })).toHaveAttribute("open");
+
+    // Ao sair da árvore, o fechamento nativo acontece (e devolve o foco).
+    unmount();
+    expect(close).toHaveBeenCalledTimes(1);
+  } finally {
+    HTMLDialogElement.prototype.close = original;
+  }
+});
+
 test("fechado não deixa nada na árvore", () => {
   render(<Dialog open={false} title="Oculto" onClose={() => undefined} />);
 

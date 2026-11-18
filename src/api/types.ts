@@ -497,6 +497,45 @@ export interface BodyAssessment {
   bmi: number | null;
 }
 
+/** Trafega em inglês; a tela mostra "Emitida" / "Cancelada" (`prescriptionQueries.ts`). */
+export type PrescriptionStatus = "Issued" | "Cancelled";
+
+/**
+ * Receita emitida. Não existe rascunho nem edição: o conteúdo é imutável e a
+ * única mudança possível é o cancelamento, que preserva o registro no histórico.
+ */
+export interface Prescription {
+  id: string;
+  patientId: string;
+  /** Texto livre; as quebras de linha fazem parte do conteúdo. */
+  content: string;
+  status: PrescriptionStatus;
+  version: number;
+  issuedAtUtc: string;
+  issuedByUserId: string;
+  /** Fotografia do emissor no momento da emissão. */
+  issuedByName: string;
+  /** Ex.: "CRM-SP 123456"; nulo quando o vínculo não tem registro profissional. */
+  issuedByRegistration: string | null;
+  cancelledAtUtc: string | null;
+  cancelledByUserId: string | null;
+  capabilities: { canCancel: boolean };
+}
+
+/** Lista do paciente, mais recentes primeiro. */
+export interface PrescriptionList {
+  items: Prescription[];
+  capabilities: { canIssue: boolean };
+}
+
+export interface IssuePrescriptionRequest {
+  content: string;
+}
+
+export interface CancelPrescriptionRequest {
+  expectedVersion: number;
+}
+
 export type ExamUploadStatus =
   | "Pendente"
   | "Processando"

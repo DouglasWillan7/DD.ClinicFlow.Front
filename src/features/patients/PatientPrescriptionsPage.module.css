@@ -1,0 +1,87 @@
+.content {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-5);
+}
+
+/* Mesma composição da aba Exames: lista à esquerda, detalhe à direita. */
+.workspace {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 340px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-5);
+}
+
+.singleColumn {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.listColumn,
+.detailColumn {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.mobileBack {
+  display: none;
+  justify-self: start;
+}
+
+.detailEmpty,
+.detailFeedback {
+  padding: var(--space-6);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.detailEmpty {
+  display: grid;
+  min-height: 280px;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.detailEmpty h2,
+.detailEmpty p {
+  margin: 0;
+}
+
+.detailEmpty h2 {
+  color: var(--color-ink);
+}
+
+.detailEmpty p {
+  max-width: 46ch;
+}
+
+/* Abaixo de 960px vira uma coluna: lista ou detalhe, com "Voltar às receitas". */
+@media (max-width: 959px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace:not(.hasSelection) .detailColumn {
+    display: none;
+  }
+
+  .workspace.hasSelection .listColumn {
+    display: none;
+  }
+
+  .mobileBack {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 639px) {
+  .detailEmpty,
+  .detailFeedback {
+    padding: var(--space-4);
+  }
+}
