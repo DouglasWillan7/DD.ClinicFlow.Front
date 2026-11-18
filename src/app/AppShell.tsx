@@ -7,7 +7,6 @@ import {
   House,
   LogOut,
   Menu,
-  MessageCircleMore,
   Pin,
   Stethoscope,
   UserRound,
@@ -156,11 +155,6 @@ export function AppShell({ children }: PropsWithChildren) {
       to: "/app/configuracoes/clinica",
       label: "Clínica",
       icon: Building2,
-    } : undefined,
-    can(session, "ManageClinicSettings") ? {
-      to: "/app/configuracoes/whatsapp",
-      label: "WhatsApp",
-      icon: MessageCircleMore,
     } : undefined,
   ].filter((item) => item !== undefined);
 

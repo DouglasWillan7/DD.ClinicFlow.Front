@@ -15,8 +15,8 @@ import {
   SuccessNote,
 } from "../../components/Feedback";
 import { Field } from "../../components/Field";
-import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
+import { ClinicSettingsHeader } from "./ClinicSettingsHeader";
 import styles from "./SettingsLayout.module.css";
 
 const whatsappSchema = z.object({
@@ -89,11 +89,8 @@ export function WhatsAppSettingsPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Configuração"
-        title="Confirmações por WhatsApp"
-        description="Conecte a conta da Meta usada pela clínica. O token nunca é exibido depois de salvo."
-      />
+      {/* Seção da configuração da clínica: mesmo cabeçalho e abas das outras seções. */}
+      <ClinicSettingsHeader />
       <div className={styles.content}>
         {query.isLoading ? (
           <LoadingBlock label="Verificando a conexão…" />
@@ -106,13 +103,13 @@ export function WhatsAppSettingsPage() {
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <h2>Meta Cloud API</h2>
+                <h2>Confirmações por WhatsApp</h2>
                 <p>
-                  Use as credenciais do aplicativo responsável pelas
-                  confirmações.
+                  Conecte a conta da Meta Cloud API usada pela clínica. O token
+                  nunca é exibido depois de salvo.
                 </p>
               </div>
-              <LockKeyhole size={20} color="var(--color-success-text)" />
+              <LockKeyhole size={20} color="var(--color-success-text)" aria-hidden="true" />
             </div>
             <form
               className={styles.form}

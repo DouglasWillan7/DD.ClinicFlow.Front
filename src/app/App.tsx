@@ -181,6 +181,17 @@ function AppRoutes() {
       );
     }
 
+    // WhatsApp virou aba da configuração da clínica; o link antigo (inclusive o
+    // que a API devolve em "Primeiros passos") continua valendo.
+    if (path === "/app/configuracoes/whatsapp") {
+      return (
+        <Redirect
+          to={`/app/configuracoes/clinica/whatsapp${window.location.search}`}
+          replace
+        />
+      );
+    }
+
     if (!canAccessAppPath(session, path)) {
       return <Redirect to={appStart} replace />;
     }
@@ -190,7 +201,7 @@ function AppRoutes() {
       "/app/equipe/novo": <TeamPage initialMode="create" initialRole="Doctor" />,
       "/app/configuracoes/clinica": <ClinicSettingsPage />,
       "/app/configuracoes/clinica/convenios": <HealthcarePlansSettingsPage />,
-      "/app/configuracoes/whatsapp": <WhatsAppSettingsPage />,
+      "/app/configuracoes/clinica/whatsapp": <WhatsAppSettingsPage />,
     };
     const commonRoutes: Record<string, React.ReactNode> = {
       "/app/inicio": <DoctorHomePage />,

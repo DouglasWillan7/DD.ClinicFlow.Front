@@ -129,4 +129,7 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/convenios")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/convenios")).toBe(true);
   expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/clinica/convenios")).toBe(false);
+  // WhatsApp é outra aba da configuração da clínica: mesma regra, só administração.
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/whatsapp")).toBe(false);
+  expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/whatsapp")).toBe(true);
 });
