@@ -512,6 +512,12 @@
   background: var(--color-primary-subtle);
 }
 
+/* A lista rola: o anel fica por dentro da linha para não ser cortado. */
+.resultRow:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .resultAvatar {
   display: grid;
   width: 44px;

@@ -52,7 +52,7 @@
   justify-content: flex-end;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 639px) {
   .form { grid-template-columns: 1fr; }
   .conflict { align-items: stretch; flex-direction: column; }
   .actions > * { flex: 1 1 auto; }

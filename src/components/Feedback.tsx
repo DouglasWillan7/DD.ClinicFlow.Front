@@ -75,3 +75,16 @@ export function EmptyState({
     </div>
   );
 }
+
+/**
+ * Erro de uma ação ou de um formulário, junto de quem o causou: ícone, cor e
+ * texto. Para falha de carregamento de uma região inteira use ErrorBlock.
+ */
+export function InlineError({ children }: { children: ReactNode }) {
+  return (
+    <p className={styles.inlineError} role="alert">
+      <AlertCircle size={16} aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  );
+}

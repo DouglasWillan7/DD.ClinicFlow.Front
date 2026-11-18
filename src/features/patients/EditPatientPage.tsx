@@ -4,9 +4,11 @@ import type { Patient } from "../../api/types";
 import { useNavigate } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
+import { ContextBar } from "../../components/ContextBar";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
-import { PageHeader } from "../../components/PageHeader";
+
 import { DoctorAccessPanel } from "../patient-actions/DoctorAccessPanel";
+// A extensão distingue PatientForm.tsx de patientForm.ts em discos sem diferença de caixa.
 import { PatientForm } from "./PatientForm.tsx";
 import { formatMedicalRecord } from "./patientFormatters";
 import { toPatientPayload, type PatientFormValue } from "./patientForm";
@@ -64,12 +66,19 @@ export function EditPatientPage({ patientId }: { patientId: string }) {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Pacientes"
-        title="Editar cadastro"
-        description="Atualize os dados necessários para o próximo atendimento."
+      <ContextBar
+        currentAs="h1"
+        back={{ label: "Voltar para a lista de pacientes", to: "/app/pacientes" }}
+        crumbs={[
+          { label: "Pacientes", to: "/app/pacientes" },
+          // Só quem lê o prontuário tem a ficha como destino.
+          can(session, "ReadClinicalRecord")
+            ? { label: patient.data.name, to: `/app/pacientes/${patientId}`, truncate: true }
+            : { label: patient.data.name, truncate: true },
+          { label: "Editar cadastro" },
+        ]}
       />
-      <div className={styles.content}>
+      <div className={styles.editContent}>
         <section className={styles.formPanel}>
           <dl className={styles.medicalRecord}>
             <dt>Prontuário</dt>

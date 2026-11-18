@@ -143,7 +143,12 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
                 <button
                   type="button"
                   className={styles.contextAction}
-                  onClick={() => navigate("/app/agenda")}
+                  // Abre a agenda já no dia e no médico da consulta, como faz o Início.
+                  onClick={() =>
+                    navigate(
+                      `/app/agenda?date=${formatInTimeZone(upcoming.startUtc, timeZone, "yyyy-MM-dd")}&doctorId=${upcoming.doctorUserId}`,
+                    )
+                  }
                 >
                   Ver na agenda
                 </button>

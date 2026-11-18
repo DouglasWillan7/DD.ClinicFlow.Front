@@ -52,35 +52,6 @@
   text-transform: uppercase;
 }
 
-.status {
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  border: 1px solid var(--color-primary-soft);
-  border-radius: var(--radius-pill);
-  color: var(--color-primary);
-  background: var(--color-primary-subtle);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.statusEmrevisão {
-  border-color: color-mix(in srgb, var(--color-warning) 34%, var(--color-surface));
-  color: var(--color-warning-text);
-  background: var(--color-warning-tint);
-}
-
-.statusFalhou {
-  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-surface));
-  color: var(--color-danger-text);
-  background: var(--color-danger-tint);
-}
-
-.statusValidado {
-  border-color: color-mix(in srgb, var(--color-success) 30%, var(--color-surface));
-  color: var(--color-success-text);
-  background: var(--color-success-tint);
-}
-
 .stateSection,
 .documentSection,
 .processing,
@@ -252,7 +223,6 @@
 
 .lowRow,
 .lowBlock {
-  box-shadow: inset 3px 0 0 var(--color-warning);
   background: var(--color-warning-tint);
 }
 

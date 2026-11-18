@@ -45,6 +45,25 @@
   font-weight: 600;
 }
 
+.inlineError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 11px 13px;
+  margin: 0;
+  border-radius: var(--radius-control);
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.inlineError svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
 .empty {
   display: flex;
   min-height: 220px;

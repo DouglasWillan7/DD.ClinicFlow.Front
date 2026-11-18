@@ -248,7 +248,7 @@ export function ExamUploadComposer({
             aria-label="Fechar"
             onClick={close}
           >
-            <X size={16} strokeWidth={2} aria-hidden="true" />
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
 

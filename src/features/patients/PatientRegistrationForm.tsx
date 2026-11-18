@@ -8,7 +8,9 @@ import {
   documentPlaceholder,
   documentTypesFor,
 } from "../../auth/documentIdentity";
-import { Field, SelectField } from "../../components/Field";
+import { Button } from "../../components/Button";
+import { InlineError } from "../../components/Feedback";
+import { Field, SelectField, TextAreaField } from "../../components/Field";
 import { bloodTypeOptions } from "./patientFormatters";
 import { patientSchema, type PatientFormValue } from "./patientForm";
 import { PatientPhoneField } from "./PatientPhoneField";
@@ -146,7 +148,6 @@ export function PatientRegistrationForm({
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   error={errors.phone?.message}
-                  className={styles.registrationPhone}
                 />
               )}
             />
@@ -223,63 +224,44 @@ export function PatientRegistrationForm({
 
         {step === 3 ? (
           <div className={styles.fields}>
-            <label className={styles.notes} htmlFor="patient-registration-notes">
-              <span>Observações</span>
-              <textarea
-                id="patient-registration-notes"
-                placeholder="Informações operacionais relevantes para o atendimento"
-                aria-invalid={Boolean(errors.notes)}
-                aria-describedby={errors.notes ? "patient-registration-notes-error" : undefined}
-                {...register("notes")}
-              />
-              {errors.notes ? (
-                <small
-                  id="patient-registration-notes-error"
-                  className={styles.fieldError}
-                >
-                  {errors.notes.message}
-                </small>
-              ) : null}
-            </label>
+            <TextAreaField
+              id="patient-registration-notes"
+              label="Observações"
+              placeholder="Informações operacionais relevantes para o atendimento"
+              error={errors.notes?.message}
+              {...register("notes")}
+            />
           </div>
         ) : null}
 
-        {serverError ? (
-          <div className={styles.errorBanner} role="alert">
-            {serverError}
-          </div>
-        ) : null}
+        {serverError ? <InlineError>{serverError}</InlineError> : null}
 
         <div className={styles.actions}>
           {step > 1 && !pending ? (
-            <button
+            <Button
               type="button"
-              className={styles.back}
+              variant="secondary"
               onClick={() =>
                 setStep((current) => Math.max(1, current - 1) as RegistrationStep)
               }
             >
               Voltar
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="submit"
             className={styles.primary}
-            disabled={pending}
+            loading={pending}
+            loadingLabel="Salvando paciente…"
           >
-            {pending ? <span className={styles.spinner} aria-hidden="true" /> : null}
-            {pending
-              ? "Salvando paciente…"
-              : step === 3
-                ? "Salvar paciente"
-                : "Continuar"}
-          </button>
+            {step === 3 ? "Salvar paciente" : "Continuar"}
+          </Button>
         </div>
       </form>
 
-      <button type="button" className={styles.cancel} onClick={onCancel}>
+      <Button type="button" variant="ghost" className={styles.cancel} onClick={onCancel}>
         Cancelar
-      </button>
+      </Button>
     </div>
   );
 }

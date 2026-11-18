@@ -42,17 +42,10 @@ const breakpointDebt: Record<string, string[]> = {
   "features/dashboard/DoctorHomePage.module.css": ["max-799"],
   "features/onboarding/OnboardingPage.module.css": ["max-780"],
   "features/patient-actions/ClinicalAccessEmailAction.module.css": ["max-720"],
-  "features/patients/ClinicalAccessNotice.module.css": ["max-480", "max-720"],
   "features/patients/PatientRegistrationForm.module.css": ["max-430"],
-  "features/patients/PatientsPage.module.css": ["max-720", "max-1023"],
-  "features/patients/exams/ExamListPanel.module.css": ["max-420"],
-  "features/patients/exams/ExamRequestComposer.module.css": ["max-760"],
-  "features/patients/exams/ExamRevisionEditor.module.css": ["max-480", "max-720"],
-  "features/patients/exams/ValidatedExamReport.module.css": ["max-720"],
   "features/public-patient-action/PublicPatientActionPage.module.css": ["max-560"],
   "features/team/ClinicMemberForm.module.css": ["max-520", "max-760"],
   "features/team/TeamPage.module.css": ["max-520", "max-720", "max-980"],
-  "features/transcription/ConsultationTranscriptionPage.module.css": ["max-420", "max-760"],
 };
 
 /** Arquivos que ainda usam aliases do bloco de migração de tokens.css. */
@@ -66,8 +59,6 @@ const aliasDebt = new Set([
   "features/clinic/SettingsLayout.module.css",
   "features/onboarding/OnboardingChecklist.module.css",
   "features/onboarding/OnboardingPage.module.css",
-  "features/patients/PatientRegistrationForm.module.css",
-  "features/patients/PatientsPage.module.css",
   "features/public-patient-action/PublicPatientActionPage.module.css",
   "features/team/ClinicMemberForm.module.css",
   "features/team/TeamPage.module.css",

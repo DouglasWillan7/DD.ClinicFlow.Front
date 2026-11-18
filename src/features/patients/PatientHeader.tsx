@@ -1,9 +1,12 @@
-import { ArrowLeft, FilePlus2, FileUp } from "lucide-react";
+import { CircleOff, FilePlus2, FileUp } from "lucide-react";
 import type {
   PatientDemographic,
   PatientExamCapabilities,
 } from "../../api/types";
-import { Link, useNavigate } from "../../app/navigation";
+import { useNavigate } from "../../app/navigation";
+import { ButtonLink } from "../../components/ButtonLink";
+import { ContextBar } from "../../components/ContextBar";
+import { StatusBadge } from "../../components/StatusBadge";
 import { getInitials } from "../appointments/appointmentLabels";
 import { getAge } from "./patientFormatters";
 import { PatientSectionNav } from "./PatientSectionNav";
@@ -37,24 +40,18 @@ export function PatientHeader({
 
   return (
     <header className={styles.header}>
-      <div className={styles.contextRow}>
-        <button
-          type="button"
-          className={styles.backButton}
-          onClick={() => navigate("/app/pacientes")}
-          aria-label="Voltar para a lista de pacientes"
-        >
-          <ArrowLeft size={18} strokeWidth={1.8} aria-hidden="true" />
-        </button>
-
-        <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
-          <Link to="/app/pacientes">Pacientes</Link>
-          <span aria-hidden="true">›</span>
-          <Link to={`/app/pacientes/${patient.id}`}>{patient.name}</Link>
-          <span aria-hidden="true">›</span>
-          <strong aria-current="page">{sectionLabels[activeSection]}</strong>
-        </nav>
-      </div>
+      {/* O h1 da tela é o nome do paciente, no cartão abaixo. */}
+      <ContextBar
+        back={{
+          label: "Voltar para a lista de pacientes",
+          onClick: () => navigate("/app/pacientes"),
+        }}
+        crumbs={[
+          { label: "Pacientes", to: "/app/pacientes" },
+          { label: patient.name, to: `/app/pacientes/${patient.id}`, truncate: true },
+          { label: sectionLabels[activeSection] },
+        ]}
+      />
 
       <div className={styles.patientCard}>
         <div className={styles.identityRow}>
@@ -66,29 +63,28 @@ export function PatientHeader({
             <h1>{patient.name}</h1>
             {metadata ? <p>{metadata}</p> : null}
             {patient.isActive ? null : (
-              <span className={styles.inactive}>Cadastro inativo</span>
+              <StatusBadge tone="neutral" icon={CircleOff} className={styles.inactive}>
+                Cadastro inativo
+              </StatusBadge>
             )}
           </div>
 
           {capabilities?.canRequest || capabilities?.canAttachDocument ? (
             <div className={styles.actions} aria-label="Ações do paciente">
               {capabilities.canRequest ? (
-                <Link
-                  className={styles.secondaryAction}
+                <ButtonLink
+                  variant="secondary"
                   to={`/app/pacientes/${patient.id}/exames?acao=solicitar`}
                 >
-                  <FilePlus2 size={17} strokeWidth={1.8} aria-hidden="true" />
+                  <FilePlus2 size={17} aria-hidden="true" />
                   Solicitar exame
-                </Link>
+                </ButtonLink>
               ) : null}
               {capabilities.canAttachDocument ? (
-                <Link
-                  className={styles.primaryAction}
-                  to={`/app/pacientes/${patient.id}/exames?acao=anexar`}
-                >
-                  <FileUp size={17} strokeWidth={1.8} aria-hidden="true" />
+                <ButtonLink to={`/app/pacientes/${patient.id}/exames?acao=anexar`}>
+                  <FileUp size={17} aria-hidden="true" />
                   Anexar laudo
-                </Link>
+                </ButtonLink>
               ) : null}
             </div>
           ) : null}

@@ -15,7 +15,7 @@ export function PageHeader({
   return (
     <header className={styles.header}>
       <div>
-        {eyebrow ? <span>{eyebrow}</span> : null}
+        {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
         <h1>{title}</h1>
         <p>{description}</p>
       </div>

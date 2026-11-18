@@ -1,18 +1,11 @@
 import clsx from "clsx";
 import {
   Activity,
-  Ban,
-  CircleCheck,
-  ClipboardList,
-  Clock3,
   FileQuestion,
   FlaskConical,
   HeartPulse,
   Image,
-  LoaderCircle,
   Search,
-  Stethoscope,
-  TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
 import type {
@@ -25,6 +18,7 @@ import type {
 } from "../../../api/types";
 import { fallbackTimeZone } from "../../clinic/clinicTimeZone";
 import { flattenExamPages, groupExams } from "./examList";
+import { ExamStatusBadge } from "./ExamStatusBadge";
 import styles from "./ExamListPanel.module.css";
 
 const statusOptions: ExamStatus[] = [
@@ -39,18 +33,6 @@ const categoryIcons: Record<ExamCategory, LucideIcon> = {
   Imagem: Image,
   Endoscopia: Activity,
   Cardiologia: HeartPulse,
-};
-
-type StatusTone = "neutral" | "primary" | "warning" | "success" | "danger" | "muted";
-
-const statusSemantics: Record<ExamStatus, { icon: LucideIcon; meaning: string; tone: StatusTone }> = {
-  Solicitado: { icon: ClipboardList, meaning: "aguardando laudo", tone: "neutral" },
-  Pendente: { icon: Clock3, meaning: "aguardando processamento", tone: "primary" },
-  Processando: { icon: LoaderCircle, meaning: "processamento em andamento", tone: "primary" },
-  "Em revisão": { icon: Stethoscope, meaning: "revisão clínica necessária", tone: "warning" },
-  Validado: { icon: CircleCheck, meaning: "resultado validado", tone: "success" },
-  Falhou: { icon: TriangleAlert, meaning: "falha no processamento", tone: "danger" },
-  Cancelado: { icon: Ban, meaning: "solicitação cancelada", tone: "muted" },
 };
 
 export interface ExamListPanelProps {
@@ -84,8 +66,6 @@ function ExamRow({
   onSelect(): void;
 }) {
   const CategoryIcon = categoryIcons[exam.category];
-  const status = statusSemantics[exam.status];
-  const StatusIcon = status.icon;
   const date = exam.scheduledOn
     ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${exam.scheduledOn}T00:00:00Z`))
     : new Intl.DateTimeFormat("pt-BR", { timeZone }).format(new Date(exam.updatedAtUtc));
@@ -103,14 +83,7 @@ function ExamRow({
         <strong>{exam.name}</strong>
         <span>{date} · {exam.category}</span>
       </span>
-      <span
-        className={clsx(styles.status, styles[`status${status.tone[0].toUpperCase()}${status.tone.slice(1)}`])}
-        aria-label={`Status: ${exam.status} — ${status.meaning}`}
-        data-tone={status.tone}
-      >
-        <StatusIcon size={14} strokeWidth={2} aria-hidden="true" />
-        {exam.status}
-      </span>
+      <ExamStatusBadge status={exam.status} />
     </button>
   );
 }

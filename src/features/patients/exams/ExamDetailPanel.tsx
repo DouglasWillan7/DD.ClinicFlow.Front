@@ -20,6 +20,7 @@ import {
   formatExamResultValue,
 } from "./examDetail";
 import styles from "./ExamDetailPanel.module.css";
+import { ExamStatusBadge } from "./ExamStatusBadge";
 import { FailedExamRecovery } from "./FailedExamRecovery";
 import { ReviewExamDiscard } from "./ReviewExamDiscard";
 import { ValidatedExamReport } from "./ValidatedExamReport";
@@ -187,7 +188,7 @@ export function ExamDetailPanel({
           <p className={styles.eyebrow}>{exam.category}</p>
           <h2 id={`exam-title-${exam.id}`}>{exam.name}</h2>
         </div>
-        <span className={clsx(styles.status, styles[`status${exam.status.replaceAll(" ", "")}`])}>{exam.status}</span>
+        <ExamStatusBadge status={exam.status} />
       </header>
 
       {exam.status === "Solicitado" ? (

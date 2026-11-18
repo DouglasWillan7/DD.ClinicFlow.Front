@@ -1,6 +1,6 @@
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Check, Circle, Mic, Pause, Play, Square } from "lucide-react";
+import { AlertCircle, Check, Circle, Mic, Pause, Play, Square } from "lucide-react";
 import { createRef, useEffect, useMemo, useRef, useState } from "react";
 import type { Appointment, ConsultationTranscript, TranscriptSegment, TranscriptSpeakerRole, TranscriptionEvent, TranscriptionSession } from "../../api/types";
 import { getApiUrl } from "../../api/client";
@@ -19,6 +19,8 @@ import { ImportantPointsPanel } from "./ImportantPointsPanel";
 import type { ConsultationImportantPoint, ImportantPointEvidence } from "./importantPoints";
 import { MicrophoneCaptureService, type CaptureConnectionState } from "./MicrophoneCaptureService";
 import { mergeEvidenceRanges, renderTranscriptText, selectFirstEvidence } from "./transcriptEvidence";
+import { ContextBar } from "../../components/ContextBar";
+import { StatusBadge } from "../../components/StatusBadge";
 import { useClinicTimeZone } from "../clinic/clinicTimeZone";
 import styles from "./ConsultationTranscriptionPage.module.css";
 
@@ -291,34 +293,33 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   };
 
   return <div className={styles.page}>
-    <header className={styles.contextHeader}>
-      <div className={styles.contextNavigation}>
-        <Link className={styles.backButton} to={`/app/pacientes/${appointment.data.patientId}`} aria-label={`Voltar para ${appointment.data.patientName}`}>
-          <ArrowLeft size={18} strokeWidth={1.8} aria-hidden="true" />
-        </Link>
-        <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
-          <Link to="/app/pacientes">Pacientes</Link><span aria-hidden="true">›</span>
-          <Link to={`/app/pacientes/${appointment.data.patientId}`}>{appointment.data.patientName}</Link><span aria-hidden="true">›</span>
-          <strong aria-current="page">{appointment.data.status === "InProgress" ? "Consulta em andamento" : "Consulta"}</strong>
-        </nav>
-      </div>
-      <div className={styles.actions} aria-label="Ações da transcrição">
-        {(!session || status === "Failed") &&
-        (canStartAppointment(appointment.data.status) ||
-          isAppointmentInProgress(appointment.data.status)) ? (
-          <Button onClick={() => void start()}>
-            <Mic aria-hidden="true" />
-            {canStartAppointment(appointment.data.status)
-              ? "Iniciar consulta"
-              : "Iniciar gravação"}
-          </Button>
-        ) : null}
-        {status === "Recording" ? <Button variant="secondary" onClick={() => void pause()}><Pause aria-hidden="true" /> Pausar</Button> : null}
-        {status === "Paused" ? <Button variant="secondary" onClick={() => void resume()}><Play aria-hidden="true" /> Retomar</Button> : null}
-        {session && ["Recording", "Paused"].includes(status) ? <Button onClick={() => void finish()}><Square aria-hidden="true" /> Finalizar consulta</Button> : null}
-        {status === "Completed" ? <span className={styles.completedBadge}><Check aria-hidden="true" /> Consulta finalizada</span> : null}
-      </div>
-    </header>
+    {/* O h1 da tela é "Transcrição da consulta", no painel abaixo. */}
+    <ContextBar
+      back={{ label: `Voltar para ${appointment.data.patientName}`, to: `/app/pacientes/${appointment.data.patientId}` }}
+      crumbs={[
+        { label: "Pacientes", to: "/app/pacientes" },
+        { label: appointment.data.patientName, to: `/app/pacientes/${appointment.data.patientId}`, truncate: true },
+        { label: appointment.data.status === "InProgress" ? "Consulta em andamento" : "Consulta" },
+      ]}
+      action={
+        <>
+          {(!session || status === "Failed") &&
+          (canStartAppointment(appointment.data.status) ||
+            isAppointmentInProgress(appointment.data.status)) ? (
+            <Button shape="pill" onClick={() => void start()}>
+              <Mic size={17} aria-hidden="true" />
+              {canStartAppointment(appointment.data.status)
+                ? "Iniciar consulta"
+                : "Iniciar gravação"}
+            </Button>
+          ) : null}
+          {status === "Recording" ? <Button shape="pill" variant="secondary" onClick={() => void pause()}><Pause size={17} aria-hidden="true" /> Pausar</Button> : null}
+          {status === "Paused" ? <Button shape="pill" variant="secondary" onClick={() => void resume()}><Play size={17} aria-hidden="true" /> Retomar</Button> : null}
+          {session && ["Recording", "Paused"].includes(status) ? <Button shape="pill" onClick={() => void finish()}><Square size={17} aria-hidden="true" /> Finalizar consulta</Button> : null}
+          {status === "Completed" ? <StatusBadge tone="success" icon={Check} className={styles.completedBadge}>Consulta finalizada</StatusBadge> : null}
+        </>
+      }
+    />
     <div className={styles.contentGrid}>
       <section className={styles.transcriptPanel} aria-labelledby="transcript-title">
         <div className={styles.panelHeading}>

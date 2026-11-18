@@ -10,7 +10,7 @@
 .documentPanel,
 .editor {
   min-width: 0;
-  border-radius: 20px;
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
@@ -829,7 +829,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 639px) {
   .documentPanel {
     height: 54vh;
     min-height: 380px;
@@ -911,7 +911,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 639px) {
   .documentHeader small {
     max-width: 220px;
   }

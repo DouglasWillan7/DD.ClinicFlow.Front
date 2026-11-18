@@ -14,7 +14,8 @@
   max-width: 720px;
 }
 
-.header span {
+/* Classe própria: um seletor de elemento pegaria o texto dos botões de ação. */
+.eyebrow {
   display: block;
   margin-bottom: 6px;
   color: var(--color-primary);

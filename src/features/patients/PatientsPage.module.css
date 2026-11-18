@@ -144,8 +144,7 @@
   min-width: 0;
 }
 
-.name,
-.record {
+.name {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -157,13 +156,6 @@
   font-size: 15px;
   font-weight: 600;
   line-height: 1.2;
-}
-
-.record {
-  margin-top: 2px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.4;
 }
 
 .cell {
@@ -266,7 +258,7 @@
   }
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 959px) {
   .listCard {
     padding: 6px 16px 14px;
   }
@@ -322,42 +314,26 @@
 .registrationPage {
   display: flex;
   min-width: 0;
-  min-height: calc(100vh - 120px);
   align-items: flex-start;
   justify-content: center;
-  padding: 24px clamp(20px, 3.5vw, 48px) 48px;
+  padding: 0 0 var(--space-8);
+}
+
+/* Edição: formulário e painel de acesso do médico, um abaixo do outro. */
+.editContent {
+  display: grid;
+  width: min(100%, 760px);
+  min-width: 0;
+  gap: var(--space-5);
+  color: var(--color-ink);
 }
 
 .formPanel {
-  width: min(100%, 760px);
-  padding: 26px;
+  min-width: 0;
+  padding: 24px 28px;
   border-radius: var(--radius-panel);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
-}
-
-.prerequisite {
-  display: grid;
-  width: min(100%, 620px);
-  min-height: 300px;
-  place-content: center;
-  justify-items: center;
-  padding: 34px;
-  border-radius: var(--radius-panel);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  text-align: center;
-}
-
-.prerequisite svg {
-  margin-bottom: 14px;
-  color: var(--color-primary);
-}
-
-.prerequisite p {
-  max-width: 460px;
-  margin-bottom: 20px;
-  color: var(--color-text-secondary);
 }
 
 .form {
@@ -370,35 +346,6 @@
   grid-column: 1 / -1;
 }
 
-.notes {
-  display: grid;
-  grid-column: 1 / -1;
-  gap: 7px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.notes textarea {
-  min-height: 110px;
-  padding: 12px 13px;
-  resize: vertical;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  outline: none;
-}
-
-.notes textarea:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
-}
-
-.fieldError {
-  color: var(--color-danger-text);
-  font-size: 12px;
-  font-weight: 500;
-}
-
 .actions {
   display: flex;
   grid-column: 1 / -1;
@@ -407,20 +354,15 @@
   padding-top: 4px;
 }
 
-.serverError {
-  grid-column: 1 / -1;
-  color: var(--color-danger-text);
-}
-
 .medicalRecord {
   display: flex;
   gap: 8px;
   margin: 0 0 20px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
 }
 
 .medicalRecord dt {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .medicalRecord dd {
@@ -428,10 +370,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 720px) {
-  .registrationPage {
-    min-height: auto;
-    padding: 8px 0 32px;
+@media (max-width: 639px) {
+  .formPanel {
+    padding: var(--space-5);
   }
 
   .form {
@@ -439,9 +380,7 @@
   }
 
   .wide,
-  .notes,
-  .actions,
-  .serverError {
+  .actions {
     grid-column: 1;
   }
 }
