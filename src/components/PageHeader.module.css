@@ -2,7 +2,8 @@
 .header {
   display: flex;
   min-width: 0;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-5);
   align-items: flex-end;
   justify-content: space-between;
   margin-bottom: var(--space-5);
@@ -44,10 +45,15 @@
   gap: 10px;
 }
 
-@media (max-width: 700px) {
-  .header {
-    align-items: stretch;
-    flex-direction: column;
+/* Sem breakpoint próprio: as ações descem quando não cabem ao lado do título. */
+@media (max-width: 639px) {
+  .actions {
+    width: 100%;
+    flex-direction: column-reverse;
+  }
+
+  .actions > * {
+    flex: 1;
   }
 
   .header h1 {

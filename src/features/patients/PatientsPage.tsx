@@ -1,12 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from "date-fns-tz";
-import { ChevronRight, Plus, Search, Video } from "lucide-react";
+import {
+  ChevronRight,
+  CircleOff,
+  FileClock,
+  Plus,
+  Search,
+  Stethoscope,
+  UserRoundPlus,
+  UsersRound,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Clinic, PatientListItem } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
-import { ErrorBlock } from "../../components/Feedback";
+import { Button } from "../../components/Button";
+import { ContextBar } from "../../components/ContextBar";
+import { EmptyState, ErrorBlock } from "../../components/Feedback";
+import { FilterChips } from "../../components/FilterChips";
+import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
 import { getInitials } from "../appointments/appointmentLabels";
 import { getAge } from "./patientFormatters";
 import {
@@ -18,11 +33,15 @@ import {
 } from "./patientsList";
 import styles from "./PatientsPage.module.css";
 
-const situationBadgeClass: Record<PatientListItem["situation"], string> = {
-  EmAcompanhamento: styles.badgeFollowUp,
-  NovoPaciente: styles.badgeNew,
-  ExamePendente: styles.badgePendingExam,
-  Inativo: styles.badgeInactive,
+// Estado sempre com rótulo, ícone e cor; o âmbar é "aguardando", nunca erro.
+const situationBadge: Record<
+  PatientListItem["situation"],
+  { tone: StatusTone; icon: LucideIcon }
+> = {
+  EmAcompanhamento: { tone: "info", icon: Stethoscope },
+  NovoPaciente: { tone: "success", icon: UserRoundPlus },
+  ExamePendente: { tone: "warning", icon: FileClock },
+  Inativo: { tone: "neutral", icon: CircleOff },
 };
 
 export function PatientsPage() {
@@ -85,42 +104,31 @@ export function PatientsPage() {
         </label>
       </form>
 
-      <div className={styles.contextRow}>
-        <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
-          <span>Pacientes</span>
-          <span aria-hidden="true">›</span>
-          <strong>Todos os pacientes</strong>
-        </nav>
-        <span className={styles.counter} aria-live="polite">
-          {query.isSuccess ? `${rows.length} de ${patients.length}` : "…"}
-        </span>
-        <span className={styles.contextSpacer} />
-        <div
-          className={styles.filters}
-          role="group"
-          aria-label="Filtrar por situação"
-        >
-          {situationFilters.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              className={styles.filterChip}
-              aria-pressed={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {value === "todos" ? label : `${label} · ${counts[value]}`}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          className={styles.newPatient}
-          onClick={() => navigate("/app/pacientes/novo")}
-        >
-          <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
-          Novo paciente
-        </button>
-      </div>
+      <ContextBar
+        currentAs="h1"
+        crumbs={[{ label: "Pacientes" }, { label: "Todos os pacientes" }]}
+        counter={query.isSuccess ? `${rows.length} de ${patients.length}` : "…"}
+        action={
+          <Button
+            type="button"
+            shape="pill"
+            onClick={() => navigate("/app/pacientes/novo")}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Novo paciente
+          </Button>
+        }
+      >
+        <FilterChips<SituationFilter>
+          label="Filtrar por situação"
+          value={filter}
+          onChange={setFilter}
+          options={situationFilters.map(({ value, label }) => ({
+            value,
+            label: value === "todos" ? label : `${label} · ${counts[value]}`,
+          }))}
+        />
+      </ContextBar>
 
       <section className={styles.listCard} aria-label="Lista de pacientes">
         <div className={styles.columns} aria-hidden="true">
@@ -215,16 +223,16 @@ export function PatientsPage() {
                       )}
                     </span>
                     <span className={styles.cell}>
-                      <span
-                        className={`${styles.badge} ${situationBadgeClass[patient.situation]}`}
+                      <StatusBadge
+                        tone={situationBadge[patient.situation].tone}
+                        icon={situationBadge[patient.situation].icon}
                       >
                         {situationLabels[patient.situation]}
-                      </span>
+                      </StatusBadge>
                     </span>
                     <ChevronRight
                       className={styles.chevron}
                       size={14}
-                      strokeWidth={1.8}
                       aria-hidden="true"
                     />
                   </button>
@@ -234,20 +242,32 @@ export function PatientsPage() {
           </ul>
         ) : (
           <div className={styles.empty}>
-            <p>
-              {patients.length === 0
-                ? "A lista de pacientes começa aqui: cadastre a primeira pessoa atendida."
-                : search.trim()
-                  ? `Nenhum paciente encontrado para “${search.trim()}”.`
-                  : "Nenhum paciente nesta situação."}
-            </p>
-            <button
-              type="button"
-              className={styles.emptyAction}
-              onClick={() => navigate("/app/pacientes/novo")}
-            >
-              + Cadastrar novo paciente
-            </button>
+            <EmptyState
+              icon={UsersRound}
+              title={
+                patients.length === 0
+                  ? "A lista de pacientes começa aqui"
+                  : search.trim()
+                    ? "Nenhum resultado"
+                    : "Nenhum paciente nesta situação"
+              }
+              description={
+                patients.length === 0
+                  ? "Cadastre a primeira pessoa atendida."
+                  : search.trim()
+                    ? `Nenhum paciente encontrado para “${search.trim()}”.`
+                    : "Escolha outro filtro ou cadastre um novo paciente."
+              }
+              action={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => navigate("/app/pacientes/novo")}
+                >
+                  + Cadastrar novo paciente
+                </Button>
+              }
+            />
           </div>
         )}
       </section>

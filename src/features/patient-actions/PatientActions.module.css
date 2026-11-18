@@ -58,7 +58,7 @@
   display: grid;
   gap: 14px;
   padding: 16px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-hairline);
   border-radius: var(--radius-control);
   background: var(--color-app-background);
 }
@@ -142,79 +142,10 @@
   line-height: 1.5;
 }
 
-.dialogBackdrop {
-  position: fixed;
-  z-index: var(--z-modal, 1000);
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
-}
-
-.actionDialog {
-  width: min(100%, 560px);
-  max-height: min(760px, calc(100dvh - 40px));
-  overflow: auto;
-  border-radius: var(--radius-panel);
-  color: var(--color-ink);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-overlay);
-}
-
-.dialogHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px 24px 18px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.dialogHeader h2 {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.3;
-}
-
-.dialogHeader p {
-  margin: 5px 0 0;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-}
-
-.dialogClose {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  color: var(--color-text-muted);
-  background: transparent;
-}
-
-.dialogClose:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-subtle);
-}
-
-.dialogClose:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.dialogClose svg {
-  width: 20px;
-  height: 20px;
-}
-
+/* O Dialog compartilhado já dá o padding; aqui só o ritmo interno. */
 .dialogBody {
   display: grid;
   gap: 18px;
-  padding: 22px 24px 26px;
 }
 
 .appointmentSummary {
@@ -251,7 +182,7 @@
   width: min(100%, 280px);
   min-height: 48px;
   padding: 10px 14px;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--color-border-hairline);
   border-radius: var(--radius-control);
   color: var(--color-ink);
   background: var(--color-surface);
@@ -282,7 +213,7 @@
   font-size: 14px;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 639px) {
   .accessPanel {
     padding: 18px;
   }
@@ -302,19 +233,4 @@
     width: 100%;
   }
 
-  .dialogBackdrop {
-    align-items: end;
-    padding: 0;
-  }
-
-  .actionDialog {
-    max-height: 92dvh;
-    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
-  }
-
-  .dialogHeader,
-  .dialogBody {
-    padding-right: 18px;
-    padding-left: 18px;
-  }
 }

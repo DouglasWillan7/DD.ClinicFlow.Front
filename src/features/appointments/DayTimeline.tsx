@@ -9,6 +9,7 @@ import {
 } from "./appointmentStatus";
 import { formatFreeSlots, getDoctorName } from "./agendaDoctors";
 import type { TimelineRow, TimelineTone } from "./agendaTimeline";
+import { appointmentStatusVisual } from "./appointmentStatusVisual";
 import styles from "./AgendaPage.module.css";
 import { useNavigate } from "../../app/navigation";
 
@@ -197,6 +198,7 @@ function AppointmentCardContent({
 }) {
   const { appointment } = row;
   const teleconsultation = appointment.type === "Teleconsultation";
+  const StatusIcon = appointmentStatusVisual(appointment.status).icon;
 
   return (
     <>
@@ -241,6 +243,7 @@ function AppointmentCardContent({
         {appointmentTypeLabels[appointment.type]}
       </span>
       <span className={styles.statusLabel}>
+        <StatusIcon size={13} aria-hidden="true" />
         {appointmentStatusLabels[appointment.status]}
       </span>
     </>

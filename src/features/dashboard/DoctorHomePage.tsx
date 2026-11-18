@@ -26,10 +26,12 @@ import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
 import {
+  EmptyState,
   ErrorBlock,
   LoadingBlock,
   SuccessNote,
 } from "../../components/Feedback";
+import { PageHeader } from "../../components/PageHeader";
 import {
   appointmentTypeLabels,
   getInitials,
@@ -261,26 +263,27 @@ export function DoctorHomePage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div>
-          <h1>{greeting}, {displayName}</h1>
-          <p>{selectedDayLabel} · {contextLabel}</p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => navigate("/app/pacientes/novo")}
-          >
-            <UserRoundPlus size={17} aria-hidden="true" />
-            Novo paciente
-          </Button>
-          <Button type="button" onClick={openNewAppointment}>
-            <Plus size={17} aria-hidden="true" />
-            Nova consulta
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        title={`${greeting}, ${displayName}`}
+        description={`${selectedDayLabel} · ${contextLabel}`}
+        actions={
+          <>
+            <Button
+              type="button"
+              shape="pill"
+              variant="secondary"
+              onClick={() => navigate("/app/pacientes/novo")}
+            >
+              <UserRoundPlus size={17} aria-hidden="true" />
+              Novo paciente
+            </Button>
+            <Button type="button" shape="pill" onClick={openNewAppointment}>
+              <Plus size={17} aria-hidden="true" />
+              Nova consulta
+            </Button>
+          </>
+        }
+      />
 
       {showCreated ? (
         <SuccessNote>
@@ -344,14 +347,16 @@ export function DoctorHomePage() {
               />
             </div>
           ) : dayAppointments.length === 0 ? (
-            <div className={styles.emptyAgenda}>
-              <CalendarDays size={24} aria-hidden="true" />
-              <strong>Nenhuma consulta neste dia</strong>
-              <p>Escolha outra data ou abra sua agenda para ver os horários disponíveis.</p>
-              <Button type="button" variant="secondary" onClick={openNewAppointment}>
-                Agendar consulta
-              </Button>
-            </div>
+            <EmptyState
+              icon={CalendarDays}
+              title="Nenhuma consulta neste dia"
+              description="Escolha outra data ou abra sua agenda para ver os horários disponíveis."
+              action={
+                <Button type="button" variant="secondary" onClick={openNewAppointment}>
+                  Agendar consulta
+                </Button>
+              }
+            />
           ) : (
             <ol className={styles.appointmentList} aria-label="Consultas do dia">
               {dayAppointments.map((appointment) => {

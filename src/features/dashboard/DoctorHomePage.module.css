@@ -1,20 +1,16 @@
+/* Ritmo vertical de 20px, como Pacientes e Agenda. */
 .page {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-5);
 }
 
-.pageHeader {
-  display: flex;
-  min-width: 0;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
+/* O espaçamento vem do gap da página, não da margem do PageHeader. */
+.page > header {
+  margin-bottom: 0;
 }
 
-.pageHeader h1,
-.pageHeader p,
 .panelHeader h2,
 .panelHeader p,
 .focusCard h2,
@@ -24,33 +20,11 @@
   margin: 0;
 }
 
-.pageHeader h1 {
-  color: var(--color-ink);
-  font-size: clamp(26px, 2vw, 32px);
-  font-weight: 650;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-  text-wrap: balance;
-}
-
-.pageHeader p {
-  margin-top: 4px;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.headerActions {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 10px;
-}
-
 .dashboardGrid {
   display: grid;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
-  gap: 16px;
+  gap: var(--space-5);
   align-items: start;
 }
 
@@ -282,35 +256,11 @@
   place-items: center;
 }
 
-.emptyAgenda {
-  display: flex;
-  min-height: 260px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-.emptyAgenda strong {
-  margin-top: 12px;
-  color: var(--color-ink);
-  font-size: 17px;
-}
-
-.emptyAgenda p {
-  max-width: 46ch;
-  margin: 6px 0 18px;
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
 .insights {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-5);
 }
 
 .focusCard {
@@ -624,18 +574,9 @@
 }
 
 @media (max-width: 799px) {
-  .pageHeader,
   .panelHeader {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .headerActions {
-    width: 100%;
-  }
-
-  .headerActions > button {
-    flex: 1;
   }
 
   .dateActions {
@@ -663,19 +604,7 @@
 
 @media (max-width: 639px) {
   .page {
-    gap: 12px;
-  }
-
-  .pageHeader h1 {
-    font-size: 26px;
-  }
-
-  .pageHeader p {
-    font-size: 13px;
-  }
-
-  .headerActions {
-    flex-direction: column-reverse;
+    gap: var(--space-3);
   }
 
   .agendaPanel {

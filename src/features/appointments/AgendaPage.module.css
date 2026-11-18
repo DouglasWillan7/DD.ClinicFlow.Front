@@ -11,7 +11,6 @@
   --break-soft: rgba(107, 124, 138, 0.06);
   --done-soft: rgba(47, 158, 87, 0.1);
   --canceled-soft: rgba(232, 64, 74, 0.12);
-  --busy-day: rgba(232, 64, 74, 0.12);
 
   min-height: 100%;
   min-width: 0;
@@ -30,139 +29,14 @@
   border: 0;
 }
 
-/* ------------------------------------------------------ Linha de contexto --- */
-
-/* Linha única sempre: quando falta largura, os chips rolam na horizontal em
-   vez de empurrar o botão "Nova consulta" para baixo. */
-.contextRow {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: var(--space-5);
-  color: var(--color-ink);
-  font-size: 16px;
-}
-
-.breadcrumb {
-  display: flex;
-  min-width: 0;
-  flex: 0 1 auto;
-  align-items: center;
-  gap: 14px;
-  white-space: nowrap;
-}
-
-.breadcrumb span:first-child {
-  color: var(--color-text-muted);
-}
-
-.breadcrumb span[aria-hidden] {
-  color: var(--color-text-disabled);
-}
-
-.breadcrumb strong {
-  flex: 0 0 auto;
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
-.breadcrumbDoctor {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--color-text-muted);
-  text-overflow: ellipsis;
-}
-
-.contextSpacer {
-  flex: 1;
-}
-
-.filters {
-  display: flex;
-  min-width: 0;
-  gap: var(--space-2);
-  padding: 2px;
-  margin: -2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.filters::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
-  display: inline-flex;
-  min-height: 44px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border: 1.5px solid var(--chip-border);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink);
-  background: var(--color-surface);
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition:
-    color var(--transition-fast),
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.chip:hover {
-  background: var(--color-primary-subtle);
-}
-
-.chip:active {
-  transform: scale(0.98);
-}
-
-.chip[aria-pressed="true"] {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-  background: var(--color-primary-subtle);
-  font-weight: 600;
-}
+/* ----------------------------------------------------- Ação "Nova consulta" --- */
 
 .newAppointmentMenu {
   position: relative;
   flex: 0 0 auto;
 }
 
-.newAppointment {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 22px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  color: var(--color-surface);
-  background: var(--color-primary);
-  box-shadow: var(--shadow-card);
-  font-size: 15px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition:
-    background var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.newAppointment:hover {
-  background: color-mix(in srgb, var(--color-primary), var(--color-ink) 4%);
-}
-
-.newAppointment:active {
-  transform: scale(0.98);
-}
-
-.newAppointment:focus-visible,
+/* O gatilho é o Button em pílula; aqui só o foco do item de menu. */
 .appointmentAction:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
@@ -201,7 +75,7 @@
   gap: 12px;
   padding: 10px 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   color: var(--color-ink);
   text-align: left;
   background: transparent;
@@ -326,181 +200,6 @@
   padding: 10px 4px;
   color: var(--color-text-muted);
   font-size: 14px;
-}
-
-/* ------------------------------------------------------- Mini calendário --- */
-
-.monthNavigation {
-  display: inline-grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  color: var(--color-text-muted);
-  background: transparent;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.monthNavigation:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-subtle);
-}
-
-.monthNavigation:active {
-  transform: scale(0.98);
-}
-
-.monthActions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.calendarTable {
-  width: 100%;
-  border-spacing: 0 3px;
-  table-layout: fixed;
-}
-
-.calendarTable th {
-  padding: 6px 0;
-  color: var(--color-ink);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
-  text-align: center;
-}
-
-.calendarCell {
-  padding: 0;
-  text-align: center;
-}
-
-.outsideMonth {
-  padding: 0;
-  color: var(--color-text-disabled);
-  font-size: 15px;
-  font-weight: 500;
-  text-align: center;
-}
-
-/* Alvo de toque de 44px com o círculo pintado de 40px do handoff. */
-.calendarDay {
-  display: inline-grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.dayCircle {
-  position: relative;
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--color-ink);
-  font-size: 15px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.calendarDay:hover:not(:disabled) .dayCircle {
-  color: var(--color-primary);
-  background: var(--color-primary-subtle);
-}
-
-.calendarDay:active:not(:disabled) .dayCircle {
-  transform: scale(0.98);
-}
-
-.calendarDay[aria-pressed="true"] .dayCircle,
-.calendarDay[aria-pressed="true"]:hover .dayCircle {
-  color: var(--color-surface);
-  background: var(--color-primary);
-}
-
-.calendarDay:disabled {
-  cursor: default;
-}
-
-.calendarDay:disabled .dayCircle {
-  color: var(--color-text-disabled);
-}
-
-.calendarDay.busyDay:disabled .dayCircle {
-  color: var(--color-danger);
-  background: var(--busy-day);
-  text-decoration: line-through;
-}
-
-.dayMark {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  transform: translateX(-50%);
-}
-
-.calendarDay[aria-pressed="true"] .dayMark {
-  display: none;
-}
-
-.calendarLegend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 18px;
-  margin: 12px 0 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.calendarLegend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legendDot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--color-primary);
-}
-
-.legendBusy {
-  border: 1px solid var(--color-danger);
-  background: var(--busy-day);
-}
-
-.legendOff {
-  border: 1px solid var(--color-text-disabled);
-  background: var(--color-app-background);
-}
-
-.legendMark {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-primary);
 }
 
 /* ------------------------------------------------------- Resumo do dia --- */
@@ -804,7 +503,8 @@
   gap: 8px;
   padding: 9px 16px;
   border: 1.5px solid var(--color-primary);
-  border-radius: var(--radius-pill);
+  /* Dentro do cartão o botão usa o raio de controle; pílula é só a ação da página. */
+  border-radius: var(--radius-control);
   color: var(--color-primary);
   background: var(--color-surface);
   font-size: 14px;
@@ -894,7 +594,10 @@
 }
 
 .statusLabel {
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
   color: var(--color-primary);
   font-size: 13px;
   font-weight: 600;
@@ -923,7 +626,7 @@
 .done .appointmentAvatar,
 .done .typeBadge,
 .done .statusLabel {
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .canceled .appointmentCard {
@@ -935,7 +638,7 @@
 .canceled .appointmentAvatar,
 .canceled .typeBadge,
 .canceled .statusLabel {
-  color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
 .canceled .appointmentName {
@@ -1040,36 +743,6 @@
 }
 
 @media (max-width: 639px) {
-  .contextRow {
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-
-  .breadcrumb {
-    flex: 1 1 auto;
-    gap: 8px;
-  }
-
-  .contextSpacer {
-    display: none;
-  }
-
-  .filters {
-    order: 3;
-    flex: 1 0 100%;
-    overflow-x: visible;
-  }
-
-  .filters .chip {
-    flex: 1 1 0;
-    padding-inline: 10px;
-  }
-
-  .newAppointmentMenu {
-    margin-left: auto;
-  }
-
   .newAppointment {
     padding-inline: 16px;
   }
@@ -1098,21 +771,7 @@
   }
 }
 
-@media (max-width: 359px) {
-  .filters {
-    overflow-x: auto;
-  }
-
-  .filters .chip {
-    flex: 0 0 auto;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .chip,
-  .calendarDay .dayCircle,
-  .monthNavigation,
-  .newAppointment,
   .menuChevron,
   .appointmentAction,
   .freeSlot,
