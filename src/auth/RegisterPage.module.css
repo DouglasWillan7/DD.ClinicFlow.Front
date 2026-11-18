@@ -1,23 +1,9 @@
-.page {
-  display: flex;
-  min-height: 100vh;
-  flex-direction: column;
-  align-items: center;
-  padding: 44px 28px;
-  background: var(--color-app-background);
-}
-
-.logo {
-  width: auto;
-  height: 44px;
-}
-
 .stepper {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 0;
-  margin: 28px 0 0;
+  margin: 0;
   list-style: none;
 }
 
@@ -53,7 +39,7 @@
 
 .reached .stepCircle {
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   background: var(--color-primary);
 }
 
@@ -71,11 +57,10 @@
   width: min(560px, 100%);
   flex-direction: column;
   gap: 16px;
-  padding: 40px 44px;
-  margin-top: 24px;
+  padding: 24px 28px;
   border-radius: var(--radius-panel);
   background: var(--color-surface);
-  box-shadow: var(--shadow-floating);
+  box-shadow: var(--shadow-card);
 }
 
 .header {
@@ -95,29 +80,30 @@
   line-height: 1.5;
 }
 
+/* Mesma aparência do Field compartilhado; o rótulo envolve o controle. */
 .field {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   color: var(--color-text-body);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .field input,
 .field select {
   width: 100%;
-  min-height: 48px;
-  padding: 0 16px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-hairline);
   border-radius: var(--radius-control);
   outline: 0;
   color: var(--color-ink);
   background: var(--color-surface);
   font: inherit;
-  font-size: 15px;
-  font-weight: 450;
+  font-size: 16px;
+  font-weight: 400;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -132,7 +118,7 @@
 .field input:focus-visible,
 .field select:focus-visible {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 .field .invalidInput {
@@ -154,13 +140,13 @@
 
 .passwordControl button {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 0;
+  right: 0;
   min-width: 80px;
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: 13px;
+  border-radius: var(--radius-control);
   color: var(--color-text-muted);
   background: transparent;
   font: inherit;
@@ -210,7 +196,7 @@
 }
 
 .passwordMeter[data-tone="fair"] {
-  color: #8b5b16;
+  color: var(--color-warning-text);
 }
 
 .validHint {
@@ -253,12 +239,12 @@
   border: 1px solid color-mix(in srgb, var(--color-ink) 28%, transparent);
   border-radius: 6px;
   color: transparent;
-  background: white;
+  background: var(--color-surface);
 }
 
 .terms input:checked + .checkbox {
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   background: var(--color-primary);
 }
 
@@ -267,74 +253,19 @@
   outline-offset: 3px;
 }
 
-.errorBanner {
-  padding: 12px 16px;
-  border-radius: 14px;
-  color: var(--color-danger-text);
-  background: var(--color-danger-tint);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 .actions {
   display: flex;
   gap: 10px;
   margin-top: 4px;
 }
 
-.back,
+/* A ação principal ocupa a largura que sobra ao lado de "Voltar". */
 .primary {
-  min-height: 52px;
-  border-radius: var(--radius-control);
-  font: inherit;
-  font-weight: 650;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.back {
-  padding: 0 28px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
-  color: var(--color-text-body);
-  background: white;
-}
-
-.primary {
-  display: inline-flex;
   flex: 1;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 20px;
-  border: 0;
-  color: white;
-  background: var(--color-primary);
-}
-
-.primary:hover:not(:disabled) {
-  background: #2f4be0;
-}
-
-.back:active,
-.primary:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.primary:disabled {
-  cursor: wait;
-  opacity: 0.72;
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
 }
 
 .loginLink {
-  margin: 20px 0 0;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 14px;
 }
@@ -344,19 +275,7 @@
   font-weight: 600;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 @media (max-width: 639px) {
-  .page {
-    padding: 28px 18px;
-  }
-
-  .logo {
-    height: 40px;
-  }
-
   .stepper {
     width: 100%;
     justify-content: center;
@@ -374,7 +293,7 @@
   }
 
   .card {
-    padding: 30px 22px;
+    padding: var(--space-5);
   }
 
   .splitFields {
@@ -383,6 +302,8 @@
   }
 }
 
+/* Exceção aos breakpoints do sistema: em telas de até 390px os rótulos das
+   etapas não cabem ao lado dos números. */
 @media (max-width: 390px) {
   .stepper li > span:last-child:not(.stepCircle) {
     position: absolute;
@@ -394,11 +315,5 @@
 
   .connector {
     width: 44px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
   }
 }

@@ -12,6 +12,9 @@ import {
   recoveryIdentitySchema,
 } from "./documentIdentity";
 import { validPassword } from "./passwordPolicy";
+import { Button } from "../components/Button";
+import { InlineError } from "../components/Feedback";
+import { PublicLayout } from "../components/PublicLayout";
 import styles from "./RegisterPage.module.css";
 
 const termsVersion = "clinicflow-terms-v1";
@@ -233,8 +236,7 @@ export function RegisterPage() {
   };
 
   return (
-    <main className={styles.page}>
-      <img className={styles.logo} src="/clinicflow-logo.png" alt="ClinicFlow" />
+    <PublicLayout>
 
       <ol className={styles.stepper} aria-label="Etapas do cadastro">
         {["Conta", "Perfil profissional", "Clínica"].map((label, index) => {
@@ -485,37 +487,37 @@ export function RegisterPage() {
           </>
         ) : null}
 
-        {error ? <div className={styles.errorBanner} role="alert">{error}</div> : null}
+        {error ? <InlineError>{error}</InlineError> : null}
 
         <div className={styles.actions}>
           {step > 1 && !loading ? (
-            <button
+            <Button
               type="button"
-              className={styles.back}
+              variant="secondary"
               onClick={() => {
                 setStep((current) => current - 1);
                 setError("");
               }}
             >
               Voltar
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="button"
             className={styles.primary}
-            disabled={loading}
+            loading={loading}
+            loadingLabel="Criando conta…"
             onClick={() => void continueRegistration()}
           >
-            {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
-            {loading ? "Criando conta…" : step === 3 ? "Concluir cadastro" : "Continuar"}
-          </button>
+            {step === 3 ? "Concluir cadastro" : "Continuar"}
+          </Button>
         </div>
       </section>
 
       <p className={styles.loginLink}>
         Já tem conta? <Link to="/entrar">Entrar</Link>
       </p>
-    </main>
+    </PublicLayout>
   );
 }
 

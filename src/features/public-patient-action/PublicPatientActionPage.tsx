@@ -15,6 +15,8 @@ import type {
   PatientActionPublicView,
 } from "../../api/types";
 import { Button } from "../../components/Button";
+import { InlineError } from "../../components/Feedback";
+import { PublicLayout } from "../../components/PublicLayout";
 import styles from "./PublicPatientActionPage.module.css";
 
 type PublicResult = "completed" | "declined";
@@ -110,7 +112,7 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
 
   if (action.isLoading) {
     return (
-      <PublicLayout>
+      <PublicLayout note="ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.">
         <section className={styles.stateCard} role="status">
           <span className={styles.stateIcon} aria-hidden="true">
             <ShieldCheck />
@@ -124,7 +126,7 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
 
   if (action.isError || !action.data) {
     return (
-      <PublicLayout>
+      <PublicLayout note="ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.">
         <section
           className={styles.stateCard}
           role="alert"
@@ -154,7 +156,7 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
   const withAppointment = view.actionType === "AppointmentWithDataSharing";
 
   return (
-    <PublicLayout>
+    <PublicLayout note="ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.">
       <article className={styles.card}>
         <header className={styles.hero}>
           <span className={styles.heroIcon} aria-hidden="true">
@@ -310,27 +312,12 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
         )}
 
         {mutation.isError ? (
-          <p className={styles.error} role="alert">
-            {mutationError(mutation.error)}
-          </p>
+          <div className={styles.error}>
+            <InlineError>{mutationError(mutation.error)}</InlineError>
+          </div>
         ) : null}
       </article>
     </PublicLayout>
-  );
-}
-
-function PublicLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <main className={styles.page}>
-      <a className={styles.brand} href="/" aria-label="ClinicFlow — início">
-        <span aria-hidden="true">CF</span>
-        ClinicFlow
-      </a>
-      {children}
-      <p className={styles.privacyNote}>
-        ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.
-      </p>
-    </main>
   );
 }
 

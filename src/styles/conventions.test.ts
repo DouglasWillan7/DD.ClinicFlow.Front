@@ -28,18 +28,15 @@ const canonicalBreakpoints = new Set([
 
 /** Breakpoints fora do conjunto ainda tolerados, por arquivo. */
 const breakpointDebt: Record<string, string[]> = {
-  "app/AppErrorBoundary.module.css": ["max-520"],
   "auth/AuthLayout.module.css": ["max-820"],
   "auth/LoginPage.module.css": ["max-920"],
   "auth/RegisterPage.module.css": ["max-390"],
   "components/InternationalPhoneField.module.css": ["max-430"],
   "features/appointments/AgendaPage.module.css": ["max-899", "min-1180"],
   "features/appointments/NewAppointmentPage.module.css": ["min-1180"],
-  "features/clinic-invitation/ClinicMembershipInvitationPage.module.css": ["max-560"],
   "features/dashboard/DoctorHomePage.module.css": ["max-799"],
   "features/patient-actions/ClinicalAccessEmailAction.module.css": ["max-720"],
   "features/patients/PatientRegistrationForm.module.css": ["max-430"],
-  "features/public-patient-action/PublicPatientActionPage.module.css": ["max-560"],
 };
 
 /** Aliases do antigo bloco de migração de tokens.css: não existem mais e não voltam. */

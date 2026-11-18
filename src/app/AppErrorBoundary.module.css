@@ -1,18 +1,10 @@
-.page {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  padding: var(--space-6);
-  background: var(--color-app-background);
-}
-
+/* Tela de erro global: mesmo casco e cartão das outras telas fora do app. */
 .card {
   width: min(100%, 560px);
-  padding: var(--space-6);
-  border: 1px solid var(--color-border-hairline);
+  padding: 24px 28px;
   border-radius: var(--radius-panel);
   background: var(--color-surface);
-  box-shadow: none;
+  box-shadow: var(--shadow-card);
 }
 
 .icon {
@@ -20,14 +12,17 @@
   width: 44px;
   height: 44px;
   place-items: center;
-  margin-block: var(--space-8) var(--space-4);
+  margin-bottom: var(--space-4);
   color: var(--color-danger-text);
   border-radius: var(--radius-control);
   background: var(--color-danger-tint);
 }
 
+/* Headline de DESIGN.md. */
 .card h1 {
-  font-size: 24px;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .card p {
@@ -42,11 +37,7 @@
   gap: var(--space-3);
 }
 
-@media (max-width: 520px) {
-  .page {
-    padding: var(--space-4);
-  }
-
+@media (max-width: 639px) {
   .card {
     padding: var(--space-5);
   }

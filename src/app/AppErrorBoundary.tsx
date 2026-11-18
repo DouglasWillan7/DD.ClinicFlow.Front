@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from "react";
 import { LogIn, RotateCcw, TriangleAlert } from "lucide-react";
-import { BrandMark } from "../components/BrandMark";
+import { PublicLayout } from "../components/PublicLayout";
 import { Button } from "../components/Button";
 import styles from "./AppErrorBoundary.module.css";
 
@@ -38,9 +38,8 @@ export class AppErrorBoundary extends Component<
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <main className={styles.page}>
+      <PublicLayout>
         <section className={styles.card} role="alert">
-          <BrandMark />
           <span className={styles.icon} aria-hidden="true">
             <TriangleAlert size={22} />
           </span>
@@ -64,7 +63,7 @@ export class AppErrorBoundary extends Component<
             </Button>
           </div>
         </section>
-      </main>
+      </PublicLayout>
     );
   }
 }
