@@ -45,7 +45,7 @@ import {
   isAppointmentPendingPatientAction,
   isAppointmentTerminal,
 } from "../appointments/appointmentStatus";
-import { StatusBadge } from "../appointments/StatusBadge";
+import { AppointmentStatusBadge } from "../appointments/AppointmentStatusBadge";
 import styles from "./DoctorHomePage.module.css";
 
 function greetingFor(hour: number) {
@@ -384,7 +384,7 @@ export function DoctorHomePage() {
                           Em atendimento
                         </span>
                       ) : (
-                        <StatusBadge status={appointment.status} />
+                        <AppointmentStatusBadge status={appointment.status} />
                       )}
                     </button>
                   </li>
@@ -469,7 +469,7 @@ export function DoctorHomePage() {
                           {formatInTimeZone(appointment.startUtc, timeZone, "EEEE, HH:mm", { locale: ptBR })}
                         </small>
                       </span>
-                      <StatusBadge status={appointment.status} />
+                      <AppointmentStatusBadge status={appointment.status} />
                     </button>
                   </li>
                 ))}

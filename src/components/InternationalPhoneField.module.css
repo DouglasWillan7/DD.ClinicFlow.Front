@@ -2,9 +2,9 @@
   display: grid;
   min-width: 0;
   gap: 7px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--color-text-body);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .control {
@@ -13,8 +13,8 @@
   min-height: 44px;
   align-items: stretch;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
   background: var(--color-surface);
   transition:
     border-color var(--transition-fast),
@@ -24,11 +24,11 @@
 
 .control:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 .invalid {
-  border-color: var(--color-attention);
+  border-color: var(--color-danger);
 }
 
 .countryPicker {
@@ -46,8 +46,8 @@
   gap: 7px;
   padding: 0 10px 0 12px;
   color: var(--color-ink);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -72,36 +72,38 @@
 .divider {
   width: 1px;
   margin: 9px 0;
-  background: var(--color-border);
+  background: var(--color-border-hairline);
 }
 
 .control input {
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: 10px 13px;
+  padding: 10px 14px;
   border: 0;
   outline: none;
   color: var(--color-ink);
   background: transparent;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .control input::placeholder {
-  color: var(--color-text-body);
+  color: var(--color-text-muted);
 }
 
 .field small {
   color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .field .error {
   color: var(--color-danger-text);
 }
 
+/* Exceção aos breakpoints do sistema: em telas de até 430px o seletor de país
+   encolhe para o número caber na mesma linha. */
 @media (max-width: 430px) {
   .countryPicker {
     min-width: 102px;

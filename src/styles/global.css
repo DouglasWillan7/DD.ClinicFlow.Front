@@ -68,11 +68,12 @@ h1 {
   letter-spacing: -0.02em;
 }
 
+/* h2 é título de painel e de diálogo (Title de DESIGN.md), não título de tela. */
 h2 {
   margin-bottom: 6px;
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.3;
 }
 
 h3 {

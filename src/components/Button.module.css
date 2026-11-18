@@ -28,7 +28,7 @@
 }
 
 .primary {
-  color: white;
+  color: var(--color-surface);
   background: var(--color-primary);
 }
 
@@ -37,17 +37,18 @@
 }
 
 .secondary {
-  border-color: var(--color-border);
+  color: var(--color-ink);
+  border-color: var(--color-border-hairline);
   background: var(--color-surface);
 }
 
 .secondary:hover:not(:disabled),
 .ghost:hover:not(:disabled) {
-  background: var(--color-hover);
+  background: var(--color-primary-subtle);
 }
 
 .ghost {
-  color: var(--color-text-secondary);
+  color: var(--color-text-body);
   background: transparent;
 }
 
@@ -61,11 +62,28 @@
   background: var(--color-danger-tint);
 }
 
+/* Ação principal da página: pílula solta sobre o fundo do app. */
+.pill {
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.pill.primary {
+  box-shadow: var(--shadow-card);
+}
+
+.pill.secondary {
+  border-color: var(--color-border-control);
+}
+
+/* currentColor: o spinner aparece em qualquer variante, não só na primária. */
 .spinner {
   width: 15px;
   height: 15px;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-top-color: white;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: spin 650ms linear infinite;
 }

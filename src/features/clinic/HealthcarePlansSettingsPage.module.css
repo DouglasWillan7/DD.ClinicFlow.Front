@@ -696,7 +696,7 @@
   padding-top: var(--space-3);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 959px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
   }

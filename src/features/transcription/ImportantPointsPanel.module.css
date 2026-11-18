@@ -508,7 +508,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .panel {
     padding: var(--space-5);
   }

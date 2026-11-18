@@ -1,9 +1,12 @@
+/* Rótulo persistente (Label 14/600) e controle de 44px com corpo de 16px:
+   abaixo de 16px o iOS amplia a página ao focar o campo. */
 .field {
   display: grid;
+  min-width: 0;
   gap: 7px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 700;
+  color: var(--color-text-body);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .field input,
@@ -11,41 +14,103 @@
 .field textarea {
   width: 100%;
   min-height: 44px;
-  padding: 10px 13px;
+  padding: 10px 14px;
   color: var(--color-ink);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
   outline: none;
   background: var(--color-surface);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 400;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
 
-.field input::placeholder {
-  color: var(--color-text-body);
+.field textarea {
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--color-text-muted);
 }
 
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(47, 91, 231, 0.12);
+  box-shadow: var(--focus-ring);
 }
 
 .field input[aria-invalid="true"],
-.field select[aria-invalid="true"] {
-  border-color: var(--color-attention);
+.field select[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+/* Somente leitura: mesma caixa, fundo de grupo interno, para não parecer editável. */
+.field input[readonly],
+.field textarea[readonly] {
+  color: var(--color-text-body);
+  background: var(--color-app-background);
+}
+
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-app-background);
+  cursor: not-allowed;
 }
 
 .field small {
   color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .field .error {
   color: var(--color-danger-text);
+}
+
+.labelRow {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.passwordControl {
+  position: relative;
+}
+
+.withToggle input {
+  padding-right: 48px;
+}
+
+.reveal {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: color var(--transition-fast);
+}
+
+.reveal:hover {
+  color: var(--color-ink);
+}
+
+.reveal:focus-visible {
+  outline-offset: -4px;
 }

@@ -1,0 +1,140 @@
+/* Linha de contexto de Pacientes e Agenda: uma linha no desktop; no celular os
+   filtros descem para a segunda linha e a ação fica sempre visível. */
+.bar {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-5);
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+.back {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.back:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.back:active {
+  transform: scale(0.98);
+}
+
+.breadcrumb {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.breadcrumb a {
+  border-radius: var(--space-1);
+  transition: color var(--transition-fast);
+}
+
+.breadcrumb a:hover {
+  color: var(--color-primary);
+}
+
+.separator {
+  color: var(--color-text-disabled);
+}
+
+.breadcrumb strong,
+.breadcrumb h1 {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.breadcrumb .truncate {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.counter {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.filters {
+  display: flex;
+  min-width: 0;
+}
+
+.action {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+}
+
+@media (max-width: 639px) {
+  .bar {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .breadcrumb {
+    flex: 1 1 0;
+    gap: 8px;
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  .filters {
+    order: 3;
+    flex: 1 0 100%;
+  }
+
+  .action {
+    margin-left: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back,
+  .breadcrumb a {
+    transition: none;
+  }
+}

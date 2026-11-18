@@ -17,26 +17,33 @@
   --color-danger-text: #c92f3a;
   --color-success: #2f9e57;
   --color-success-text: #237a45;
+  /* Âmbar: "aguardando" e "confira", nunca erro. Texto em -text para manter AA. */
+  --color-warning: #a86a0e;
+  --color-warning-text: #805000;
   --color-app-background: #eef1f6;
   --color-surface: #ffffff;
   --color-border-hairline: #eceeef;
+
+  /* Fundos de estado: a cor semântica diluída na superfície. */
+  --color-danger-tint: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+  --color-success-tint: color-mix(in srgb, var(--color-success) 10%, var(--color-surface));
+  --color-warning-tint: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --color-neutral-tint: color-mix(in srgb, var(--color-text-muted) 12%, var(--color-surface));
+
+  /* Borda de controle solto sobre o fundo do app (chips, pílulas secundárias). */
+  --color-border-control: color-mix(in srgb, var(--color-ink) 10%, transparent);
 
   /* Aliases mantidos durante a migração dos consumidores existentes. */
   --color-text-secondary: var(--color-text-body);
   --color-attention: var(--color-danger);
   --color-attention-text: var(--color-danger-text);
-  --color-attention-tint: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
-  --color-success-tint: color-mix(in srgb, var(--color-success) 10%, var(--color-surface));
-  --color-warning: #a86a0e;
-  --color-warning-text: #805000;
-  --color-warning-tint: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --color-attention-tint: var(--color-danger-tint);
   --color-selected-background: var(--color-primary-subtle);
   --color-selected-border: var(--color-primary-soft);
   --color-hover: var(--color-primary-subtle);
   --color-blue-tint: var(--color-primary-soft);
   --color-border: var(--color-border-hairline);
   --color-border-soft: var(--color-border-hairline);
-  --color-danger-tint: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
 
   --radius-control: 16px;
   --radius-annotation: 18px;
@@ -60,6 +67,8 @@
   --shadow-card: 0 6px 18px rgba(23, 63, 84, 0.08);
   --shadow-floating: 0 12px 32px rgba(23, 63, 84, 0.1);
   --shadow-overlay: 0 16px 40px rgba(23, 63, 84, 0.16);
+  /* Anel de foco de campos e da busca; acompanha a borda em Azul de Ação. */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
   --shadow-low: none;
   --shadow-raised: none;
 

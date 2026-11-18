@@ -126,7 +126,7 @@
   .initialLoading i:last-child { display: none; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .contextRow { align-items: flex-start; }
   .breadcrumb { flex-wrap: wrap; }
   .composers { align-items: stretch; flex-direction: column; }

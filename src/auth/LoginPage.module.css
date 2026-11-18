@@ -701,7 +701,7 @@ header > .backButton {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .page {
     display: block;
     padding: 0;

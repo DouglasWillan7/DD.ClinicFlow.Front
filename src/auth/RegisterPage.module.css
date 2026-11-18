@@ -348,7 +348,7 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .page {
     padding: 28px 18px;
   }

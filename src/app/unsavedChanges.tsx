@@ -2,10 +2,7 @@
 import { TriangleAlert } from "lucide-react";
 import {
   createContext,
-  type KeyboardEvent,
-  type MouseEvent,
   type PropsWithChildren,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -13,7 +10,7 @@ import {
   useState,
 } from "react";
 import { Button } from "../components/Button";
-import styles from "./UnsavedChangesDialog.module.css";
+import { Dialog } from "../components/Dialog";
 
 interface UnsavedChangesContextValue {
   /** Marca um formulário com alterações pendentes; devolve a função que desmarca. */
@@ -111,63 +108,27 @@ function DiscardChangesDialog({
   onKeep(): void;
   onDiscard(): void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const open = useCallback((node: HTMLDialogElement | null) => {
-    dialogRef.current = node;
-    if (!node || node.open) return;
-    if (typeof node.showModal === "function") node.showModal();
-    else node.setAttribute("open", "");
-  }, []);
-
-  // Fechar pelo método nativo devolve o foco a quem abriu o diálogo.
-  function finish(callback: () => void) {
-    const node = dialogRef.current;
-    if (node?.open && typeof node.close === "function") node.close();
-    callback();
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    finish(onKeep);
-  }
-
-  function handleBackdropClick(event: MouseEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget) finish(onKeep);
-  }
-
+  // Esc e clique no fundo equivalem a continuar editando; sem botão fechar, a
+  // decisão fica explícita no rodapé.
   return (
-    <dialog
-      ref={open}
-      className={styles.dialog}
-      aria-labelledby="discard-changes-title"
-      aria-describedby="discard-changes-description"
-      onKeyDown={handleKeyDown}
-      onClick={handleBackdropClick}
-    >
-      <div className={styles.panel}>
-        <span className={styles.icon} aria-hidden="true">
-          <TriangleAlert size={20} />
-        </span>
-        <h2 id="discard-changes-title">Descartar alterações?</h2>
-        <p id="discard-changes-description">
-          As informações preenchidas ainda não foram salvas e serão perdidas se
-          você sair agora.
-        </p>
-        <div className={styles.actions}>
-          <Button
-            type="button"
-            variant="secondary"
-            autoFocus
-            onClick={() => finish(onKeep)}
-          >
+    <Dialog
+      size="sm"
+      tone="danger"
+      icon={<TriangleAlert size={20} />}
+      title="Descartar alterações?"
+      description="As informações preenchidas ainda não foram salvas e serão perdidas se você sair agora."
+      closeLabel={null}
+      onClose={onKeep}
+      footer={
+        <>
+          <Button type="button" variant="secondary" autoFocus onClick={onKeep}>
             Continuar editando
           </Button>
-          <Button type="button" variant="danger" onClick={() => finish(onDiscard)}>
+          <Button type="button" variant="danger" onClick={onDiscard}>
             Descartar alterações
           </Button>
-        </div>
-      </div>
-    </dialog>
+        </>
+      }
+    />
   );
 }

@@ -344,7 +344,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .panel,
   .feedback {
     padding: var(--space-5) var(--space-4);
