@@ -13,6 +13,7 @@ import { Field, SelectField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import { onboardingKey } from "../onboarding/onboarding";
 import { ClinicSettingsHeader } from "./ClinicSettingsHeader";
+import { clinicTimeZones } from "./clinicTimeZone";
 import styles from "./SettingsLayout.module.css";
 
 const clinicSchema = z.object({
@@ -144,13 +145,11 @@ export function ClinicSettingsPage() {
                   error={errors.timeZoneId?.message}
                   {...register("timeZoneId")}
                 >
-                  <option value="America/Sao_Paulo">
-                    Brasília (São Paulo)
-                  </option>
-                  <option value="America/Manaus">Manaus</option>
-                  <option value="America/Cuiaba">Cuiabá</option>
-                  <option value="America/Recife">Recife</option>
-                  <option value="America/Rio_Branco">Rio Branco</option>
+                  {clinicTimeZones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.label}
+                    </option>
+                  ))}
                 </SelectField>
                 <Field
                   className={styles.wide}

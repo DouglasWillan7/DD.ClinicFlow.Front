@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import { Check } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -186,7 +187,7 @@ export function PatientRegistrationForm({
               <Field
                 label="Data de nascimento"
                 type="date"
-                max={new Date().toISOString().slice(0, 10)}
+                max={format(new Date(), "yyyy-MM-dd")}
                 error={errors.birthDate?.message}
                 {...register("birthDate")}
               />

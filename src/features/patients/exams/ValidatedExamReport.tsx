@@ -19,6 +19,7 @@ import type {
   ClinicalReferenceState,
 } from "../../../api/types";
 import { Button } from "../../../components/Button";
+import { fallbackTimeZone, formatDateTimeInZone } from "../../clinic/clinicTimeZone";
 import { ClinicalSparkline } from "../ClinicalSparkline";
 import { formatDateOnly } from "../patientFormatters";
 import {
@@ -37,6 +38,8 @@ interface ValidatedExamReportProps {
   onShowHistory?: () => void;
   onOpenCorrection?: () => void;
   onEditRevision?: () => void;
+  /** Fuso da clínica; a validação chega em UTC. */
+  timeZone?: string;
 }
 
 function resultDomId(resultId: string) {
@@ -50,15 +53,6 @@ function formatLocalDateTime(value: string | null | undefined) {
   return `${match[3]}/${match[2]}/${match[1]} às ${match[4]}:${match[5]}`;
 }
 
-function formatUtcDateTime(value: string | null | undefined) {
-  if (!value) return "Não informada";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Não informada";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
 
 function stateLabel(state: ClinicalReferenceState) {
   return referenceStateLabel(state);
@@ -103,6 +97,7 @@ export function ValidatedExamReport({
   onShowHistory,
   onOpenCorrection,
   onEditRevision,
+  timeZone = fallbackTimeZone,
 }: ValidatedExamReportProps) {
   const structuredFindings = withoutDerivedStructuredFindings(
     report.structuredFindings ?? [],
@@ -252,7 +247,7 @@ export function ValidatedExamReport({
             </dd>
           </div>
           <div><dt>Validado por</dt><dd>{report.metadata.validatorName || "Não informado"}</dd></div>
-          <div><dt>Data da validação</dt><dd>{formatUtcDateTime(report.metadata.validatedAtUtc)}</dd></div>
+          <div><dt>Data da validação</dt><dd>{formatDateTimeInZone(report.metadata.validatedAtUtc, timeZone) ?? "Não informada"}</dd></div>
           <div><dt>Versão</dt><dd>{report.version}</dd></div>
         </dl>
       ) : null}

@@ -23,6 +23,7 @@ import type {
   PatientExamPage,
   PatientExamSummary,
 } from "../../../api/types";
+import { fallbackTimeZone } from "../../clinic/clinicTimeZone";
 import { flattenExamPages, groupExams } from "./examList";
 import styles from "./ExamListPanel.module.css";
 
@@ -67,13 +68,17 @@ export interface ExamListPanelProps {
   onRetry(): void;
   onRequest(): void;
   onAttach(): void;
+  /** Fuso da clínica; as datas de atualização vêm em UTC. */
+  timeZone?: string;
 }
 
 function ExamRow({
   exam,
   selected,
+  timeZone,
   onSelect,
 }: {
+  timeZone: string;
   exam: PatientExamSummary;
   selected: boolean;
   onSelect(): void;
@@ -83,7 +88,7 @@ function ExamRow({
   const StatusIcon = status.icon;
   const date = exam.scheduledOn
     ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${exam.scheduledOn}T00:00:00Z`))
-    : new Intl.DateTimeFormat("pt-BR").format(new Date(exam.updatedAtUtc));
+    : new Intl.DateTimeFormat("pt-BR", { timeZone }).format(new Date(exam.updatedAtUtc));
   return (
     <button
       type="button"
@@ -229,6 +234,7 @@ export function ExamListPanel(props: ExamListPanelProps) {
                     key={exam.id}
                     exam={exam}
                     selected={exam.id === props.selectedExamId}
+                    timeZone={props.timeZone ?? fallbackTimeZone}
                     onSelect={() => props.onSelect(exam.id)}
                   />
                 ))}

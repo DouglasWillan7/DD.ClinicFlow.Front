@@ -153,10 +153,20 @@ test("solicitado apresenta previsão, solicitante e somente ações permitidas",
 });
 
 test("oculta manutenção clínica quando a capacidade não foi concedida", () => {
-  render(<ExamDetailPanel exam={detail()} requesterLabel={null} />);
+  render(<ExamDetailPanel exam={detail({ requestedByUserId: null })} requesterLabel={null} />);
   expect(screen.getByText("Solicitante não informado")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Editar solicitação" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Anexar laudo" })).not.toBeInTheDocument();
+});
+
+test("mostra o solicitante conhecido e não afirma ausência quando só falta o nome", () => {
+  const { rerender } = render(<ExamDetailPanel exam={detail()} requesterLabel="Dra. Helena Costa" />);
+  expect(screen.getByText("Dra. Helena Costa")).toBeInTheDocument();
+
+  // O exame tem solicitante, mas a tela não sabe o nome: a linha some em vez de mentir.
+  rerender(<ExamDetailPanel exam={detail()} requesterLabel={null} />);
+  expect(screen.queryByText("Solicitante")).not.toBeInTheDocument();
+  expect(screen.queryByText("Solicitante não informado")).not.toBeInTheDocument();
 });
 
 test("pendente usa skeleton estrutural e descreve a etapa", () => {

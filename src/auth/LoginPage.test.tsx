@@ -107,7 +107,7 @@ describe("LoginPage", () => {
       password: "Senha123!",
       rememberConnection: true,
     });
-    expect(navigateMock).toHaveBeenCalledWith("/app/agenda", { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith("/app", { replace: true });
   });
 
   test("permite escolher a clínica por teclado sem persistir o token intermediário", async () => {
@@ -133,7 +133,7 @@ describe("LoginPage", () => {
     await user.keyboard("{Enter}");
 
     expect(selectClinicMock).toHaveBeenCalledWith("selection-secret", "uc-2", true);
-    expect(navigateMock).toHaveBeenCalledWith("/app/agenda", { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith("/app", { replace: true });
   });
 
   test("exibe erro seguro sem revelar se o documento existe", async () => {

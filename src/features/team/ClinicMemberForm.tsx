@@ -127,7 +127,7 @@ export function ClinicMemberForm({
       <header className={styles.heading}>
         <div>
           <span className={styles.eyebrow}>
-            {mode === "create" ? "Novo vínculo" : "Vínculo com a clínica"}
+            {mode === "create" ? "Novo integrante" : "Vínculo com a clínica"}
           </span>
           <h2>{mode === "create" ? "Adicionar integrante" : "Editar vínculo"}</h2>
           <p>

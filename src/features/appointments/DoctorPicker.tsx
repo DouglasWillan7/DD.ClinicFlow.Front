@@ -41,7 +41,7 @@ export function DoctorPicker({
           <input
             type="search"
             value={search}
-            placeholder="Buscar médico ou especialidade..."
+            placeholder="Buscar médico ou especialidade…"
             onChange={(event) => onSearchChange(event.currentTarget.value)}
           />
         </label>

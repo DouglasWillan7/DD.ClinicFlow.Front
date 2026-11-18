@@ -250,7 +250,7 @@ export function PatientSearchDialog({
             onKeyDown={handleSearchKeyDown}
             aria-controls="patient-search-results"
             autoComplete="off"
-            placeholder="Nome, CPF ou nº do prontuário..."
+            placeholder="Nome, CPF ou nº do prontuário…"
           />
         </label>
 

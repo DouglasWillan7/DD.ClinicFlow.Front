@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { AuthResponse, ClinicRole } from "../api/types";
 import {
   can,
+  doctorScheduleScope,
   canAccessAppPath,
   getAppStart,
   requiredCapabilityForAppPath,
@@ -89,6 +90,14 @@ describe("matriz de capacidades do contexto ativo", () => {
     expect(can(invalid, "ManageClinicSettings")).toBe(false);
     expect(can(undefined, "ViewSchedule")).toBe(false);
   });
+});
+
+test("alcance da disponibilidade: administração configura todos, médico só a própria", () => {
+  expect(doctorScheduleScope(session("Doctor", true))).toBe("clinic");
+  expect(doctorScheduleScope(session("Secretary", true))).toBe("clinic");
+  expect(doctorScheduleScope(session("Doctor"))).toBe("own");
+  expect(doctorScheduleScope(session("Nurse"))).toBe("none");
+  expect(doctorScheduleScope(undefined)).toBe("none");
 });
 
 test("protege rotas profundas com a capacidade equivalente da API", () => {

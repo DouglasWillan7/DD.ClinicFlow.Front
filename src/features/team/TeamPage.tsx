@@ -33,6 +33,7 @@ import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
 import { ClinicMemberForm } from "./ClinicMemberForm";
 import type { ClinicMemberPayload } from "./memberFormModel";
+import { formatDateTimeInZone, useClinicTimeZone } from "../clinic/clinicTimeZone";
 import styles from "./TeamPage.module.css";
 
 const statusLabels: Record<UserClinicStatus, string> = {
@@ -62,23 +63,21 @@ const invitationStatusLabels: Record<
   Accepted: "Convite aceito",
 };
 
-function invitationDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "data indisponível";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "long",
-    timeStyle: "short",
-  }).format(date);
+function invitationDate(value: string, timeZone: string) {
+  return (
+    formatDateTimeInZone(value, timeZone, { dateStyle: "long", timeStyle: "short" }) ??
+    "data indisponível"
+  );
 }
 
-function invitationTiming(invitation: ClinicMembershipInvitationSummary) {
+function invitationTiming(invitation: ClinicMembershipInvitationSummary, timeZone: string) {
   const prefix =
     invitation.status === "Expired"
       ? "Expirou em"
       : invitation.status === "Accepted" || invitation.status === "Cancelled"
         ? "Validade até"
         : "Expira em";
-  return `${prefix} ${invitationDate(invitation.expiresAtUtc)}`;
+  return `${prefix} ${invitationDate(invitation.expiresAtUtc, timeZone)}`;
 }
 
 function safeInvitationError(error: unknown, action: "reissue" | "cancel") {
@@ -138,6 +137,7 @@ export function TeamPage({
   initialRole?: ClinicRole;
 }) {
   const { request, session, refreshSession } = useAuth();
+  const timeZone = useClinicTimeZone();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -706,7 +706,7 @@ export function TeamPage({
                           <small className={styles.invitationMeta}>
                             <span>{member.invitation.destinationMasked}</span>
                             <span>Tentativa {member.invitation.attemptNumber}</span>
-                            <span>{invitationTiming(member.invitation)}</span>
+                            <span>{invitationTiming(member.invitation, timeZone)}</span>
                           </small>
                         ) : (
                           <small>Envie um novo convite para o e-mail atual.</small>

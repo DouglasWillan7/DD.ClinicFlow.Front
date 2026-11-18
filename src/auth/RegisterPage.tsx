@@ -507,7 +507,7 @@ export function RegisterPage() {
             onClick={() => void continueRegistration()}
           >
             {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
-            {loading ? "Criando conta..." : step === 3 ? "Concluir cadastro" : "Continuar"}
+            {loading ? "Criando conta…" : step === 3 ? "Concluir cadastro" : "Continuar"}
           </button>
         </div>
       </section>

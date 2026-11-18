@@ -1,5 +1,6 @@
 import type {
   ExamCategory,
+  ExamSource,
   ExamClinicalOutcome,
   ExamListFilters,
   ExamStatus,
@@ -132,6 +133,16 @@ const statusUiValues: Record<string, ExamStatus> = {
   Cancelado: "Cancelado",
 };
 
+// Espelha `ExamSource` do backend; valor desconhecido não vira "Paciente".
+const examSourceUiValues: Record<string, ExamSource> = {
+  Paciente: "Paciente",
+  Clinica: "Clínica",
+  "Clínica": "Clínica",
+  Publico: "Público",
+  "Público": "Público",
+  Legado: "Legado",
+};
+
 const categoryUiValues: Record<string, ExamCategory> = {
   NaoClassificado: "Não classificado",
   "Não classificado": "Não classificado",
@@ -196,9 +207,7 @@ export function normalizePatientExamDetail(payload: PatientExamDetailTransport):
     document: payload.document
       ? {
           ...payload.document,
-          source: payload.document.source === "Clinica" || payload.document.source === "Clínica"
-            ? "Clínica"
-            : "Paciente",
+          source: examSourceUiValues[payload.document.source] ?? "Origem não informada",
         }
       : null,
     activeRevision: normalizeRevision(payload.activeRevision),

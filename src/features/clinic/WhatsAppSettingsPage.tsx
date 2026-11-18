@@ -15,7 +15,7 @@ import { onboardingKey } from "../onboarding/onboarding";
 import styles from "./SettingsLayout.module.css";
 
 const whatsappSchema = z.object({
-  phoneNumberId: z.string().trim().min(1, "Informe o Phone Number ID."),
+  phoneNumberId: z.string().trim().min(1, "Informe o ID do número de telefone."),
   templateName: z.string().trim().min(1, "Informe o nome do template."),
   accessToken: z.string().optional(),
   enabled: z.boolean(),
@@ -115,7 +115,7 @@ export function WhatsAppSettingsPage() {
               noValidate
             >
               <Field
-                label="Phone Number ID"
+                label="ID do número de telefone"
                 placeholder="ID fornecido pela Meta"
                 error={errors.phoneNumberId?.message}
                 {...register("phoneNumberId")}
@@ -128,7 +128,7 @@ export function WhatsAppSettingsPage() {
               />
               <Field
                 className={styles.wide}
-                label={query.data?.hasToken ? "Substituir token" : "Access token"}
+                label={query.data?.hasToken ? "Substituir token" : "Token de acesso"}
                 type="password"
                 autoComplete="off"
                 placeholder={

@@ -89,6 +89,17 @@ export function isLimitedToOwnSchedule(
   return subject?.clinicRole === "Doctor";
 }
 
+/**
+ * De quem a pessoa configura a disponibilidade: a administração alcança todos
+ * os médicos da clínica; o médico sem administração, só a própria agenda.
+ */
+export function doctorScheduleScope(
+  subject: PermissionSubject | null | undefined,
+): "clinic" | "own" | "none" {
+  if (!can(subject, "ConfigureDoctorSchedule")) return "none";
+  return subject?.isAdmin ? "clinic" : "own";
+}
+
 export function getAppStart(subject: PermissionSubject | null | undefined) {
   return can(subject, "ReadClinicalRecord") ? "/app/inicio" : "/app/agenda";
 }

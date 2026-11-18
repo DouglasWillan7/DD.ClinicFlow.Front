@@ -51,6 +51,8 @@ export function AppShell({ children }: PropsWithChildren) {
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const restoreMenuFocusRef = useRef(false);
+  const userContextRef = useRef<HTMLDivElement>(null);
+  const userButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const target = menuOpen
@@ -76,6 +78,36 @@ export function AppShell({ children }: PropsWithChildren) {
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
+
+  // Mesmo contrato do menu "Nova consulta" da Agenda: Esc e clique fora fecham,
+  // e Esc devolve o foco ao botão que abriu.
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        userContextRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setUserMenuOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setUserMenuOpen(false);
+      userButtonRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [userMenuOpen]);
 
   if (!session) return null;
 
@@ -175,6 +207,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <NavLink
       key={to}
       to={to}
+      matchChildren
       onClick={() => closeDrawer()}
       className={({ isActive }) =>
         clsx(styles.railItem, styles.navLink, isActive && styles.active)
@@ -277,8 +310,9 @@ export function AppShell({ children }: PropsWithChildren) {
 
           <span className={styles.topbarSpacer} />
 
-          <div className={styles.userContext}>
+          <div className={styles.userContext} ref={userContextRef}>
             <button
+              ref={userButtonRef}
               type="button"
               className={styles.userButton}
               onClick={() => setUserMenuOpen((open) => !open)}

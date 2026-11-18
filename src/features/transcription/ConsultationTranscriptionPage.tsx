@@ -19,6 +19,7 @@ import { ImportantPointsPanel } from "./ImportantPointsPanel";
 import type { ConsultationImportantPoint, ImportantPointEvidence } from "./importantPoints";
 import { MicrophoneCaptureService, type CaptureConnectionState } from "./MicrophoneCaptureService";
 import { mergeEvidenceRanges, renderTranscriptText, selectFirstEvidence } from "./transcriptEvidence";
+import { useClinicTimeZone } from "../clinic/clinicTimeZone";
 import styles from "./ConsultationTranscriptionPage.module.css";
 
 function formatTime(milliseconds: number) {
@@ -26,8 +27,8 @@ function formatTime(milliseconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }
-function formatAppointmentDate(value: string) {
-  return new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function formatAppointmentDate(value: string, timeZone: string) {
+  return new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone });
 }
 function speakerKey(streamNumber: number, speakerTag: number) { return `${streamNumber}:${speakerTag}`; }
 
@@ -41,6 +42,7 @@ interface VoiceSummary {
 
 export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId: string }) {
   const { request, session: auth } = useAuth();
+  const timeZone = useClinicTimeZone();
   const queryClient = useQueryClient();
   const appointment = useQuery({ queryKey: ["appointments", "detail", appointmentId], queryFn: () => request<Appointment>(`/appointments/${appointmentId}`) });
   const clinicalContentAllowed = appointment.data
@@ -267,7 +269,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   if (transcript.isLoading) return <LoadingBlock label="Abrindo a consulta…" />;
   if (transcript.isError) return <ErrorBlock message="Não foi possível abrir a consulta." retry={() => { void transcript.refetch(); }} />;
   const doctorName = auth?.name?.trim() || "Médico";
-  const appointmentDate = formatAppointmentDate(appointment.data.startUtc);
+  const appointmentDate = formatAppointmentDate(appointment.data.startUtc, timeZone);
   const plannedMinutes = Math.max(0, Math.round((new Date(appointment.data.endUtc).getTime() - new Date(appointment.data.startUtc).getTime()) / 60_000));
   const actualMinutes = appointment.data.actualStartUtc && appointment.data.actualEndUtc
     ? Math.max(0, Math.round((new Date(appointment.data.actualEndUtc).getTime() - new Date(appointment.data.actualStartUtc).getTime()) / 60_000))
@@ -297,7 +299,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
         <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
           <Link to="/app/pacientes">Pacientes</Link><span aria-hidden="true">›</span>
           <Link to={`/app/pacientes/${appointment.data.patientId}`}>{appointment.data.patientName}</Link><span aria-hidden="true">›</span>
-          <strong aria-current="page">Consulta em andamento</strong>
+          <strong aria-current="page">{appointment.data.status === "InProgress" ? "Consulta em andamento" : "Consulta"}</strong>
         </nav>
       </div>
       <div className={styles.actions} aria-label="Ações da transcrição">
@@ -396,8 +398,8 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
             <dt>Tipo</dt><dd>{appointmentTypeLabels[appointment.data.type]}</dd>
             <dt>Início agendado</dt><dd>{appointmentDate}</dd>
             <dt>Duração prevista</dt><dd>{plannedMinutes} min</dd>
-            {appointment.data.actualStartUtc ? <><dt>Início efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualStartUtc)}</dd></> : null}
-            {appointment.data.actualEndUtc ? <><dt>Término efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualEndUtc)}</dd></> : null}
+            {appointment.data.actualStartUtc ? <><dt>Início efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualStartUtc, timeZone)}</dd></> : null}
+            {appointment.data.actualEndUtc ? <><dt>Término efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualEndUtc, timeZone)}</dd></> : null}
             {actualMinutes !== null ? <><dt>Duração efetiva</dt><dd>{actualMinutes} min</dd></> : null}</dl>
         </section>
       </aside>
