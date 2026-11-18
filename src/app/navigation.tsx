@@ -59,16 +59,21 @@ export function NavLink({
   children,
   className,
   onClick,
+  matchChildren = false,
   ...props
 }: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "className" | "onClick"> & {
   to: string;
   children: ReactNode;
   className?: string | ((state: { isActive: boolean }) => string);
   onClick?: () => void;
+  /** Mantém o destino ativo nas páginas filhas (`/app/pacientes/:id`). */
+  matchChildren?: boolean;
 }) {
   const [location] = useWouterLocation();
   const guardClick = useGuardedLinkClick(to, props.target);
-  const isActive = location === to;
+  const isCurrentPage = location === to;
+  const isActive =
+    isCurrentPage || (matchChildren && location.startsWith(`${to}/`));
   const resolvedClassName =
     typeof className === "function" ? className({ isActive }) : className;
 
@@ -81,7 +86,8 @@ export function NavLink({
         onClick?.();
         guardClick(event);
       }}
-      aria-current={isActive ? "page" : undefined}
+      // "page" só no caminho exato; numa página filha o destino é o ancestral ativo.
+      aria-current={isCurrentPage ? "page" : isActive ? "true" : undefined}
     >
       {children}
     </WouterLink>

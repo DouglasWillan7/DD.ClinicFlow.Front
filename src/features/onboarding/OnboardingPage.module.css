@@ -1,18 +1,18 @@
+/* Mesma medida das outras telas de configuração. */
 .content {
   display: grid;
-  max-width: 980px;
+  width: min(100%, 960px);
   grid-template-columns: minmax(0, 620px) minmax(220px, 1fr);
-  gap: 24px;
-  padding-bottom: 48px;
+  gap: var(--space-5);
 }
 
+/* Nota lateral: grupo interno (fundo do app, raio de controle), não um cartão. */
 .content aside {
   align-self: start;
-  padding: 24px;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-selected-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-selected-background);
+  padding: var(--space-5);
+  color: var(--color-text-body);
+  border-radius: var(--radius-control);
+  background: var(--color-primary-subtle);
 }
 
 .content aside span {
@@ -25,6 +25,8 @@
 
 .content aside h2 {
   color: var(--color-ink);
+  font-size: 16px;
+  line-height: 1.4;
 }
 
 .content aside p {
@@ -32,7 +34,7 @@
   font-size: 13px;
 }
 
-@media (max-width: 780px) {
+@media (max-width: 959px) {
   .content {
     grid-template-columns: 1fr;
   }

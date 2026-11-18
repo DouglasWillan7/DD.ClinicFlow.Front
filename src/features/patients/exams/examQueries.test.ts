@@ -75,6 +75,22 @@ describe("exam transport normalization", () => {
     expect(detail.capabilities.canDiscardExam).toBe(true);
   });
 
+  test.each([
+    ["Paciente", "Paciente"],
+    ["Clinica", "Clínica"],
+    ["Publico", "Público"],
+    ["Legado", "Legado"],
+    ["ValorNovo", "Origem não informada"],
+  ])("traduz a origem %s do documento sem colapsar em Paciente", (source, expected) => {
+    const detail = normalizePatientExamDetail({
+      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: "doctor-1", name: "Hemograma", category: "Laboratorio", scheduledOn: null, status: "Pendente", version: 1, error: null, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: null, cancelledByUserId: null, cancelledAtUtc: null,
+      document: { fileName: "laudo.pdf", contentType: "application/pdf", sizeBytes: 50, source, createdAtUtc: "2026-08-09T10:00:00Z", processingAttempts: 1 },
+      activeRevision: null, draftRevision: null, attemptsRemaining: 2,
+      capabilities: { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
+    });
+    expect(detail.document?.source).toBe(expected);
+  });
+
   test("normaliza capability de descarte ausente como falsa", () => {
     const detail = normalizePatientExamDetail({
       id: "exam-failed", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: "doctor-1", name: "Hemograma", category: "Laboratorio", scheduledOn: null, status: "Falhou", version: 2, error: "Falha sanitizada", createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: null, cancelledByUserId: null, cancelledAtUtc: null,

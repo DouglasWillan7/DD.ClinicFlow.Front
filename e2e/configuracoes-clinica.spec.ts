@@ -55,6 +55,19 @@ async function mockClinicSettings(page: Page) {
       return route.fulfill({ status: 200, json: currentClinic });
     }
 
+    if (url.pathname === "/clinics/whatsapp-config") {
+      return route.fulfill({
+        status: 200,
+        json: {
+          phoneNumberId: "123456789",
+          templateName: "appointment_confirmation",
+          enabled: true,
+          hasToken: true,
+          updatedAtUtc: "2026-07-01T12:00:00Z",
+        },
+      });
+    }
+
     if (
       url.pathname === "/patients" ||
       url.pathname === `/clinics/${session.clinicId}/members/summary`
@@ -114,6 +127,45 @@ test("telefone da clínica usa DDI, máscara e permanece responsivo", async ({
 
   await page.screenshot({
     path: "test-results/configuracoes-clinica-telefone-mobile.png",
+    fullPage: true,
+  });
+});
+
+test("WhatsApp é uma aba da configuração da clínica e o link antigo continua valendo", async ({
+  page,
+}) => {
+  await mockClinicSettings(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // O link antigo (que a API ainda devolve em "Primeiros passos") redireciona para a aba.
+  await page.goto("/app/configuracoes/whatsapp");
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica\/whatsapp$/);
+
+  const tabs = page.getByRole("navigation", { name: "Configuração da clínica" });
+  await expect(tabs.getByRole("link", { name: "WhatsApp" }))
+    .toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "Clínica", level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Confirmações por WhatsApp", level: 2 }),
+  ).toBeVisible();
+  await expect(page.getByLabel("ID do número de telefone")).toHaveValue("123456789");
+
+  // No menu lateral sobra um destino só: "Clínica", ativo também nesta aba.
+  const rail = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(rail.getByRole("link", { name: "WhatsApp" })).toHaveCount(0);
+  await expect(rail.getByRole("link", { name: "Clínica" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+
+  await tabs.getByRole("link", { name: "Dados da clínica" }).click();
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica$/);
+  await expect(page.getByRole("heading", { name: "Clínica", level: 1 })).toBeVisible();
+
+  await page.goto("/app/configuracoes/clinica/whatsapp");
+  await expect(page.getByLabel("ID do número de telefone")).toHaveValue("123456789");
+  await page.screenshot({
+    path: "test-results/configuracoes-clinica-whatsapp-desktop.png",
     fullPage: true,
   });
 });

@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   documentCountries,
@@ -6,7 +7,8 @@ import {
   documentTypesFor,
 } from "../../auth/documentIdentity";
 import { Button } from "../../components/Button";
-import { Field, SelectField } from "../../components/Field";
+import { InlineError } from "../../components/Feedback";
+import { Field, SelectField, TextAreaField } from "../../components/Field";
 import { bloodTypeOptions } from "./patientFormatters";
 import { patientSchema, type PatientFormValue } from "./patientForm";
 import { PatientPhoneField } from "./PatientPhoneField";
@@ -119,29 +121,21 @@ export function PatientForm({
       <Field
         label="Data de nascimento"
         type="date"
-        max={new Date().toISOString().slice(0, 10)}
+        max={format(new Date(), "yyyy-MM-dd")}
         error={errors.birthDate?.message}
         {...register("birthDate")}
       />
-      <label className={styles.notes} htmlFor="notes">
-        <span>Observações</span>
-        <textarea
-          id="notes"
-          placeholder="Informações operacionais relevantes para o atendimento"
-          aria-invalid={Boolean(errors.notes)}
-          aria-describedby={errors.notes ? "notes-error" : undefined}
-          {...register("notes")}
-        />
-        {errors.notes ? (
-          <small id="notes-error" className={styles.fieldError}>
-            {errors.notes.message}
-          </small>
-        ) : null}
-      </label>
+      <TextAreaField
+        className={styles.wide}
+        label="Observações"
+        placeholder="Informações operacionais relevantes para o atendimento"
+        error={errors.notes?.message}
+        {...register("notes")}
+      />
       {serverError ? (
-        <span className={styles.serverError} role="alert">
-          {serverError}
-        </span>
+        <div className={styles.wide}>
+          <InlineError>{serverError}</InlineError>
+        </div>
       ) : null}
       <div className={styles.actions}>
         <Button type="button" variant="secondary" onClick={onCancel}>

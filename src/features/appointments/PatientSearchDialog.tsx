@@ -226,7 +226,7 @@ export function PatientSearchDialog({
           <h2 id="patient-search-title" className={styles.dialogTitle}>
             Selecionar paciente
           </h2>
-          <p id="patient-search-description" className={styles.srOnly}>
+          <p id="patient-search-description" className="srOnly">
             Busque por nome, CPF ou número do prontuário.
           </p>
           <button
@@ -240,7 +240,7 @@ export function PatientSearchDialog({
         </header>
 
         <label className={`${styles.searchPill} ${styles.dialogSearch}`}>
-          <span className={styles.srOnly}>Buscar paciente</span>
+          <span className="srOnly">Buscar paciente</span>
           <Search size={19} aria-hidden="true" />
           <input
             ref={searchRef}
@@ -250,7 +250,7 @@ export function PatientSearchDialog({
             onKeyDown={handleSearchKeyDown}
             aria-controls="patient-search-results"
             autoComplete="off"
-            placeholder="Nome, CPF ou nº do prontuário..."
+            placeholder="Nome, CPF ou nº do prontuário…"
           />
         </label>
 

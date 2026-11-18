@@ -35,7 +35,7 @@
   font-size: 13px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .toast {
     right: var(--space-3);
     bottom: var(--space-3);

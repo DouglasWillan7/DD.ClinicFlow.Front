@@ -12,6 +12,9 @@ import {
   recoveryIdentitySchema,
 } from "./documentIdentity";
 import { validPassword } from "./passwordPolicy";
+import { Button } from "../components/Button";
+import { InlineError } from "../components/Feedback";
+import { PublicLayout } from "../components/PublicLayout";
 import styles from "./RegisterPage.module.css";
 
 const termsVersion = "clinicflow-terms-v1";
@@ -233,8 +236,7 @@ export function RegisterPage() {
   };
 
   return (
-    <main className={styles.page}>
-      <img className={styles.logo} src="/clinicflow-logo.png" alt="ClinicFlow" />
+    <PublicLayout>
 
       <ol className={styles.stepper} aria-label="Etapas do cadastro">
         {["Conta", "Perfil profissional", "Clínica"].map((label, index) => {
@@ -244,7 +246,7 @@ export function RegisterPage() {
             <li key={label} className={number <= step ? styles.reached : undefined}>
               {index > 0 ? <span className={styles.connector} aria-hidden="true" /> : null}
               <span className={styles.stepCircle} aria-hidden="true">
-                {completed ? <Check size={13} strokeWidth={2.4} /> : number}
+                {completed ? <Check size={13} /> : number}
               </span>
               <span className={number === step ? styles.activeLabel : undefined}>{label}</span>
             </li>
@@ -477,47 +479,45 @@ export function RegisterPage() {
                 }}
               />
               <span className={styles.checkbox} aria-hidden="true">
-                <Check size={13} strokeWidth={2.4} />
+                <Check size={13} />
               </span>
-              <span>
-                Li e aceito os <button type="button">Termos de Uso</button> e a{" "}
-                <button type="button">Política de Privacidade</button>.
-              </span>
+              {/* Sem página de termos publicada, o texto não pode parecer um link. */}
+              <span>Li e aceito os Termos de Uso e a Política de Privacidade.</span>
             </label>
           </>
         ) : null}
 
-        {error ? <div className={styles.errorBanner} role="alert">{error}</div> : null}
+        {error ? <InlineError>{error}</InlineError> : null}
 
         <div className={styles.actions}>
           {step > 1 && !loading ? (
-            <button
+            <Button
               type="button"
-              className={styles.back}
+              variant="secondary"
               onClick={() => {
                 setStep((current) => current - 1);
                 setError("");
               }}
             >
               Voltar
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
             type="button"
             className={styles.primary}
-            disabled={loading}
+            loading={loading}
+            loadingLabel="Criando conta…"
             onClick={() => void continueRegistration()}
           >
-            {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
-            {loading ? "Criando conta..." : step === 3 ? "Concluir cadastro" : "Continuar"}
-          </button>
+            {step === 3 ? "Concluir cadastro" : "Continuar"}
+          </Button>
         </div>
       </section>
 
       <p className={styles.loginLink}>
         Já tem conta? <Link to="/entrar">Entrar</Link>
       </p>
-    </main>
+    </PublicLayout>
   );
 }
 

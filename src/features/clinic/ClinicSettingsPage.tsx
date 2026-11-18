@@ -8,11 +8,17 @@ import { ApiError } from "../../api/client";
 import type { Clinic, ClinicPlan } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
-import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
+import {
+  ErrorBlock,
+  InlineError,
+  LoadingBlock,
+  SuccessNote,
+} from "../../components/Feedback";
 import { Field, SelectField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import { onboardingKey } from "../onboarding/onboarding";
 import { ClinicSettingsHeader } from "./ClinicSettingsHeader";
+import { clinicTimeZones } from "./clinicTimeZone";
 import styles from "./SettingsLayout.module.css";
 
 const clinicSchema = z.object({
@@ -144,13 +150,11 @@ export function ClinicSettingsPage() {
                   error={errors.timeZoneId?.message}
                   {...register("timeZoneId")}
                 >
-                  <option value="America/Sao_Paulo">
-                    Brasília (São Paulo)
-                  </option>
-                  <option value="America/Manaus">Manaus</option>
-                  <option value="America/Cuiaba">Cuiabá</option>
-                  <option value="America/Recife">Recife</option>
-                  <option value="America/Rio_Branco">Rio Branco</option>
+                  {clinicTimeZones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.label}
+                    </option>
+                  ))}
                 </SelectField>
                 <Field
                   className={styles.wide}
@@ -162,11 +166,11 @@ export function ClinicSettingsPage() {
                 <div className={styles.actions}>
                   {saved ? <SuccessNote>Dados atualizados.</SuccessNote> : null}
                   {mutation.isError ? (
-                    <span role="alert">
+                    <InlineError>
                       {mutation.error instanceof ApiError
                         ? mutation.error.message
                         : "Não foi possível salvar."}
-                    </span>
+                    </InlineError>
                   ) : null}
                   <Button type="submit" loading={mutation.isPending}>
                     Salvar dados
@@ -223,11 +227,11 @@ export function ClinicSettingsPage() {
                 </button>
               </div>
               {planMutation.isError ? (
-                <p className={styles.fieldError} role="alert">
+                <InlineError>
                   {planMutation.error instanceof ApiError
                     ? planMutation.error.message
                     : "Não foi possível alterar o plano."}
-                </p>
+                </InlineError>
               ) : null}
             </section>
           </div>

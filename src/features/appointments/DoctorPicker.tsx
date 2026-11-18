@@ -36,12 +36,12 @@ export function DoctorPicker({
 
       {searchable ? (
         <label className={`${styles.searchPill} ${styles.doctorSearch}`}>
-          <span className={styles.srOnly}>Buscar médico</span>
+          <span className="srOnly">Buscar médico</span>
           <Search size={18} aria-hidden="true" />
           <input
             type="search"
             value={search}
-            placeholder="Buscar médico ou especialidade..."
+            placeholder="Buscar médico ou especialidade…"
             onChange={(event) => onSearchChange(event.currentTarget.value)}
           />
         </label>
@@ -77,7 +77,7 @@ export function DoctorPicker({
                       className={styles.rowCheck}
                       aria-hidden="true"
                     />
-                    <span className={styles.srOnly}>Selecionada</span>
+                    <span className="srOnly">Selecionada</span>
                   </>
                 ) : null}
               </button>

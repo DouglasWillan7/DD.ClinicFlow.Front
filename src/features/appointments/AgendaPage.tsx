@@ -28,7 +28,10 @@ import { parseGuid } from "../../api/identifiers";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
+import { Button } from "../../components/Button";
+import { ContextBar } from "../../components/ContextBar";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
+import { FilterChips } from "../../components/FilterChips";
 import { OnboardingChecklist } from "../onboarding/OnboardingChecklist";
 import { AppointmentPatientActionDialog } from "../patient-actions/AppointmentPatientActionDialog";
 import { DoctorBlocksCard } from "./DoctorBlocksCard";
@@ -357,58 +360,36 @@ export function AgendaPage({
 
   return (
     <div className={styles.page}>
-      <div className={styles.contextRow}>
-        <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
-          <span>Agendas</span>
-          <span aria-hidden="true">›</span>
-          <strong>{personalAgenda ? "Minha Agenda" : "Por médico"}</strong>
-          {doctor && !personalAgenda ? (
-            <>
-              <span aria-hidden="true">›</span>
-              <span className={styles.breadcrumbDoctor}>
-                {doctor.displayName}
-              </span>
-            </>
-          ) : null}
-        </nav>
-
-        <span className={styles.contextSpacer} />
-
-        <div className={styles.filters} role="group" aria-label="Filtrar por tipo">
-          {typeFilters.map((filter) => (
-            <button
-              key={filter.value}
+      <ContextBar
+        crumbs={[
+          { label: "Agendas" },
+          { label: personalAgenda ? "Minha Agenda" : "Por médico", current: true },
+          ...(doctor && !personalAgenda
+            ? [{ label: doctor.displayName, truncate: true }]
+            : []),
+        ]}
+        action={
+          <div ref={appointmentMenuRef} className={styles.newAppointmentMenu}>
+            <Button
+              ref={appointmentMenuTriggerRef}
               type="button"
-              className={styles.chip}
-              aria-pressed={typeFilter === filter.value}
-              onClick={() => setTypeFilter(filter.value)}
+              shape="pill"
+              className={styles.newAppointment}
+              aria-haspopup="menu"
+              aria-expanded={appointmentMenuOpen}
+              aria-controls="new-appointment-actions"
+              onClick={() => setAppointmentMenuOpen((open) => !open)}
             >
-              {filter.label}
-            </button>
-          ))}
-        </div>
-
-        <div ref={appointmentMenuRef} className={styles.newAppointmentMenu}>
-          <button
-            ref={appointmentMenuTriggerRef}
-            type="button"
-            className={styles.newAppointment}
-            aria-haspopup="menu"
-            aria-expanded={appointmentMenuOpen}
-            aria-controls="new-appointment-actions"
-            onClick={() => setAppointmentMenuOpen((open) => !open)}
-          >
-            <Plus size={16} strokeWidth={1.8} aria-hidden="true" />
-            {doctor && !personalAgenda
-              ? `Nova consulta · ${getShortDoctorName(doctor)}`
-              : "Nova consulta"}
-            <ChevronDown
-              size={15}
-              strokeWidth={1.8}
-              className={styles.menuChevron}
-              aria-hidden="true"
-            />
-          </button>
+              <Plus size={16} aria-hidden="true" />
+              {doctor && !personalAgenda
+                ? `Nova consulta · ${getShortDoctorName(doctor)}`
+                : "Nova consulta"}
+              <ChevronDown
+                size={15}
+                className={styles.menuChevron}
+                aria-hidden="true"
+              />
+            </Button>
 
           {appointmentMenuOpen ? (
             <div
@@ -424,7 +405,7 @@ export function AgendaPage({
                 onClick={() => bookSlot(null)}
               >
                 <span className={styles.appointmentActionIcon} aria-hidden="true">
-                  <CalendarPlus size={18} strokeWidth={1.8} />
+                  <CalendarPlus size={18} />
                 </span>
                 <span className={styles.appointmentActionCopy}>
                   <strong>Agendar consulta</strong>
@@ -440,7 +421,7 @@ export function AgendaPage({
                 onClick={bookQuickAppointment}
               >
                 <span className={styles.appointmentActionIcon} aria-hidden="true">
-                  <Zap size={18} strokeWidth={1.8} />
+                  <Zap size={18} />
                 </span>
                 <span className={styles.appointmentActionCopy}>
                   <strong>Consulta rápida</strong>
@@ -453,8 +434,16 @@ export function AgendaPage({
               </button>
             </div>
           ) : null}
-        </div>
-      </div>
+          </div>
+        }
+      >
+        <FilterChips<TypeFilter>
+          label="Filtrar por tipo"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={typeFilters}
+        />
+      </ContextBar>
 
       {showCreated ? (
         <div

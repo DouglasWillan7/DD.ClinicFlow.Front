@@ -89,6 +89,10 @@ describe("ClinicSettingsPage", () => {
       "href",
       "/app/configuracoes/clinica",
     );
+    expect(within(tabs).getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
+      "href",
+      "/app/configuracoes/clinica/whatsapp",
+    );
   });
 
   test("não envia um número impossível para o país selecionado", async () => {

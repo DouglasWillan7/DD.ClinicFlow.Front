@@ -327,3 +327,23 @@ test("mantém o contexto atual e explica quando o vínculo de destino está indi
   );
   expect(screen.getByText("Clínica Centro")).toBeVisible();
 });
+
+test("menu do usuário fecha por Esc, devolve o foco e fecha com clique fora", async () => {
+  const user = userEvent.setup();
+  renderShell();
+  const trigger = screen.getByRole("button", { name: /Ana Martins/ });
+
+  await user.click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(document.getElementById("user-menu")).toBeInTheDocument();
+
+  await user.keyboard("{Escape}");
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveFocus();
+  expect(document.getElementById("user-menu")).not.toBeInTheDocument();
+
+  await user.click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await user.click(screen.getByRole("heading", { name: "Conteúdo" }));
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+});

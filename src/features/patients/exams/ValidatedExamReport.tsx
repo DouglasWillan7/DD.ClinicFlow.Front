@@ -19,6 +19,7 @@ import type {
   ClinicalReferenceState,
 } from "../../../api/types";
 import { Button } from "../../../components/Button";
+import { fallbackTimeZone, formatDateTimeInZone } from "../../clinic/clinicTimeZone";
 import { ClinicalSparkline } from "../ClinicalSparkline";
 import { formatDateOnly } from "../patientFormatters";
 import {
@@ -37,6 +38,8 @@ interface ValidatedExamReportProps {
   onShowHistory?: () => void;
   onOpenCorrection?: () => void;
   onEditRevision?: () => void;
+  /** Fuso da clínica; a validação chega em UTC. */
+  timeZone?: string;
 }
 
 function resultDomId(resultId: string) {
@@ -50,26 +53,17 @@ function formatLocalDateTime(value: string | null | undefined) {
   return `${match[3]}/${match[2]}/${match[1]} às ${match[4]}:${match[5]}`;
 }
 
-function formatUtcDateTime(value: string | null | undefined) {
-  if (!value) return "Não informada";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Não informada";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
 
 function stateLabel(state: ClinicalReferenceState) {
   return referenceStateLabel(state);
 }
 
 function stateIcon(state: ClinicalReferenceState, size = 16) {
-  if (state === "normal") return <CheckCircle2 size={size} strokeWidth={2} aria-hidden="true" />;
-  if (state === "indeterminado") return <CircleHelp size={size} strokeWidth={2} aria-hidden="true" />;
-  if (state === "elevado") return <ArrowUp size={size} strokeWidth={2} aria-hidden="true" />;
-  if (state === "baixo") return <ArrowDown size={size} strokeWidth={2} aria-hidden="true" />;
-  return <ArrowRight size={size} strokeWidth={2} aria-hidden="true" />;
+  if (state === "normal") return <CheckCircle2 size={size} aria-hidden="true" />;
+  if (state === "indeterminado") return <CircleHelp size={size} aria-hidden="true" />;
+  if (state === "elevado") return <ArrowUp size={size} aria-hidden="true" />;
+  if (state === "baixo") return <ArrowDown size={size} aria-hidden="true" />;
+  return <ArrowRight size={size} aria-hidden="true" />;
 }
 
 function resultValue(valueText: string, unit: string | null) {
@@ -103,6 +97,7 @@ export function ValidatedExamReport({
   onShowHistory,
   onOpenCorrection,
   onEditRevision,
+  timeZone = fallbackTimeZone,
 }: ValidatedExamReportProps) {
   const structuredFindings = withoutDerivedStructuredFindings(
     report.structuredFindings ?? [],
@@ -235,7 +230,7 @@ export function ValidatedExamReport({
           </p>
         </div>
         <span className={styles.validatedStatus}>
-          <CheckCircle2 size={17} strokeWidth={1.9} aria-hidden="true" />
+          <CheckCircle2 size={17} aria-hidden="true" />
           Validado
         </span>
       </header>
@@ -252,13 +247,13 @@ export function ValidatedExamReport({
             </dd>
           </div>
           <div><dt>Validado por</dt><dd>{report.metadata.validatorName || "Não informado"}</dd></div>
-          <div><dt>Data da validação</dt><dd>{formatUtcDateTime(report.metadata.validatedAtUtc)}</dd></div>
+          <div><dt>Data da validação</dt><dd>{formatDateTimeInZone(report.metadata.validatedAtUtc, timeZone) ?? "Não informada"}</dd></div>
           <div><dt>Versão</dt><dd>{report.version}</dd></div>
         </dl>
       ) : null}
 
       <section className={styles.document} aria-label="Documento original">
-        <div className={styles.documentIcon} aria-hidden="true"><FileText size={22} strokeWidth={1.8} /></div>
+        <div className={styles.documentIcon} aria-hidden="true"><FileText size={22} /></div>
         {report.document ? (
           <>
             <div className={styles.documentCopy}>

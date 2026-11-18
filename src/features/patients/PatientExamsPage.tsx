@@ -24,6 +24,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { Field } from "../../components/Field";
+import { useClinicTimeZone } from "../clinic/clinicTimeZone";
 import { ExamDetailPanel } from "./exams/ExamDetailPanel";
 import { ExamListPanel } from "./exams/ExamListPanel";
 import { clinicalReportKeys, useClinicalExamReport } from "./exams/clinicalReportQueries";
@@ -55,7 +56,8 @@ const initialFilters: ExamListFilters = {
 };
 
 export function PatientExamsPage({ patientId }: { patientId: string }) {
-  const { request, requestBlob } = useAuth();
+  const { request, requestBlob, session } = useAuth();
+  const timeZone = useClinicTimeZone();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [filters, setFilters] = useState({ ...initialFilters });
@@ -307,7 +309,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
       </div>
 
       {selected?.status === "Em revisão" && selected.draftRevision && selected.capabilities.canEditRevision ? (
-        <main className={styles.reviewMode}>
+        <div className={styles.reviewMode}>
           <Button className={styles.reviewBack} type="button" variant="ghost" onClick={() => selectExam(null)}><ArrowLeft size={16} aria-hidden="true" />Voltar aos exames</Button>
           <ExamRevisionEditor
             exam={selected}
@@ -319,11 +321,11 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
             onCompleted={complete}
             onReload={() => void detail.refetch()}
           />
-        </main>
+        </div>
       ) : (
-      <main className={`${styles.workspace} ${selectedExamId ? styles.hasSelection : ""}`}>
+      <div className={`${styles.workspace} ${selectedExamId ? styles.hasSelection : ""}`}>
         <div className={styles.listColumn}>
-          <ExamListPanel pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onRequest={() => openEmptyAction("solicitar")} onAttach={() => openEmptyAction("anexar")} />
+          <ExamListPanel timeZone={timeZone} pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onRequest={() => openEmptyAction("solicitar")} onAttach={() => openEmptyAction("anexar")} />
         </div>
 
         <div className={styles.detailColumn}>
@@ -336,7 +338,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
             <section className={styles.detailFeedback}><ErrorBlock message="Não foi possível carregar este exame." retry={() => void detail.refetch()} /></section>
           ) : (
             <>
-              <ExamDetailPanel exam={selected} report={selected.status === "Validado" ? clinicalReport.data : undefined} loadDocument={loadSelectedDocument} onRetry={() => void reprocessExam()} onDiscard={discardFailedExam} onReload={() => void detail.refetch()} onOpenCorrection={() => setOpeningCorrection(true)} onEditRevision={() => document.getElementById("exam-revision-editor")?.focus()} onShowHistory={() => setHistoryOpen((value) => !value)} />
+              <ExamDetailPanel exam={selected} timeZone={timeZone} requesterLabel={selected.requestedByUserId === session?.userId ? session?.name : null} report={selected.status === "Validado" ? clinicalReport.data : undefined} loadDocument={loadSelectedDocument} onRetry={() => void reprocessExam()} onDiscard={discardFailedExam} onReload={() => void detail.refetch()} onOpenCorrection={() => setOpeningCorrection(true)} onEditRevision={() => document.getElementById("exam-revision-editor")?.focus()} onShowHistory={() => setHistoryOpen((value) => !value)} />
               {selected.status === "Validado" && clinicalReport.isLoading ? (
                 <section className={styles.detailFeedback}><LoadingBlock label="Carregando laudo validado…" /></section>
               ) : null}
@@ -349,7 +351,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
             </>
           )}
         </div>
-      </main>
+      </div>
       )}
     </div>
   );

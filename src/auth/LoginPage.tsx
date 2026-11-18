@@ -96,7 +96,9 @@ export function LoginPage() {
 
   const destination = () => {
     const from = (location.state as { from?: string } | null)?.from;
-    navigate(from ?? "/app/agenda", { replace: true });
+    // "/app" resolve o início pelo vínculo (getAppStart): médico vai ao Início,
+    // secretaria e enfermagem à Agenda.
+    navigate(from ?? "/app", { replace: true });
   };
 
   const clearFeedback = () => {
@@ -356,7 +358,7 @@ export function LoginPage() {
                       />
                     </label>
                     <button className={styles.submit} type="submit" disabled={recoveryForm.formState.isSubmitting}>
-                      {recoveryForm.formState.isSubmitting ? "Verificando..." : "Continuar"}
+                      {recoveryForm.formState.isSubmitting ? "Verificando…" : "Continuar"}
                     </button>
                   </form>
                 ) : recoveryOptions.destinations.length > 0 ? (
@@ -375,7 +377,7 @@ export function LoginPage() {
                           <strong>{destinationOption.masked}</strong>
                         </span>
                         <span className={styles.optionAction}>
-                          {sendingRecoveryTo === destinationOption.selection ? "Enviando..." : "Enviar"}
+                          {sendingRecoveryTo === destinationOption.selection ? "Enviando…" : "Enviar"}
                         </span>
                       </button>
                     ))}
@@ -466,7 +468,7 @@ export function LoginPage() {
                     disabled={loginForm.formState.isSubmitting}
                     data-incomplete={hasEmptyLoginField || undefined}
                   >
-                    {loginForm.formState.isSubmitting ? "Entrando..." : "Entrar"}
+                    {loginForm.formState.isSubmitting ? "Entrando…" : "Entrar"}
                   </button>
                 </form>
 

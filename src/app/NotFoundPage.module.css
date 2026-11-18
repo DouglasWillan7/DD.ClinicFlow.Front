@@ -1,21 +1,35 @@
-.page {
-  display: grid;
-  min-height: 100vh;
-  place-content: center;
-  justify-items: start;
-  padding: 30px;
+/* Mesmo cartão da tela de erro global. */
+.card {
+  width: min(100%, 560px);
+  padding: 24px 28px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
-.page > span {
-  margin-bottom: 12px;
+.card > span {
+  display: block;
+  margin-bottom: var(--space-3);
   color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
-.page p {
-  max-width: 480px;
-  margin-bottom: 22px;
-  color: var(--color-text-secondary);
+.card h1 {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.card p {
+  max-width: 52ch;
+  margin-bottom: var(--space-6);
+  color: var(--color-text-body);
+}
+
+@media (max-width: 639px) {
+  .card {
+    padding: var(--space-5);
+  }
 }

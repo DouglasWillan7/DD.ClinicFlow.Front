@@ -15,6 +15,7 @@ const doctorUserId = "40000000-0000-4000-8000-000000000001";
 
 let session = {
   userId: doctorUserId,
+  userClinicId: "uc-doctor",
   clinicRole: "Doctor",
 } as AuthResponse;
 
@@ -55,7 +56,7 @@ function renderAction() {
 
 beforeEach(() => {
   requestMock.mockReset();
-  session = { userId: doctorUserId, clinicRole: "Doctor" } as AuthResponse;
+  session = { userId: doctorUserId, userClinicId: "uc-doctor", clinicRole: "Doctor" } as AuthResponse;
 });
 
 test("usa o médico autenticado no primeiro envio e mostra somente o destino mascarado", async () => {
@@ -224,7 +225,7 @@ test("orienta atualizar o cadastro quando o paciente não possui e-mail", async 
 });
 
 test("não renderiza nem consulta em nome de um usuário que não é médico", () => {
-  session = { userId: "secretary", clinicRole: "Secretary" } as AuthResponse;
+  session = { userId: "secretary", userClinicId: "uc-secretary", clinicRole: "Secretary" } as AuthResponse;
 
   const { container } = renderAction();
 

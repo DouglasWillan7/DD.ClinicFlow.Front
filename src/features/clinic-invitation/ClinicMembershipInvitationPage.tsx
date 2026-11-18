@@ -27,6 +27,7 @@ import {
 } from "../../auth/passwordPolicy";
 import { Button } from "../../components/Button";
 import { Field } from "../../components/Field";
+import { PublicLayout } from "../../components/PublicLayout";
 import styles from "./ClinicMembershipInvitationPage.module.css";
 
 const publicBase = "/public/clinic-membership-invitations";
@@ -157,7 +158,7 @@ export function ClinicMembershipInvitationPage({
 
   if (invitation.isLoading) {
     return (
-      <PublicLayout>
+      <PublicLayout note="Sua referência e suas senhas não são exibidas nem armazenadas nesta página.">
         <section className={styles.stateCard} role="status" aria-label="Verificando convite">
           <span className={styles.stateIcon} aria-hidden="true">
             <ShieldCheck />
@@ -172,7 +173,7 @@ export function ClinicMembershipInvitationPage({
 
   if (invitation.isError || !invitation.data) {
     return (
-      <PublicLayout>
+      <PublicLayout note="Sua referência e suas senhas não são exibidas nem armazenadas nesta página.">
         <TerminalState
           alert
           icon={<TriangleAlert />}
@@ -187,7 +188,7 @@ export function ClinicMembershipInvitationPage({
   const view = invitation.data;
   if (view.mode === "Expired") {
     return (
-      <PublicLayout>
+      <PublicLayout note="Sua referência e suas senhas não são exibidas nem armazenadas nesta página.">
         <TerminalState
           icon={<CalendarClock />}
           label="Este convite expirou"
@@ -199,7 +200,7 @@ export function ClinicMembershipInvitationPage({
   }
   if (view.mode === "Cancelled") {
     return (
-      <PublicLayout>
+      <PublicLayout note="Sua referência e suas senhas não são exibidas nem armazenadas nesta página.">
         <TerminalState
           icon={<TriangleAlert />}
           label="Este convite foi cancelado"
@@ -211,7 +212,7 @@ export function ClinicMembershipInvitationPage({
   }
   if (view.mode === "Accepted") {
     return (
-      <PublicLayout>
+      <PublicLayout note="Sua referência e suas senhas não são exibidas nem armazenadas nesta página.">
         <TerminalState
           icon={<CheckCircle2 />}
           label="Convite já aceito"
@@ -236,7 +237,7 @@ export function ClinicMembershipInvitationPage({
 
   const isNewIdentity = view.mode === "SetInitialPassword";
   return (
-    <PublicLayout>
+    <PublicLayout note="Sua referência e suas senhas não são exibidas nem armazenadas nesta página.">
       <article className={styles.card}>
         <header className={styles.header}>
           <span className={styles.headerIcon} aria-hidden="true">
@@ -378,21 +379,6 @@ export function ClinicMembershipInvitationPage({
         </form>
       </article>
     </PublicLayout>
-  );
-}
-
-function PublicLayout({ children }: { children: ReactNode }) {
-  return (
-    <main className={styles.page}>
-      <a className={styles.brand} href="/" aria-label="ClinicFlow — início">
-        <img src="/clinicflow-logo.png" alt="" />
-        <span>ClinicFlow</span>
-      </a>
-      {children}
-      <p className={styles.privacyNote}>
-        Sua referência e suas senhas não são exibidas nem armazenadas nesta página.
-      </p>
-    </main>
   );
 }
 

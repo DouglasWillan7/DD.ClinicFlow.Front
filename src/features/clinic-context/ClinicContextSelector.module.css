@@ -25,7 +25,7 @@
 }
 
 .option:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 

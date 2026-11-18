@@ -316,7 +316,7 @@ export function GlobalSearch() {
         )}
       >
         <Search size={18} aria-hidden="true" />
-        <label className={styles.srOnly} htmlFor={fieldId}>
+        <label className="srOnly" htmlFor={fieldId}>
           Busca global
         </label>
         <input
@@ -352,7 +352,7 @@ export function GlobalSearch() {
               inputRef.current?.focus();
             }}
           >
-            <X size={12} strokeWidth={2.2} aria-hidden="true" />
+            <X size={12} aria-hidden="true" />
           </button>
         ) : null}
         <span className={styles.shortcut} aria-hidden="true">
@@ -410,9 +410,9 @@ export function GlobalSearch() {
                     aria-hidden="true"
                   >
                     {row.visual === "recent" ? (
-                      <Clock size={16} strokeWidth={1.8} />
+                      <Clock size={16} />
                     ) : row.visual === "create" ? (
-                      <Plus size={16} strokeWidth={2} />
+                      <Plus size={16} />
                     ) : (
                       row.initials
                     )}

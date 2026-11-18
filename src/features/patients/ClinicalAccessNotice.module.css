@@ -52,7 +52,7 @@
   line-height: 1.55;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 639px) {
   .notice {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -68,7 +68,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 639px) {
   .notice {
     align-items: start;
     padding: var(--space-5);

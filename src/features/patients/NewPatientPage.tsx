@@ -3,6 +3,7 @@ import { ApiError } from "../../api/client";
 import type { Patient } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
+import { ContextBar } from "../../components/ContextBar";
 import { onboardingKey } from "../onboarding/onboarding";
 import { PatientRegistrationForm } from "./PatientRegistrationForm";
 import {
@@ -44,8 +45,14 @@ export function NewPatientPage() {
     },
   });
   return (
-    <div className={styles.registrationPage}>
-      <PatientRegistrationForm
+    <>
+      {/* O título da tela é o passo atual do assistente, dentro do cartão. */}
+      <ContextBar
+        back={{ label: "Voltar sem cadastrar", onClick: () => navigate(returnTo) }}
+        crumbs={[{ label: "Pacientes", to: "/app/pacientes" }, { label: "Novo paciente" }]}
+      />
+      <div className={styles.registrationPage}>
+        <PatientRegistrationForm
           initialValue={{ ...emptyPatientForm, name: suggestedName }}
           onSubmit={(values) => mutation.mutate(values)}
           onCancel={() => navigate(returnTo)}
@@ -58,7 +65,8 @@ export function NewPatientPage() {
                 : "Não foi possível cadastrar o paciente."
               : null
           }
-        />
-    </div>
+          />
+      </div>
+    </>
   );
 }

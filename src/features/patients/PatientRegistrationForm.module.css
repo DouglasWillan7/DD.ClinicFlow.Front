@@ -66,8 +66,8 @@
   width: min(620px, 100%);
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-8) 44px;
-  margin-top: var(--space-6);
+  padding: 24px 28px;
+  margin-top: var(--space-5);
   border-radius: var(--radius-panel);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
@@ -77,10 +77,13 @@
   margin-bottom: 2px;
 }
 
+/* Título do passo: título de painel (20px), não título de tela. */
 .header h1 {
   margin-bottom: 6px;
-  font-size: 26px;
-  line-height: 1.25;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
 }
 
 .header p {
@@ -97,93 +100,10 @@
   gap: var(--space-4);
 }
 
-.card label {
-  font-weight: 500;
-}
-
-.card input:not([data-phone-input]),
-.card select:not([data-phone-country]),
-.card textarea {
-  min-height: 52px;
-  padding-inline: 18px;
-  border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
-  color: var(--color-ink);
-  background: #f7fafc;
-  font-size: 15px;
-  font-weight: 400;
-}
-
-.card input:not([data-phone-input]):focus,
-.card select:not([data-phone-country]):focus,
-.card textarea:focus {
-  border-color: var(--color-primary);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent);
-}
-
-.card input::placeholder,
-.card textarea::placeholder {
-  color: var(--color-text-muted);
-}
-
-.registrationPhone [data-phone-control] {
-  min-height: 52px;
-  border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
-  background: #f7fafc;
-}
-
-.registrationPhone [data-phone-control]:focus-within {
-  border-color: var(--color-primary);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent);
-}
-
-.registrationPhone [data-phone-input] {
-  min-height: 50px;
-  padding-inline: 18px;
-  font-size: 15px;
-  font-weight: 400;
-}
-
-.registrationPhone [data-phone-country] {
-  min-height: 52px;
-}
-
 .splitFields {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) 180px;
-}
-
-.notes {
-  display: grid;
-  gap: 7px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-}
-
-.notes textarea {
-  min-height: 112px;
-  padding-block: 13px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
-  border-radius: var(--radius-control);
-  resize: vertical;
-  outline: none;
-}
-
-.fieldError {
-  color: var(--color-danger-text);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.errorBanner {
-  padding: 12px 16px;
-  border-radius: 14px;
-  color: var(--color-danger-text);
-  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .actions {
@@ -192,108 +112,16 @@
   margin-top: var(--space-1);
 }
 
-.back,
+/* A ação principal ocupa a largura que sobra ao lado de "Voltar". */
 .primary {
-  min-height: 54px;
-  border-radius: var(--radius-control);
-  font-weight: 600;
-  transition:
-    color var(--transition-fast),
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.back {
-  padding: 0 28px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
-  color: var(--color-text-body);
-  background: var(--color-surface);
-  font-size: 15px;
-}
-
-.back:hover {
-  background: #f7fafc;
-}
-
-.primary {
-  display: inline-flex;
   flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0 20px;
-  border: 0;
-  color: var(--color-surface);
-  background: var(--color-primary);
-  box-shadow: 0 6px 18px rgba(59, 91, 254, 0.28);
-  font-size: 16px;
-}
-
-.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-primary), var(--color-ink) 8%);
-}
-
-.back:active,
-.primary:active:not(:disabled),
-.cancel:active {
-  transform: scale(0.98);
-}
-
-.primary:disabled {
-  cursor: wait;
-  opacity: 0.72;
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: var(--color-surface);
-  border-radius: 50%;
-  animation: spin 700ms linear infinite;
 }
 
 .cancel {
-  min-height: 44px;
-  padding: 8px 14px;
-  border: 0;
   margin-top: var(--space-3);
-  color: var(--color-text-muted);
-  border-radius: var(--radius-control);
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--transition-fast);
 }
 
-.cancel:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-subtle);
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .stepper {
     gap: 6px;
   }
@@ -309,7 +137,7 @@
   }
 
   .card {
-    padding: 30px 22px;
+    padding: var(--space-5);
   }
 
   .splitFields {
@@ -318,6 +146,8 @@
   }
 }
 
+/* Exceção aos breakpoints do sistema: em telas de até 430px os rótulos das
+   etapas não cabem ao lado dos números. */
 @media (max-width: 430px) {
   .stepLabel {
     position: absolute;
@@ -341,14 +171,7 @@
     flex-direction: column;
   }
 
-  .back,
-  .primary {
+  .actions > button {
     width: 100%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
   }
 }

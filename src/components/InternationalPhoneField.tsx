@@ -179,7 +179,7 @@ export const InternationalPhoneField = forwardRef<
             <span className={styles.countryValue} aria-hidden="true">
               <span className={styles.flag}>{selectedCountry.flag}</span>
               <span>+{selectedCountry.callingCode}</span>
-              <ChevronDown size={15} strokeWidth={1.8} />
+              <ChevronDown size={15} />
             </span>
             <select
               aria-label={countrySelectLabel}

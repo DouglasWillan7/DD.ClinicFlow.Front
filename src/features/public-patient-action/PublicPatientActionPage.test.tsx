@@ -61,7 +61,11 @@ test("mostra somente o snapshot permitido, a consulta e a versão dos termos", a
   expect(
     screen.getByText("O médico terá acesso aos dados necessários ao atendimento."),
   ).toBeVisible();
-  expect(screen.getByText("appointment-with-data-sharing-v1")).toBeVisible();
+  expect(
+    screen.getByText("Confirmação de consulta com compartilhamento de dados (versão 1)"),
+  ).toBeVisible();
+  // O identificador técnico dos termos nunca aparece para o paciente.
+  expect(screen.queryByText("appointment-with-data-sharing-v1")).not.toBeInTheDocument();
   expect(screen.queryByText("52998224725")).not.toBeInTheDocument();
   expect(screen.queryByText("+5511999990000")).not.toBeInTheDocument();
   expect(screen.queryByText("should-not-render")).not.toBeInTheDocument();
@@ -169,4 +173,39 @@ test("trata referência inválida sem revelar a causa", async () => {
     await screen.findByRole("alert", { name: "Link inválido ou indisponível" }),
   ).toBeVisible();
   expect(screen.queryByText("raw backend detail")).not.toBeInTheDocument();
+});
+
+test("pedido de acesso avulso não fala em consulta nem em cancelamento", async () => {
+  apiRequest.mockResolvedValue({
+    ...pendingView,
+    actionType: "DoctorAccess",
+    termsVersion: "doctor-access-v1",
+    snapshot: {
+      action: "doctor_access",
+      clinicName: "Clínica Horizonte",
+      doctorName: "Dra. Helena Costa",
+      dataSharing: "O médico terá acesso aos dados necessários ao atendimento.",
+    },
+  });
+  const user = userEvent.setup();
+  render(
+    <Harness>
+      <PublicPatientActionPage reference={reference} />
+    </Harness>,
+  );
+
+  expect(
+    await screen.findByRole("button", { name: "Compartilhar dados com o médico" }),
+  ).toBeVisible();
+  expect(
+    screen.getByText("Compartilhamento de dados com o médico (versão 1)"),
+  ).toBeVisible();
+  expect(screen.queryByText("doctor-access-v1")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: /Confirmar consulta/ }),
+  ).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Recusar" }));
+  const confirmation = screen.getByRole("group", { name: "Confirmar recusa" });
+  expect(within(confirmation).queryByText(/consulta/i)).not.toBeInTheDocument();
 });

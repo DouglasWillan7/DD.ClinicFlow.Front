@@ -232,12 +232,21 @@
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
+  /* Sem a borda padrão do navegador, que aparecia como um contorno cinza. */
+  border: 0;
   text-align: left;
   color: inherit;
   background: transparent;
 }
 
 .pointNavigate:active { background: var(--color-primary-subtle); }
+
+/* O cartão tem overflow hidden: o anel fica por dentro para não ser cortado. */
+.pointNavigate:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -3px;
+  border-radius: var(--radius-control);
+}
 
 .pointMeta,
 .pointFooter {
@@ -508,7 +517,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .panel {
     padding: var(--space-5);
   }

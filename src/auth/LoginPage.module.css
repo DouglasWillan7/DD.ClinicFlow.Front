@@ -108,7 +108,7 @@
   height: 44px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: var(--color-primary);
   background: var(--color-primary-soft);
   font-size: 14px;
@@ -203,7 +203,7 @@
   width: 44px;
   height: 44px;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: var(--color-primary);
   background: var(--color-primary-subtle);
 }
@@ -313,13 +313,14 @@
   gap: 12px;
 }
 
+/* Mesma aparência do Field compartilhado. */
 .field {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 7px;
   color: var(--color-text-body);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -327,16 +328,16 @@
 .field select,
 .passwordInput input {
   width: 100%;
-  min-height: 48px;
-  padding: 0 15px;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-hairline);
   border-radius: var(--radius-control);
   outline: 0;
   color: var(--color-ink);
   background: var(--color-surface);
   font: inherit;
-  font-size: 15px;
-  font-weight: 450;
+  font-size: 16px;
+  font-weight: 400;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -346,14 +347,14 @@
 
 .field input::placeholder,
 .passwordInput input::placeholder {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
 }
 
 .field input:focus-visible,
 .field select:focus-visible,
 .passwordInput input:focus-visible {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 .field input[aria-invalid="true"],
@@ -385,7 +386,7 @@
   align-items: center;
   padding: 0 6px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   color: var(--color-primary);
   background: transparent;
   font: inherit;
@@ -418,13 +419,13 @@ header > .backButton {
 
 .passwordInput button {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 0;
+  right: 0;
   min-width: 80px;
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: 13px;
+  border-radius: var(--radius-control);
   color: var(--color-text-muted);
   background: transparent;
   font: inherit;
@@ -440,7 +441,7 @@ header > .backButton {
 .errorBanner {
   margin-bottom: 16px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: var(--color-danger-text);
   background: var(--color-danger-tint);
   font-size: 13px;
@@ -502,17 +503,17 @@ header > .backButton {
 .submit {
   display: inline-flex;
   width: 100%;
-  min-height: 52px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
-  padding: 0 20px;
+  padding: 10px 18px;
   border: 0;
   border-radius: var(--radius-control);
-  color: white;
+  color: var(--color-surface);
   background: var(--color-primary);
   font: inherit;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   transition: background var(--transition-fast), opacity var(--transition-fast);
 }
 
@@ -521,7 +522,7 @@ header > .backButton {
 }
 
 .submit:hover:not(:disabled) {
-  background: #2f4be0;
+  background: color-mix(in srgb, var(--color-primary), var(--color-ink) 4%);
 }
 
 .submit:disabled,
@@ -590,7 +591,7 @@ header > .backButton {
   height: 42px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 13px;
+  border-radius: var(--radius-control);
   color: var(--color-primary);
   background: var(--color-primary-subtle);
 }
@@ -642,7 +643,7 @@ header > .backButton {
 .supportMessage {
   margin: 18px 0 0;
   padding: 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-control);
   color: var(--color-text-body);
   background: var(--color-primary-subtle);
   font-size: 14px;
@@ -659,7 +660,7 @@ header > .backButton {
   height: 56px;
   margin: 0 auto 20px;
   place-items: center;
-  border-radius: 18px;
+  border-radius: var(--radius-control);
   color: var(--color-success-text);
   background: var(--color-success-tint);
 }
@@ -674,12 +675,8 @@ header > .backButton {
   margin-bottom: 26px;
 }
 
-button:focus-visible,
-a:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-primary) 34%, transparent);
-  outline-offset: 2px;
-}
-
+/* Exceção aos breakpoints do sistema: abaixo de 920px a vitrine não cabe ao
+   lado do formulário e some. */
 @media (max-width: 920px) {
   .page {
     padding: 20px;
@@ -707,7 +704,7 @@ a:focus-visible {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .page {
     display: block;
     padding: 0;
@@ -747,14 +744,8 @@ a:focus-visible {
   }
 }
 
+/* Transições e rolagem já são tratadas em global.css; aqui só as animações da vitrine. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-
   .patientCard,
   .transcriptionCard,
   .recordingDot,

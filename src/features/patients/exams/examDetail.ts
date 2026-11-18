@@ -43,16 +43,6 @@ export function formatExamDate(value: string | null) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(date);
 }
 
-export function formatExamDateTime(value: string | null) {
-  if (!value) return "Não informada";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Não informada";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
-
 export function processingAttemptsLabel(attemptsRemaining: number) {
   if (attemptsRemaining <= 0) {
     return "Nenhuma tentativa restante. Envie outro PDF para continuar.";

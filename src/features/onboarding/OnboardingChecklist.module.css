@@ -1,9 +1,8 @@
 .checklist {
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
-  box-shadow: var(--shadow-low);
+  box-shadow: var(--shadow-card);
 }
 
 .checklist > header {
@@ -20,8 +19,8 @@
   height: 38px;
   place-items: center;
   color: var(--color-primary);
-  border-radius: var(--radius-md);
-  background: var(--color-blue-tint);
+  border-radius: var(--radius-control);
+  background: var(--color-primary-soft);
 }
 
 .checklist h2 {
@@ -45,7 +44,7 @@
   margin: 0 24px 18px;
   overflow: hidden;
   border-radius: var(--radius-pill);
-  background: var(--color-border-soft);
+  background: var(--color-border-hairline);
 }
 
 .progress span {
@@ -53,7 +52,7 @@
   height: 100%;
   border-radius: inherit;
   background: var(--color-primary);
-  transition: width 180ms ease;
+  transition: width var(--transition-context);
 }
 
 .checklist ol {
@@ -67,7 +66,7 @@
   min-height: 48px;
   grid-template-columns: 25px 1fr auto;
   align-items: center;
-  border-top: 1px solid var(--color-border-soft);
+  border-top: 1px solid var(--color-border-hairline);
 }
 
 .marker {
@@ -76,7 +75,7 @@
   height: 20px;
   place-items: center;
   color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-hairline);
   border-radius: 50%;
 }
 
@@ -95,7 +94,7 @@
 }
 
 .checklist li.done > .marker {
-  color: white;
+  color: var(--color-surface);
   border-color: var(--color-success);
   background: var(--color-success);
 }
@@ -118,7 +117,7 @@
 
 .checklist li.done a {
   text-decoration: line-through;
-  text-decoration-color: #c7cdd7;
+  text-decoration-color: var(--color-text-disabled);
 }
 
 .compact > header {
@@ -140,8 +139,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 13px 18px;
-  border-top: 1px solid var(--color-border-soft);
-  background: var(--color-selected-background);
+  border-top: 1px solid var(--color-border-hairline);
+  background: var(--color-primary-subtle);
 }
 
 .nextAction span,

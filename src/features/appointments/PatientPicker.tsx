@@ -29,7 +29,7 @@ export function PatientPicker({ patient, onOpen }: PatientPickerProps) {
           {patient ? (
             getInitials(patient.name)
           ) : (
-            <UserRound size={26} strokeWidth={1.7} />
+            <UserRound size={26} />
           )}
         </span>
 

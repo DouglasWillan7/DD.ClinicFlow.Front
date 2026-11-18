@@ -146,7 +146,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .contextColumn {
     grid-template-columns: minmax(0, 1fr);
   }

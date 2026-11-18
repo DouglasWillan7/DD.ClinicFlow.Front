@@ -20,6 +20,7 @@ import {
   formatExamResultValue,
 } from "./examDetail";
 import styles from "./ExamDetailPanel.module.css";
+import { ExamStatusBadge } from "./ExamStatusBadge";
 import { FailedExamRecovery } from "./FailedExamRecovery";
 import { ReviewExamDiscard } from "./ReviewExamDiscard";
 import { ValidatedExamReport } from "./ValidatedExamReport";
@@ -28,6 +29,8 @@ interface ExamDetailPanelProps {
   exam: PatientExamDetail;
   report?: ClinicalExamReport;
   requesterLabel?: string | null;
+  /** Fuso da clínica para as datas do laudo validado. */
+  timeZone?: string;
   loadDocument?: () => Promise<Blob>;
   onEditRequest?: () => void;
   onCancelRequest?: () => void;
@@ -123,6 +126,7 @@ export function ExamDetailPanel({
   exam,
   report,
   requesterLabel,
+  timeZone,
   loadDocument,
   onEditRequest,
   onCancelRequest,
@@ -168,6 +172,7 @@ export function ExamDetailPanel({
     return (
       <ValidatedExamReport
         report={report}
+        timeZone={timeZone}
         loadDocument={loadDocument}
         onShowHistory={onShowHistory}
         onOpenCorrection={exam.capabilities.canOpenCorrection ? onOpenCorrection : undefined}
@@ -183,7 +188,7 @@ export function ExamDetailPanel({
           <p className={styles.eyebrow}>{exam.category}</p>
           <h2 id={`exam-title-${exam.id}`}>{exam.name}</h2>
         </div>
-        <span className={clsx(styles.status, styles[`status${exam.status.replaceAll(" ", "")}`])}>{exam.status}</span>
+        <ExamStatusBadge status={exam.status} />
       </header>
 
       {exam.status === "Solicitado" ? (
@@ -194,7 +199,9 @@ export function ExamDetailPanel({
           </div>
           <dl className={styles.metadata}>
             <div><dt>Data prevista</dt><dd>{formatExamDate(exam.scheduledOn)}</dd></div>
-            <div><dt>Solicitante</dt><dd>{requesterLabel || "Solicitante não informado"}</dd></div>
+            {requesterLabel || !exam.requestedByUserId ? (
+              <div><dt>Solicitante</dt><dd>{requesterLabel || "Solicitante não informado"}</dd></div>
+            ) : null}
           </dl>
           <div className={styles.actions}>
             {exam.capabilities.canEditRequest && onEditRequest ? <Button variant="secondary" onClick={onEditRequest}><Pencil size={16} aria-hidden="true" />Editar solicitação</Button> : null}

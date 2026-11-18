@@ -849,7 +849,7 @@ for (const viewport of [
     );
     await expect(
       page
-        .getByRole("navigation", { name: "Navegação estrutural" })
+        .getByRole("navigation", { name: "Trilha de navegação" })
         .getByText("Início", { exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Voltar para o início" }).click();
@@ -938,7 +938,7 @@ test("médico sem administração acessa a agenda por médico pela hierarquia", 
   );
   await expect(
     page
-      .getByRole("navigation", { name: "Navegação estrutural" })
+      .getByRole("navigation", { name: "Trilha de navegação" })
       .getByText("Agendas", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Voltar para a agenda" }).click();

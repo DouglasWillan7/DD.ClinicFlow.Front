@@ -127,7 +127,7 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
             ) : upcoming ? (
               <div className={styles.appointment}>
                 <p className={styles.appointmentDate}>
-                  <CalendarDays size={17} strokeWidth={1.8} aria-hidden="true" />
+                  <CalendarDays size={17} aria-hidden="true" />
                   {formatInTimeZone(
                     upcoming.startUtc,
                     timeZone,
@@ -136,14 +136,19 @@ export function PatientDetailPage({ patientId }: { patientId: string }) {
                 </p>
                 <p className={styles.appointmentMeta}>
                   {upcoming.type === "Teleconsultation" ? (
-                    <Video size={15} strokeWidth={1.8} aria-hidden="true" />
+                    <Video size={15} aria-hidden="true" />
                   ) : null}
                   {appointmentTypeLabels[upcoming.type]} · {appointmentStatusLabels[upcoming.status]}
                 </p>
                 <button
                   type="button"
                   className={styles.contextAction}
-                  onClick={() => navigate("/app/agenda")}
+                  // Abre a agenda já no dia e no médico da consulta, como faz o Início.
+                  onClick={() =>
+                    navigate(
+                      `/app/agenda?date=${formatInTimeZone(upcoming.startUtc, timeZone, "yyyy-MM-dd")}&doctorId=${upcoming.doctorUserId}`,
+                    )
+                  }
                 >
                   Ver na agenda
                 </button>

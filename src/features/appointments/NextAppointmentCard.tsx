@@ -44,13 +44,13 @@ export function NextAppointmentCard({
 
       <div className={styles.nextAppointmentMeta}>
         <span className={styles.nextTimeBadge}>
-          <Clock3 size={15} strokeWidth={1.7} aria-hidden="true" />
+          <Clock3 size={15} aria-hidden="true" />
           {formatInTimeZone(appointment.startUtc, timeZone, "HH:mm")} ·{" "}
           {durationMinutes} min
         </span>
         <span className={styles.nextTypeBadge}>
           {teleconsultation ? (
-            <Video size={15} strokeWidth={1.7} aria-hidden="true" />
+            <Video size={15} aria-hidden="true" />
           ) : null}
           {appointmentTypeLabels[appointment.type]}
         </span>

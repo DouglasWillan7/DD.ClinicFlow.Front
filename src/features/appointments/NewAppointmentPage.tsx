@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { addDays, endOfMonth, format, startOfMonth } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import { Check, ChevronLeft, MapPin, Video } from "lucide-react";
+import { Check, MapPin, Video } from "lucide-react";
 import {
   useEffect,
   useCallback,
@@ -33,6 +33,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { can, isLimitedToOwnSchedule } from "../../auth/permissions";
 import { listReachableDoctors } from "./agendaDoctors";
 import { getAuthScope } from "../../auth/sessionScope";
+import { ContextBar } from "../../components/ContextBar";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { onboardingKey } from "../onboarding/onboarding";
 import { AppointmentCalendar } from "./AppointmentCalendar";
@@ -490,28 +491,19 @@ export function NewAppointmentPage() {
   const resourceError = clinic.isError || members.isError;
 
   return (
-    <main className={styles.bookingPage}>
-      <nav className={styles.breadcrumb} aria-label="Navegação estrutural">
-        <button
-          type="button"
-          className={styles.backButton}
-          aria-label={
-            openedFromHome ? "Voltar para o início" : "Voltar para a agenda"
-          }
-          onClick={returnToAgenda}
-        >
-          <ChevronLeft size={18} aria-hidden="true" />
-        </button>
-        <span className={styles.breadcrumbParent}>
-          {openedFromHome ? "Início" : "Agendas"}
-        </span>
-        <span className={styles.breadcrumbSeparator} aria-hidden="true">
-          ›
-        </span>
-        <h1 className={styles.breadcrumbCurrent}>
-          {quickMode ? "Consulta rápida" : "Nova consulta"}
-        </h1>
-      </nav>
+    <div className={styles.bookingPage}>
+      {/* O voltar limpa o rascunho e devolve à data de origem, por isso é botão. */}
+      <ContextBar
+        currentAs="h1"
+        back={{
+          label: openedFromHome ? "Voltar para o início" : "Voltar para a agenda",
+          onClick: returnToAgenda,
+        }}
+        crumbs={[
+          { label: openedFromHome ? "Início" : "Agendas" },
+          { label: quickMode ? "Consulta rápida" : "Nova consulta" },
+        ]}
+      />
 
       {loadingResources ? (
         <LoadingBlock label="Preparando pacientes e médicos…" />
@@ -738,6 +730,6 @@ export function NewAppointmentPage() {
         onClose={() => setPatientDialogOpen(false)}
         onCreate={createPatient}
       />
-    </main>
+    </div>
   );
 }

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { AuthResponse, ClinicRole } from "../api/types";
 import {
   can,
+  doctorScheduleScope,
   canAccessAppPath,
   getAppStart,
   requiredCapabilityForAppPath,
@@ -91,6 +92,14 @@ describe("matriz de capacidades do contexto ativo", () => {
   });
 });
 
+test("alcance da disponibilidade: administração configura todos, médico só a própria", () => {
+  expect(doctorScheduleScope(session("Doctor", true))).toBe("clinic");
+  expect(doctorScheduleScope(session("Secretary", true))).toBe("clinic");
+  expect(doctorScheduleScope(session("Doctor"))).toBe("own");
+  expect(doctorScheduleScope(session("Nurse"))).toBe("none");
+  expect(doctorScheduleScope(undefined)).toBe("none");
+});
+
 test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(requiredCapabilityForAppPath("/app/agenda")).toBe("ViewSchedule");
   expect(requiredCapabilityForAppPath("/app/agenda/nova")).toBe("ManageSchedule");
@@ -120,4 +129,7 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/convenios")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/convenios")).toBe(true);
   expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/clinica/convenios")).toBe(false);
+  // WhatsApp é outra aba da configuração da clínica: mesma regra, só administração.
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/whatsapp")).toBe(false);
+  expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/whatsapp")).toBe(true);
 });

@@ -1,6 +1,6 @@
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Check, Circle, Mic, Pause, Play, Square } from "lucide-react";
+import { AlertCircle, Check, Circle, Mic, Pause, Play, Square } from "lucide-react";
 import { createRef, useEffect, useMemo, useRef, useState } from "react";
 import type { Appointment, ConsultationTranscript, TranscriptSegment, TranscriptSpeakerRole, TranscriptionEvent, TranscriptionSession } from "../../api/types";
 import { getApiUrl } from "../../api/client";
@@ -19,6 +19,9 @@ import { ImportantPointsPanel } from "./ImportantPointsPanel";
 import type { ConsultationImportantPoint, ImportantPointEvidence } from "./importantPoints";
 import { MicrophoneCaptureService, type CaptureConnectionState } from "./MicrophoneCaptureService";
 import { mergeEvidenceRanges, renderTranscriptText, selectFirstEvidence } from "./transcriptEvidence";
+import { ContextBar } from "../../components/ContextBar";
+import { StatusBadge } from "../../components/StatusBadge";
+import { useClinicTimeZone } from "../clinic/clinicTimeZone";
 import styles from "./ConsultationTranscriptionPage.module.css";
 
 function formatTime(milliseconds: number) {
@@ -26,8 +29,8 @@ function formatTime(milliseconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }
-function formatAppointmentDate(value: string) {
-  return new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function formatAppointmentDate(value: string, timeZone: string) {
+  return new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone });
 }
 function speakerKey(streamNumber: number, speakerTag: number) { return `${streamNumber}:${speakerTag}`; }
 
@@ -41,6 +44,7 @@ interface VoiceSummary {
 
 export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId: string }) {
   const { request, session: auth } = useAuth();
+  const timeZone = useClinicTimeZone();
   const queryClient = useQueryClient();
   const appointment = useQuery({ queryKey: ["appointments", "detail", appointmentId], queryFn: () => request<Appointment>(`/appointments/${appointmentId}`) });
   const clinicalContentAllowed = appointment.data
@@ -245,7 +249,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   if (!clinicalContentAllowed) {
     const accessRequired = appointment.data.status === "AccessRequired";
     return (
-      <main className={styles.page}>
+      <div className={styles.page}>
         <section className={styles.accessState} aria-labelledby="access-state-title">
           <AlertCircle aria-hidden="true" />
           <div>
@@ -261,13 +265,13 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
             <Link to="/app/agenda">Voltar para a agenda</Link>
           </div>
         </section>
-      </main>
+      </div>
     );
   }
   if (transcript.isLoading) return <LoadingBlock label="Abrindo a consulta…" />;
   if (transcript.isError) return <ErrorBlock message="Não foi possível abrir a consulta." retry={() => { void transcript.refetch(); }} />;
   const doctorName = auth?.name?.trim() || "Médico";
-  const appointmentDate = formatAppointmentDate(appointment.data.startUtc);
+  const appointmentDate = formatAppointmentDate(appointment.data.startUtc, timeZone);
   const plannedMinutes = Math.max(0, Math.round((new Date(appointment.data.endUtc).getTime() - new Date(appointment.data.startUtc).getTime()) / 60_000));
   const actualMinutes = appointment.data.actualStartUtc && appointment.data.actualEndUtc
     ? Math.max(0, Math.round((new Date(appointment.data.actualEndUtc).getTime() - new Date(appointment.data.actualStartUtc).getTime()) / 60_000))
@@ -288,35 +292,34 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
     return `Voz ${voiceNumberByKey.get(speakerKey(streamNumber, tag)) ?? ""} · não identificada`;
   };
 
-  return <main className={styles.page}>
-    <header className={styles.contextHeader}>
-      <div className={styles.contextNavigation}>
-        <Link className={styles.backButton} to={`/app/pacientes/${appointment.data.patientId}`} aria-label={`Voltar para ${appointment.data.patientName}`}>
-          <ArrowLeft size={18} strokeWidth={1.8} aria-hidden="true" />
-        </Link>
-        <nav className={styles.breadcrumb} aria-label="Trilha de navegação">
-          <Link to="/app/pacientes">Pacientes</Link><span aria-hidden="true">›</span>
-          <Link to={`/app/pacientes/${appointment.data.patientId}`}>{appointment.data.patientName}</Link><span aria-hidden="true">›</span>
-          <strong aria-current="page">Consulta em andamento</strong>
-        </nav>
-      </div>
-      <div className={styles.actions} aria-label="Ações da transcrição">
-        {(!session || status === "Failed") &&
-        (canStartAppointment(appointment.data.status) ||
-          isAppointmentInProgress(appointment.data.status)) ? (
-          <Button onClick={() => void start()}>
-            <Mic aria-hidden="true" />
-            {canStartAppointment(appointment.data.status)
-              ? "Iniciar consulta"
-              : "Iniciar gravação"}
-          </Button>
-        ) : null}
-        {status === "Recording" ? <Button variant="secondary" onClick={() => void pause()}><Pause aria-hidden="true" /> Pausar</Button> : null}
-        {status === "Paused" ? <Button variant="secondary" onClick={() => void resume()}><Play aria-hidden="true" /> Retomar</Button> : null}
-        {session && ["Recording", "Paused"].includes(status) ? <Button onClick={() => void finish()}><Square aria-hidden="true" /> Finalizar consulta</Button> : null}
-        {status === "Completed" ? <span className={styles.completedBadge}><Check aria-hidden="true" /> Consulta finalizada</span> : null}
-      </div>
-    </header>
+  return <div className={styles.page}>
+    {/* O h1 da tela é "Transcrição da consulta", no painel abaixo. */}
+    <ContextBar
+      back={{ label: `Voltar para ${appointment.data.patientName}`, to: `/app/pacientes/${appointment.data.patientId}` }}
+      crumbs={[
+        { label: "Pacientes", to: "/app/pacientes" },
+        { label: appointment.data.patientName, to: `/app/pacientes/${appointment.data.patientId}`, truncate: true },
+        { label: appointment.data.status === "InProgress" ? "Consulta em andamento" : "Consulta" },
+      ]}
+      action={
+        <>
+          {(!session || status === "Failed") &&
+          (canStartAppointment(appointment.data.status) ||
+            isAppointmentInProgress(appointment.data.status)) ? (
+            <Button shape="pill" onClick={() => void start()}>
+              <Mic size={17} aria-hidden="true" />
+              {canStartAppointment(appointment.data.status)
+                ? "Iniciar consulta"
+                : "Iniciar gravação"}
+            </Button>
+          ) : null}
+          {status === "Recording" ? <Button shape="pill" variant="secondary" onClick={() => void pause()}><Pause size={17} aria-hidden="true" /> Pausar</Button> : null}
+          {status === "Paused" ? <Button shape="pill" variant="secondary" onClick={() => void resume()}><Play size={17} aria-hidden="true" /> Retomar</Button> : null}
+          {session && ["Recording", "Paused"].includes(status) ? <Button shape="pill" onClick={() => void finish()}><Square size={17} aria-hidden="true" /> Finalizar consulta</Button> : null}
+          {status === "Completed" ? <StatusBadge tone="success" icon={Check} className={styles.completedBadge}>Consulta finalizada</StatusBadge> : null}
+        </>
+      }
+    />
     <div className={styles.contentGrid}>
       <section className={styles.transcriptPanel} aria-labelledby="transcript-title">
         <div className={styles.panelHeading}>
@@ -396,11 +399,11 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
             <dt>Tipo</dt><dd>{appointmentTypeLabels[appointment.data.type]}</dd>
             <dt>Início agendado</dt><dd>{appointmentDate}</dd>
             <dt>Duração prevista</dt><dd>{plannedMinutes} min</dd>
-            {appointment.data.actualStartUtc ? <><dt>Início efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualStartUtc)}</dd></> : null}
-            {appointment.data.actualEndUtc ? <><dt>Término efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualEndUtc)}</dd></> : null}
+            {appointment.data.actualStartUtc ? <><dt>Início efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualStartUtc, timeZone)}</dd></> : null}
+            {appointment.data.actualEndUtc ? <><dt>Término efetivo</dt><dd>{formatAppointmentDate(appointment.data.actualEndUtc, timeZone)}</dd></> : null}
             {actualMinutes !== null ? <><dt>Duração efetiva</dt><dd>{actualMinutes} min</dd></> : null}</dl>
         </section>
       </aside>
     </div>
-  </main>;
+  </div>;
 }

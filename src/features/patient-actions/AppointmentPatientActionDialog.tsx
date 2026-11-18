@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
 import type { Appointment, PatientActionStatusView } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
+import { Dialog } from "../../components/Dialog";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { PatientActionTokenPanel } from "./PatientActionTokenPanel";
 import styles from "./PatientActions.module.css";
@@ -17,7 +16,6 @@ export function AppointmentPatientActionDialog({
   onUpdated(): void | Promise<void>;
 }) {
   const { request } = useAuth();
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const action = useQuery({
     queryKey: ["patient-actions", "appointment", appointment.id],
     queryFn: () =>
@@ -28,77 +26,38 @@ export function AppointmentPatientActionDialog({
       query.state.data?.status === "Pending" ? 5_000 : false,
   });
 
-  useEffect(() => {
-    const trigger = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    closeButtonRef.current?.focus();
-
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      onClose();
-    }
-
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("keydown", closeOnEscape);
-      trigger?.focus();
-    };
-  }, [onClose]);
-
   async function refresh() {
     await action.refetch();
     await onUpdated();
   }
 
+  // <dialog> nativo: o foco fica preso no diálogo e volta ao gatilho ao fechar.
   return (
-    <div className={styles.dialogBackdrop}>
-      <section
-        className={styles.actionDialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="patient-action-dialog-title"
-      >
-        <header className={styles.dialogHeader}>
+    <Dialog
+      title="Confirmação do paciente"
+      description="Uma única confirmação libera o agendamento e o compartilhamento com o médico."
+      closeLabel="Fechar confirmação"
+      onClose={onClose}
+    >
+      <div className={styles.dialogBody}>
+        <dl className={styles.appointmentSummary}>
           <div>
-            <h2 id="patient-action-dialog-title">Confirmação do paciente</h2>
-            <p>
-              Uma única confirmação libera o agendamento e o compartilhamento
-              com o médico.
-            </p>
+            <dt>Paciente</dt>
+            <dd>{appointment.patientName}</dd>
           </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className={styles.dialogClose}
-            aria-label="Fechar confirmação"
-            onClick={onClose}
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
+        </dl>
 
-        <div className={styles.dialogBody}>
-          <dl className={styles.appointmentSummary}>
-            <div>
-              <dt>Paciente</dt>
-              <dd>{appointment.patientName}</dd>
-            </div>
-          </dl>
-
-          {action.isLoading ? (
-            <LoadingBlock label="Carregando confirmação…" />
-          ) : action.isError || !action.data ? (
-            <ErrorBlock
-              message="Não foi possível carregar a confirmação do paciente."
-              retry={() => void action.refetch()}
-            />
-          ) : (
-            <PatientActionTokenPanel action={action.data} onUpdated={refresh} />
-          )}
-        </div>
-      </section>
-    </div>
+        {action.isLoading ? (
+          <LoadingBlock label="Carregando confirmação…" />
+        ) : action.isError || !action.data ? (
+          <ErrorBlock
+            message="Não foi possível carregar a confirmação do paciente."
+            retry={() => void action.refetch()}
+          />
+        ) : (
+          <PatientActionTokenPanel action={action.data} onUpdated={refresh} />
+        )}
+      </div>
+    </Dialog>
   );
 }

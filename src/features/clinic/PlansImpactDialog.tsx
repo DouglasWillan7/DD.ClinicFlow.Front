@@ -1,7 +1,7 @@
 import { AlertTriangle, Star } from "lucide-react";
-import { type KeyboardEvent, type MouseEvent, useCallback } from "react";
 import type { ClinicHealthcarePlansImpact, HealthcarePlanMode } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Dialog } from "../../components/Dialog";
 import { getInitials } from "../appointments/appointmentLabels";
 import { healthcarePlanModeLabels, joinNames } from "./healthcarePlanLabels";
 import styles from "./HealthcarePlansSettingsPage.module.css";
@@ -62,12 +62,6 @@ export function PlansImpactDialog({
   onKeepPlan(planId: string): void;
   onConfirm(): void;
 }) {
-  const open = useCallback((node: HTMLDialogElement | null) => {
-    if (!node || node.open) return;
-    if (typeof node.showModal === "function") node.showModal();
-    else node.setAttribute("open", "");
-  }, []);
-
   const single = impact.removals.length === 1 ? impact.removals[0] : null;
   const singleName = single ? planName(single.healthcarePlanId) : "";
   const singleRemoved = single
@@ -85,52 +79,19 @@ export function PlansImpactDialog({
       ? `${singleName} sai da clínica, do padrão e das listas dos médicos. Consultas já agendadas não mudam.`
       : `Médicos em “Padrão da clínica” deixam de atender ${singleName}. Consultas já agendadas não mudam.`;
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      if (!saving) onCancel();
-    }
-  }
-
-  function handleBackdropClick(event: MouseEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget && !saving) onCancel();
-  }
-
+  // Sem botão fechar: a decisão fica nos dois botões. Enquanto salva, nem Esc
+  // nem o clique no fundo dispensam o diálogo.
   return (
-    <dialog
-      ref={open}
-      className={styles.dialog}
-      aria-labelledby="plans-impact-title"
-      aria-describedby="plans-impact-description"
-      onKeyDown={handleKeyDown}
-      onClick={handleBackdropClick}
-    >
-      <div className={styles.dialogPanel}>
-        <span className={styles.dialogIcon} aria-hidden="true">
-          <AlertTriangle size={20} />
-        </span>
-        <h2 id="plans-impact-title">{title}</h2>
-        <p id="plans-impact-description">{description}</p>
-
-        {single ? (
-          <DoctorGroups removal={single} />
-        ) : (
-          impact.removals.map((removal) => (
-            <section className={styles.impactSection} key={removal.healthcarePlanId}>
-              <h3>
-                {planName(removal.healthcarePlanId)}
-                <small>
-                  {noLongerAcceptedIds.includes(removal.healthcarePlanId)
-                    ? "deixa de ser aceito"
-                    : "sai do padrão"}
-                </small>
-              </h3>
-              <DoctorGroups removal={removal} />
-            </section>
-          ))
-        )}
-
-        <div className={styles.dialogActions}>
+    <Dialog
+      tone="danger"
+      icon={<AlertTriangle size={20} />}
+      title={title}
+      description={description}
+      closeLabel={null}
+      dismissible={!saving}
+      onClose={onCancel}
+      footer={
+        <>
           <Button
             type="button"
             variant="secondary"
@@ -150,8 +111,29 @@ export function PlansImpactDialog({
                 ? "Deixar de aceitar"
                 : "Tirar do padrão"}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className={styles.impactBody}>
+        {single ? (
+          <DoctorGroups removal={single} />
+        ) : (
+          impact.removals.map((removal) => (
+            <section className={styles.impactSection} key={removal.healthcarePlanId}>
+              <h3>
+                {planName(removal.healthcarePlanId)}
+                <small>
+                  {noLongerAcceptedIds.includes(removal.healthcarePlanId)
+                    ? "deixa de ser aceito"
+                    : "sai do padrão"}
+                </small>
+              </h3>
+              <DoctorGroups removal={removal} />
+            </section>
+          ))
+        )}
+
       </div>
-    </dialog>
+    </Dialog>
   );
 }

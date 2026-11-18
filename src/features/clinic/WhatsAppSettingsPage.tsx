@@ -8,14 +8,19 @@ import { ApiError } from "../../api/client";
 import type { WhatsAppConfig } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
-import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
+import {
+  ErrorBlock,
+  InlineError,
+  LoadingBlock,
+  SuccessNote,
+} from "../../components/Feedback";
 import { Field } from "../../components/Field";
-import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
+import { ClinicSettingsHeader } from "./ClinicSettingsHeader";
 import styles from "./SettingsLayout.module.css";
 
 const whatsappSchema = z.object({
-  phoneNumberId: z.string().trim().min(1, "Informe o Phone Number ID."),
+  phoneNumberId: z.string().trim().min(1, "Informe o ID do número de telefone."),
   templateName: z.string().trim().min(1, "Informe o nome do template."),
   accessToken: z.string().optional(),
   enabled: z.boolean(),
@@ -84,11 +89,8 @@ export function WhatsAppSettingsPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Configuração"
-        title="Confirmações por WhatsApp"
-        description="Conecte a conta da Meta usada pela clínica. O token nunca é exibido depois de salvo."
-      />
+      {/* Seção da configuração da clínica: mesmo cabeçalho e abas das outras seções. */}
+      <ClinicSettingsHeader />
       <div className={styles.content}>
         {query.isLoading ? (
           <LoadingBlock label="Verificando a conexão…" />
@@ -101,13 +103,13 @@ export function WhatsAppSettingsPage() {
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <h2>Meta Cloud API</h2>
+                <h2>Confirmações por WhatsApp</h2>
                 <p>
-                  Use as credenciais do aplicativo responsável pelas
-                  confirmações.
+                  Conecte a conta da Meta Cloud API usada pela clínica. O token
+                  nunca é exibido depois de salvo.
                 </p>
               </div>
-              <LockKeyhole size={20} color="var(--color-success-text)" />
+              <LockKeyhole size={20} color="var(--color-success-text)" aria-hidden="true" />
             </div>
             <form
               className={styles.form}
@@ -115,7 +117,7 @@ export function WhatsAppSettingsPage() {
               noValidate
             >
               <Field
-                label="Phone Number ID"
+                label="ID do número de telefone"
                 placeholder="ID fornecido pela Meta"
                 error={errors.phoneNumberId?.message}
                 {...register("phoneNumberId")}
@@ -128,7 +130,7 @@ export function WhatsAppSettingsPage() {
               />
               <Field
                 className={styles.wide}
-                label={query.data?.hasToken ? "Substituir token" : "Access token"}
+                label={query.data?.hasToken ? "Substituir token" : "Token de acesso"}
                 type="password"
                 autoComplete="off"
                 placeholder={
@@ -152,11 +154,11 @@ export function WhatsAppSettingsPage() {
               <div className={styles.actions}>
                 {saved ? <SuccessNote>Configuração atualizada.</SuccessNote> : null}
                 {mutation.isError ? (
-                  <span role="alert">
+                  <InlineError>
                     {mutation.error instanceof ApiError
                       ? mutation.error.message
                       : "Não foi possível salvar."}
-                  </span>
+                  </InlineError>
                 ) : null}
                 <Button type="submit" loading={mutation.isPending}>
                   Salvar conexão

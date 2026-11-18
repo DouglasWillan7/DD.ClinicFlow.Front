@@ -1414,9 +1414,11 @@ test("texto, status e ações atendem contraste renderizado AA", async ({ page }
     expect(contrastRatio(colors.foreground, colors.background), `${name}: ${colors.foreground} em ${colors.background}`).toBeGreaterThanOrEqual(4.5);
   }
 
+  // Título de painel (20px, DESIGN.md): não conta como texto grande, então vale
+  // o contraste de texto comum, mais exigente que os 3:1 de antes.
   const heading = await renderedColors(page.getByRole("heading", { name: "Exames" }));
-  expect(Number.parseFloat(heading.fontSize)).toBeGreaterThanOrEqual(24);
-  expect(contrastRatio(heading.foreground, heading.background), `heading: ${heading.foreground} em ${heading.background}`).toBeGreaterThanOrEqual(3);
+  expect(Number.parseFloat(heading.fontSize)).toBeGreaterThanOrEqual(20);
+  expect(contrastRatio(heading.foreground, heading.background), `heading: ${heading.foreground} em ${heading.background}`).toBeGreaterThanOrEqual(4.5);
 });
 
 test("fluxo por teclado expõe foco visível e remove movimento não essencial", async ({ page }) => {

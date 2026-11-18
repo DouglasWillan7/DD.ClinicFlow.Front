@@ -8,6 +8,7 @@ import type {
   PatientActionStatusView,
 } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
+import { can } from "../../auth/permissions";
 import { Button } from "../../components/Button";
 import styles from "./ClinicalAccessEmailAction.module.css";
 
@@ -29,7 +30,8 @@ function isActiveEmailLink(challenge: PatientActionChallengeView | null) {
 
 export function ClinicalAccessEmailAction({ patientId }: { patientId: string }) {
   const { request, session } = useAuth();
-  const isDoctor = session?.clinicRole === "Doctor";
+  // O pedido de acesso só faz sentido para quem pode ler o prontuário.
+  const isDoctor = can(session, "ReadClinicalRecord");
   const [override, setOverride] = useState<PatientActionStatusView | null>(null);
   const access = useQuery({
     queryKey: ["patient-actions", "doctor-access", patientId, session?.userId],
@@ -46,7 +48,7 @@ export function ClinicalAccessEmailAction({ patientId }: { patientId: string }) 
 
   const send = useMutation({
     mutationFn: async () => {
-      if (!session || session.clinicRole !== "Doctor") {
+      if (!session || !isDoctor) {
         throw new Error("Operação indisponível para este usuário.");
       }
       if (action?.status !== "Pending") {
@@ -120,7 +122,7 @@ export function ClinicalAccessEmailAction({ patientId }: { patientId: string }) 
   return (
     <div className={styles.action}>
       <div className={styles.state}>
-        <Mail size={18} strokeWidth={1.8} aria-hidden="true" />
+        <Mail size={18} aria-hidden="true" />
         {isActiveEmailLink(challenge) && maskedDestination ? (
           <p role="status" aria-live="polite">
             Enviado para <strong>{maskedDestination}</strong>. Aguardando o paciente.
@@ -138,9 +140,9 @@ export function ClinicalAccessEmailAction({ patientId }: { patientId: string }) 
         onClick={() => send.mutate()}
       >
         {canReissue ? (
-          <RefreshCw size={16} strokeWidth={1.8} aria-hidden="true" />
+          <RefreshCw size={16} aria-hidden="true" />
         ) : (
-          <Send size={16} strokeWidth={1.8} aria-hidden="true" />
+          <Send size={16} aria-hidden="true" />
         )}
         {buttonLabel}
       </Button>

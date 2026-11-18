@@ -12,7 +12,8 @@ import {
   documentTypesFor,
 } from "../../auth/documentIdentity";
 import { Button } from "../../components/Button";
-import { Field, SelectField } from "../../components/Field";
+import { InlineError } from "../../components/Feedback";
+import { Field, SelectField, TextAreaField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import {
   clearDoctorData,
@@ -126,9 +127,10 @@ export function ClinicMemberForm({
     >
       <header className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>
-            {mode === "create" ? "Novo vínculo" : "Vínculo com a clínica"}
-          </span>
+          {/* No cadastro a linha de contexto já diz "Novo integrante". */}
+          {mode === "edit" ? (
+            <span className={styles.eyebrow}>Vínculo com a clínica</span>
+          ) : null}
           <h2>{mode === "create" ? "Adicionar integrante" : "Editar vínculo"}</h2>
           <p>
             O papel define a hierarquia operacional. A administração é uma
@@ -142,7 +144,7 @@ export function ClinicMemberForm({
           <div className={styles.sectionHeading}>
             <span className={styles.step}>1</span>
             <div>
-              <h3 id="member-identity-heading">Identidade global</h3>
+              <h3 id="member-identity-heading">Identificação</h3>
               <p>O documento localiza ou cria a pessoa sem usar e-mail como login.</p>
             </div>
           </div>
@@ -175,7 +177,7 @@ export function ClinicMemberForm({
           </div>
         </section>
       ) : (
-        <section className={styles.identitySummary} aria-label="Identidade global">
+        <section className={styles.identitySummary} aria-label="Identificação">
           <span className={styles.avatar} aria-hidden="true">
             {(member?.displayName ?? member?.email ?? "?").slice(0, 1).toUpperCase()}
           </span>
@@ -300,10 +302,13 @@ export function ClinicMemberForm({
               ))}
             </SelectField>
             <Field className={styles.wide} label="Áreas de atuação" {...register("practiceAreas")} />
-            <label className={styles.textareaField}>
-              <span>Biografia profissional</span>
-              <textarea rows={4} maxLength={600} {...register("bio")} />
-            </label>
+            <TextAreaField
+              className={styles.wide}
+              label="Biografia profissional"
+              rows={4}
+              maxLength={600}
+              {...register("bio")}
+            />
           </div>
         </section>
       ) : null}
@@ -312,7 +317,6 @@ export function ClinicMemberForm({
         <section
           className={styles.confirmation}
           role="alertdialog"
-          aria-modal="true"
           aria-labelledby="remove-doctor-data-title"
         >
           <div>
@@ -333,7 +337,7 @@ export function ClinicMemberForm({
         </section>
       ) : null}
 
-      {serverError ? <p className={styles.serverError} role="alert">{serverError}</p> : null}
+      {serverError ? <InlineError>{serverError}</InlineError> : null}
 
       <footer className={styles.actions}>
         <Button type="button" variant="secondary" disabled={pending}

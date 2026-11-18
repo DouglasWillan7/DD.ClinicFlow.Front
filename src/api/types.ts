@@ -550,7 +550,12 @@ export type ExamCategory =
   | "Endoscopia"
   | "Cardiologia";
 
-export type ExamSource = "Paciente" | "Clínica";
+export type ExamSource =
+  | "Paciente"
+  | "Clínica"
+  | "Público"
+  | "Legado"
+  | "Origem não informada";
 export type ExamRevisionStatus = "Rascunho" | "Validada";
 export type ExamClinicalOutcome =
   | "Alterado"

@@ -1,14 +1,8 @@
-import { X } from "lucide-react";
-import {
-  useLayoutEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
+import { useId, useState, type FormEvent } from "react";
 import type { BodyAssessment } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Dialog } from "../../components/Dialog";
+import { Field } from "../../components/Field";
 import {
   emptyDraft,
   fieldLabel,
@@ -41,8 +35,15 @@ export interface NewAssessmentDialogProps {
 
 const noErrors: DraftErrors = { fields: {} };
 
-export function NewAssessmentDialog({
-  open,
+/**
+ * O formulário só existe enquanto o diálogo está aberto: cada abertura começa
+ * com a data de hoje e os campos vazios, sem efeito para limpar o estado.
+ */
+export function NewAssessmentDialog(props: NewAssessmentDialogProps) {
+  return props.open ? <NewAssessmentForm {...props} /> : null;
+}
+
+function NewAssessmentForm({
   patientName,
   previous,
   previousHeightCm,
@@ -51,38 +52,10 @@ export function NewAssessmentDialog({
   onClose,
   onSubmit,
 }: NewAssessmentDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const wasOpenRef = useRef(false);
+  const formId = useId();
   const [assessedOn, setAssessedOn] = useState(todayIso);
   const [draft, setDraft] = useState<AssessmentDraft>(emptyDraft);
   const [errors, setErrors] = useState<DraftErrors>(noErrors);
-
-  useLayoutEffect(() => {
-    const dialog = dialogRef.current;
-    if (open) {
-      if (!wasOpenRef.current) {
-        returnFocusRef.current =
-          document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        setAssessedOn(todayIso());
-        setDraft(emptyDraft);
-        setErrors(noErrors);
-      }
-      if (dialog && !dialog.open) {
-        if (typeof dialog.showModal === "function") dialog.showModal();
-        else dialog.setAttribute("open", "");
-      }
-      dateRef.current?.focus();
-    } else if (wasOpenRef.current) {
-      if (dialog?.open) {
-        if (typeof dialog.close === "function") dialog.close();
-        else dialog.removeAttribute("open");
-      }
-      returnFocusRef.current?.focus();
-    }
-    wasOpenRef.current = open;
-  }, [open]);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -95,17 +68,6 @@ export function NewAssessmentDialog({
     onSubmit({ assessedOn, measurements: result.measurements });
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-    }
-  }
-
-  function handleBackdropClick(event: MouseEvent<HTMLDialogElement>) {
-    if (event.target === event.currentTarget) onClose();
-  }
-
   function referenceFor(type: (typeof measurementInputOrder)[number]) {
     const value =
       type === "Altura"
@@ -116,59 +78,39 @@ export function NewAssessmentDialog({
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.dialog}
-      aria-labelledby="nova-avaliacao-titulo"
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onKeyDown={handleKeyDown}
-      onClick={handleBackdropClick}
+    <Dialog
+      size="lg"
+      title="Nova avaliação"
+      description={`Paciente: ${patientName}${
+        previous
+          ? ` · última avaliação em ${formatDateOnly(previous.assessedOn)}`
+          : " · primeira avaliação"
+      }. Campos em branco não são registrados nesta data.`}
+      closeLabel="Fechar nova avaliação"
+      onClose={onClose}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={formId} loading={pending}>
+            Salvar avaliação
+          </Button>
+        </>
+      }
     >
-      <form className={styles.dialogPanel} onSubmit={handleSubmit} noValidate>
-        <header className={styles.dialogHeader}>
-          <h2 id="nova-avaliacao-titulo" className={styles.dialogTitle}>
-            Nova avaliação
-          </h2>
-          <button
-            type="button"
-            className={styles.dialogClose}
-            onClick={onClose}
-            aria-label="Fechar nova avaliação"
-          >
-            <X size={18} strokeWidth={1.9} aria-hidden="true" />
-          </button>
-        </header>
-
-        <p className={styles.dialogNote}>
-          Paciente: {patientName}
-          {previous
-            ? ` · última avaliação em ${formatDateOnly(previous.assessedOn)}`
-            : " · primeira avaliação"}
-          . Campos em branco não são registrados nesta data.
-        </p>
-
-        <div className={styles.dialogDate}>
-          <label htmlFor="assessedOn">Data da avaliação</label>
-          <input
-            ref={dateRef}
-            id="assessedOn"
-            name="assessedOn"
-            type="date"
-            value={assessedOn}
-            max={todayIso()}
-            aria-invalid={Boolean(errors.assessedOn)}
-            aria-describedby={errors.assessedOn ? "assessedOn-error" : undefined}
-            onChange={(event) => setAssessedOn(event.target.value)}
-          />
-          {errors.assessedOn ? (
-            <small id="assessedOn-error" className={styles.fieldError}>
-              {errors.assessedOn}
-            </small>
-          ) : null}
-        </div>
+      <form id={formId} className={styles.dialogForm} onSubmit={handleSubmit} noValidate>
+        <Field
+          className={styles.dialogDate}
+          label="Data da avaliação"
+          name="assessedOn"
+          type="date"
+          autoFocus
+          value={assessedOn}
+          max={todayIso()}
+          error={errors.assessedOn}
+          onChange={(event) => setAssessedOn(event.target.value)}
+        />
 
         <div className={styles.dialogGrid}>
           {measurementInputOrder.map((type) => {
@@ -220,15 +162,7 @@ export function NewAssessmentDialog({
           </p>
         ) : null}
 
-        <footer className={styles.dialogFooter}>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" loading={pending}>
-            Salvar avaliação
-          </Button>
-        </footer>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

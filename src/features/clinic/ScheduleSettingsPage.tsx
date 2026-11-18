@@ -3,10 +3,16 @@ import { Clock3, Plus, Trash2, UserRoundPlus } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "../../api/client";
 import type { Clinic, DoctorSchedule, Member, ScheduleDay } from "../../api/types";
-import { Link } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
+import { doctorScheduleScope } from "../../auth/permissions";
 import { Button } from "../../components/Button";
-import { ErrorBlock, LoadingBlock, SuccessNote } from "../../components/Feedback";
+import { ButtonLink } from "../../components/ButtonLink";
+import {
+  ErrorBlock,
+  InlineError,
+  LoadingBlock,
+  SuccessNote,
+} from "../../components/Feedback";
 import { Field, SelectField } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
@@ -18,13 +24,10 @@ import {
   suggestedInterval,
   type ScheduleDraft,
 } from "./scheduleForm";
+import { fallbackTimeZone, timeZoneLabel } from "./clinicTimeZone";
 import styles from "./ScheduleSettingsPage.module.css";
 
 const clinicKey = ["clinic", "current"] as const;
-
-function displayTimeZone(timeZoneId: string) {
-  return timeZoneId.replaceAll("_", " ").replace("America/", "");
-}
 
 export function ScheduleSettingsPage() {
   const { request, session } = useAuth();
@@ -35,7 +38,8 @@ export function ScheduleSettingsPage() {
   const [validationError, setValidationError] = useState<string>();
   const [saved, setSaved] = useState(false);
   const initializedDoctor = useRef<string | undefined>(undefined);
-  const isAdmin = session?.isAdmin === true;
+  const scheduleScope = doctorScheduleScope(session);
+  const isAdmin = scheduleScope === "clinic";
 
   const clinic = useQuery({
     queryKey: clinicKey,
@@ -58,8 +62,8 @@ export function ScheduleSettingsPage() {
     ? doctors.some((doctor) => doctor.userId === selectedDoctorId)
       ? selectedDoctorId
       : preferredDoctor?.userId ?? ""
-    : session?.clinicRole === "Doctor"
-      ? session.userId
+    : scheduleScope === "own"
+      ? session?.userId ?? ""
       : "";
 
   function selectDoctor(nextDoctorId: string) {
@@ -127,8 +131,8 @@ export function ScheduleSettingsPage() {
 
   const selectedDoctor = isAdmin
     ? doctors.find((doctor) => doctor.userId === doctorId)
-    : session?.clinicRole === "Doctor"
-      ? { displayName: session.name ?? "Seu perfil médico" }
+    : scheduleScope === "own"
+      ? { displayName: session?.name ?? "Seu perfil médico" }
       : undefined;
   const waitingForDoctors = isAdmin && members.isLoading;
   const noDoctors = isAdmin && !members.isLoading && doctors.length === 0;
@@ -161,7 +165,7 @@ export function ScheduleSettingsPage() {
               <h2>Adicione um médico antes de configurar horários</h2>
               <p>A disponibilidade sempre pertence ao vínculo do médico com esta clínica.</p>
             </div>
-            <Link to="/app/equipe/novo">Adicionar médico</Link>
+            <ButtonLink to="/app/equipe/novo">Adicionar médico</ButtonLink>
           </section>
         ) : doctorId && schedule.data ? (
           <form className={styles.form} onSubmit={submit} noValidate>
@@ -171,7 +175,7 @@ export function ScheduleSettingsPage() {
                   <span className={styles.contextLabel}>Agenda semanal</span>
                   <h2>{selectedDoctor?.displayName ?? "Médico selecionado"}</h2>
                   <p>
-                    Horários interpretados no fuso de {displayTimeZone(clinic.data?.timeZoneId ?? "America/Sao_Paulo")}.
+                    Horários interpretados no fuso de {timeZoneLabel(clinic.data?.timeZoneId ?? fallbackTimeZone)}.
                   </p>
                 </div>
                 <div className={styles.headerFields}>
@@ -310,13 +314,13 @@ export function ScheduleSettingsPage() {
 
               <footer className={styles.actions}>
                 <div className={styles.feedback} aria-live="polite">
-                  {validationError ? <p role="alert">{validationError}</p> : null}
+                  {validationError ? <InlineError>{validationError}</InlineError> : null}
                   {save.isError ? (
-                    <p role="alert">
+                    <InlineError>
                       {save.error instanceof ApiError
                         ? save.error.message
                         : "Não foi possível salvar. Seus horários continuam nesta tela."}
-                    </p>
+                    </InlineError>
                   ) : null}
                   {saved ? <SuccessNote>Disponibilidade atualizada.</SuccessNote> : null}
                 </div>

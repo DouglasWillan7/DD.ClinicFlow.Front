@@ -1,0 +1,152 @@
+.dialog {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-panel);
+  color: var(--color-ink);
+  background: transparent;
+}
+
+.sm {
+  width: 480px;
+}
+
+.md {
+  width: 560px;
+}
+
+.lg {
+  width: 640px;
+}
+
+/* Sem blur: DESIGN.md proíbe vidro; o véu é a Tinta Clínica diluída. */
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+
+.panel {
+  display: flex;
+  max-height: calc(100dvh - 48px);
+  flex-direction: column;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-overlay);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+}
+
+.heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.heading p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-body);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+.icon-neutral {
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.icon-danger {
+  color: var(--color-danger-text);
+  background: var(--color-danger-tint);
+}
+
+.icon-warning {
+  color: var(--color-warning-text);
+  background: var(--color-warning-tint);
+}
+
+.close {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  margin: -8px -8px 0 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  background: transparent;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.close:hover:not(:disabled) {
+  color: var(--color-ink);
+  background: var(--color-primary-subtle);
+}
+
+.close:disabled {
+  opacity: 0.5;
+}
+
+.body {
+  min-height: 0;
+  padding: 0 var(--space-6) var(--space-6);
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+@media (max-width: 639px) {
+  .header {
+    padding: var(--space-5) var(--space-5) var(--space-4);
+  }
+
+  .body {
+    padding: 0 var(--space-5) var(--space-5);
+  }
+
+  /* A ação principal fica por último no DOM e sobe para o topo da pilha. */
+  .footer {
+    flex-direction: column-reverse;
+    padding: 0 var(--space-5) var(--space-5);
+  }
+
+  .footer > * {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .close {
+    transition: none;
+  }
+}

@@ -61,7 +61,7 @@
   text-align: right;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 639px) {
   .action,
   .feedback {
     align-items: stretch;

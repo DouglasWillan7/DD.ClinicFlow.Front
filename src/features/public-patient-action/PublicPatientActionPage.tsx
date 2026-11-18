@@ -15,6 +15,8 @@ import type {
   PatientActionPublicView,
 } from "../../api/types";
 import { Button } from "../../components/Button";
+import { InlineError } from "../../components/Feedback";
+import { PublicLayout } from "../../components/PublicLayout";
 import styles from "./PublicPatientActionPage.module.css";
 
 type PublicResult = "completed" | "declined";
@@ -52,6 +54,22 @@ function sharedDataLabel(value: string) {
     "clinical-record": "Dados necessários ao atendimento",
   };
   return labels[value] ?? "Dados necessários ao atendimento";
+}
+
+/**
+ * O backend envia o identificador técnico dos termos (ex.: `doctor-access-v1`).
+ * O paciente lê o nome do termo e a versão, nunca o identificador.
+ */
+function termsLabel(termsVersion: string) {
+  const match = /^(.*)-v(\d+)$/.exec(termsVersion.trim());
+  const names: Record<string, string> = {
+    "appointment-with-data-sharing":
+      "Confirmação de consulta com compartilhamento de dados",
+    "doctor-access": "Compartilhamento de dados com o médico",
+  };
+  const name = names[match?.[1] ?? termsVersion.trim()];
+  if (!name) return "Termos vigentes desta solicitação";
+  return match ? `${name} (versão ${match[2]})` : name;
 }
 
 function resultFor(view: PatientActionPublicView, local: PublicResult | null) {
@@ -94,7 +112,7 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
 
   if (action.isLoading) {
     return (
-      <PublicLayout>
+      <PublicLayout note="ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.">
         <section className={styles.stateCard} role="status">
           <span className={styles.stateIcon} aria-hidden="true">
             <ShieldCheck />
@@ -108,7 +126,7 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
 
   if (action.isError || !action.data) {
     return (
-      <PublicLayout>
+      <PublicLayout note="ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.">
         <section
           className={styles.stateCard}
           role="alert"
@@ -134,9 +152,11 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
     view.challengeStatus === "Expired" ||
     Date.parse(view.expiresAtUtc) <= openedAt;
   const cancelled = view.status === "Cancelled";
+  // A mesma página atende a confirmação de consulta e o pedido de acesso avulso.
+  const withAppointment = view.actionType === "AppointmentWithDataSharing";
 
   return (
-    <PublicLayout>
+    <PublicLayout note="ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.">
       <article className={styles.card}>
         <header className={styles.hero}>
           <span className={styles.heroIcon} aria-hidden="true">
@@ -145,7 +165,7 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
           <div>
             <p className={styles.eyebrow}>Ação segura do paciente</p>
             <h1>
-              {view.actionType === "AppointmentWithDataSharing"
+              {withAppointment
                 ? "Confirme sua consulta"
                 : "Compartilhe seus dados com o médico"}
             </h1>
@@ -157,7 +177,9 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
         </header>
 
         <section className={styles.details} aria-labelledby="action-details-title">
-          <h2 id="action-details-title">O que você está confirmando</h2>
+          <h2 id="action-details-title">
+            {withAppointment ? "O que você está confirmando" : "Quem está pedindo acesso"}
+          </h2>
           <dl className={styles.detailList}>
             <SnapshotItem
               icon={<Building2 />}
@@ -198,14 +220,22 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
         </section>
 
         <p className={styles.terms}>
-          Termos aplicáveis: <strong>{view.termsVersion}</strong>
+          Termos aplicáveis: <strong>{termsLabel(view.termsVersion)}</strong>
         </p>
 
         {outcome === "completed" ? (
           <ResultState
-            label="Consulta confirmada e dados compartilhados"
+            label={
+              withAppointment
+                ? "Consulta confirmada e dados compartilhados"
+                : "Dados compartilhados com o médico"
+            }
             title="Tudo certo"
-            message="A consulta foi confirmada e o médico recebeu o acesso necessário em uma única ação."
+            message={
+              withAppointment
+                ? "A consulta foi confirmada e o médico recebeu o acesso necessário em uma única ação."
+                : "O médico recebeu o acesso aos dados necessários ao atendimento."
+            }
           />
         ) : outcome === "declined" ? (
           <ResultState
@@ -235,8 +265,9 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
             aria-label="Confirmar recusa"
           >
             <p>
-              Ao recusar, nenhum dado será compartilhado e a consulta será
-              cancelada. Deseja continuar?
+              {withAppointment
+                ? "Ao recusar, nenhum dado será compartilhado e a consulta será cancelada. Deseja continuar?"
+                : "Ao recusar, nenhum dado será compartilhado com o médico. Deseja continuar?"}
             </p>
             <div className={styles.actions}>
               <Button
@@ -265,7 +296,9 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
               disabled={mutation.isPending}
               onClick={() => mutation.mutate("complete")}
             >
-              Confirmar consulta e compartilhar dados
+              {withAppointment
+                ? "Confirmar consulta e compartilhar dados"
+                : "Compartilhar dados com o médico"}
             </Button>
             <Button
               type="button"
@@ -279,27 +312,12 @@ export function PublicPatientActionPage({ reference }: { reference: string }) {
         )}
 
         {mutation.isError ? (
-          <p className={styles.error} role="alert">
-            {mutationError(mutation.error)}
-          </p>
+          <div className={styles.error}>
+            <InlineError>{mutationError(mutation.error)}</InlineError>
+          </div>
         ) : null}
       </article>
     </PublicLayout>
-  );
-}
-
-function PublicLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <main className={styles.page}>
-      <a className={styles.brand} href="/" aria-label="ClinicFlow — início">
-        <span aria-hidden="true">CF</span>
-        ClinicFlow
-      </a>
-      {children}
-      <p className={styles.privacyNote}>
-        ClinicFlow protege esta decisão e não exibe seus dados pessoais neste link.
-      </p>
-    </main>
   );
 }
 

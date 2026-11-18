@@ -5,6 +5,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { ApiError } from "../../api/client";
 import type { BodyAssessment, PatientDemographic } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
+import { Button } from "../../components/Button";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
 import { AssessmentsChart } from "./AssessmentsChart";
 import { AssessmentsTable } from "./AssessmentsTable";
@@ -168,14 +169,10 @@ export function PatientAssessmentsPage({ patientId }: { patientId: string }) {
             </button>
           </div>
 
-          <button
-            type="button"
-            className={styles.primaryAction}
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus size={17} strokeWidth={2} aria-hidden="true" />
+          <Button type="button" onClick={() => setDialogOpen(true)}>
+            <Plus size={17} aria-hidden="true" />
             Nova avaliação
-          </button>
+          </Button>
         </header>
 
         {assessments.isLoading ? (
