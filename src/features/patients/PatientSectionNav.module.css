@@ -59,15 +59,23 @@
   outline-offset: -2px;
 }
 
+/*
+ * Com quatro seções os rótulos não cabem numa linha a 390px. Os destinos
+ * dividem a largura por igual e o rótulo longo quebra em duas linhas; o item
+ * nunca fica mais estreito que a maior palavra (`min-width: auto` do flex),
+ * então nenhum texto se sobrepõe ao vizinho.
+ */
 @media (max-width: 639px) {
   .links {
     width: 100%;
   }
 
   .link {
-    min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     padding-inline: var(--space-2);
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
   }
 }
 

@@ -146,6 +146,61 @@ describe("App routing", () => {
     await waitFor(() => expect(window.location.pathname).toBe("/app/agenda"));
   });
 
+  test("secretaria não abre as receitas do paciente e volta para a agenda", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Secretary", false, ["Secretary"])),
+    );
+    window.history.replaceState(
+      {},
+      "",
+      "/app/pacientes/30000000-0000-4000-8000-000000000001/receitas?acao=nova",
+    );
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe("/app/agenda"));
+    expect(
+      apiRequest.mock.calls.map(([path]) => path).filter((path) => String(path).startsWith("/prescriptions")),
+    ).toEqual([]);
+  });
+
+  test("médico abre as receitas do paciente pela rota própria", async () => {
+    const patientId = "30000000-0000-4000-8000-000000000001";
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Doctor", false, ["Doctor"])),
+    );
+    window.history.replaceState({}, "", `/app/pacientes/${patientId}/receitas`);
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path === `/patients/${patientId}`) {
+        return {
+          id: patientId,
+          documentCountryCode: "BR",
+          documentType: "CPF",
+          document: "52998224725",
+          name: "Rita de Cássia Alves",
+          phone: "",
+          email: null,
+          birthDate: null,
+          isActive: true,
+          createdAtUtc: "2025-01-01T12:00:00Z",
+        };
+      }
+      if (path === `/prescriptions/patients/${patientId}`) {
+        return { items: [], capabilities: { canIssue: true } };
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Receitas" }),
+    ).toBeVisible();
+    expect(window.location.pathname).toBe(`/app/pacientes/${patientId}/receitas`);
+  });
+
   test("administração contextual mantém acesso à equipe", async () => {
     sessionStorage.setItem(
       "clinicflow.session",

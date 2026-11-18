@@ -9,7 +9,7 @@ vi.mock("../../app/navigation", () => ({
 }));
 
 describe("PatientSectionNav", () => {
-  test("expõe exatamente os três destinos no escopo do paciente", () => {
+  test("expõe exatamente os quatro destinos no escopo do paciente", () => {
     render(<PatientSectionNav patientId="patient-7" activeSection="overview" />);
 
     expect(screen.getAllByRole("link").map((link) => [link.textContent, link.getAttribute("href")]))
@@ -17,6 +17,7 @@ describe("PatientSectionNav", () => {
         ["Visão geral", "/app/pacientes/patient-7"],
         ["Avaliações físicas", "/app/pacientes/patient-7/avaliacoes"],
         ["Exames", "/app/pacientes/patient-7/exames"],
+        ["Receitas", "/app/pacientes/patient-7/receitas"],
       ]);
   });
 
@@ -24,6 +25,7 @@ describe("PatientSectionNav", () => {
     ["overview", "Visão geral"],
     ["assessments", "Avaliações físicas"],
     ["exams", "Exames"],
+    ["prescriptions", "Receitas"],
   ] as const)("marca somente %s como página atual", (activeSection, label) => {
     render(<PatientSectionNav patientId="patient-7" activeSection={activeSection} />);
 

@@ -12,12 +12,13 @@ import { getAge } from "./patientFormatters";
 import { PatientSectionNav } from "./PatientSectionNav";
 import styles from "./PatientHeader.module.css";
 
-type PatientSection = "overview" | "assessments" | "exams";
+type PatientSection = "overview" | "assessments" | "exams" | "prescriptions";
 
 const sectionLabels: Record<PatientSection, string> = {
   overview: "Visão geral",
   assessments: "Avaliações físicas",
   exams: "Exames",
+  prescriptions: "Receitas",
 };
 
 export function PatientHeader({

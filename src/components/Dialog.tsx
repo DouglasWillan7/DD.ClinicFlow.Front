@@ -3,7 +3,6 @@ import { X } from "lucide-react";
 import {
   useCallback,
   useId,
-  useRef,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -33,7 +32,10 @@ export function Dialog({
   children,
 }: {
   open?: boolean;
-  /** Chamado por Esc, clique no fundo e botão fechar. */
+  /**
+   * Chamado por Esc, clique no fundo e botão fechar. É um pedido: o diálogo só
+   * fecha quando quem controla o desmonta (ou passa `open={false}`).
+   */
   onClose(): void;
   title: ReactNode;
   description?: ReactNode;
@@ -52,13 +54,11 @@ export function Dialog({
 }) {
   const titleId = useId();
   const descriptionId = useId();
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   // O ref devolve a limpeza (React 19): quando o diálogo sai da árvore — por
-  // `open` ou porque quem o controla o desmontou depois de salvar —, o
-  // fechamento nativo acontece antes da remoção e o foco volta ao gatilho.
+  // `open` ou porque quem o controla o desmontou —, o fechamento nativo
+  // acontece antes da remoção e o foco volta ao gatilho.
   const attach = useCallback((node: HTMLDialogElement | null) => {
-    dialogRef.current = node;
     if (!node) return;
     if (!node.open) {
       // jsdom não implementa showModal; o atributo mantém o diálogo consultável.
@@ -67,15 +67,15 @@ export function Dialog({
     }
     return () => {
       if (node.open && typeof node.close === "function") node.close();
-      dialogRef.current = null;
     };
   }, []);
 
   if (!open) return null;
 
+  // Só pede o fechamento; o fechamento nativo fica com a limpeza do ref. Fechar
+  // aqui deixaria o <dialog> invisível e ainda montado quando quem controla
+  // recusa o pedido (ex.: "Continuar editando" ao descartar alterações).
   function requestClose() {
-    const node = dialogRef.current;
-    if (node?.open && typeof node.close === "function") node.close();
     onClose();
   }
 

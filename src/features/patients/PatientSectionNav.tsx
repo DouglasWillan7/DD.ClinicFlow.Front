@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { Link } from "../../app/navigation";
 import styles from "./PatientSectionNav.module.css";
 
-type PatientSection = "overview" | "assessments" | "exams";
+type PatientSection = "overview" | "assessments" | "exams" | "prescriptions";
 
 export function PatientSectionNav({
   patientId,
@@ -19,6 +19,11 @@ export function PatientSectionNav({
       to: `/app/pacientes/${patientId}/avaliacoes`,
     },
     { key: "exams", label: "Exames", to: `/app/pacientes/${patientId}/exames` },
+    {
+      key: "prescriptions",
+      label: "Receitas",
+      to: `/app/pacientes/${patientId}/receitas`,
+    },
   ];
 
   return (

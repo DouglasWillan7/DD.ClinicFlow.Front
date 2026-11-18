@@ -56,6 +56,8 @@ const matrix: Array<{
   { capability: "WriteExams", secretary: false, nurse: false, doctor: true, admin: false },
   { capability: "ReadAssessments", secretary: false, nurse: false, doctor: true, admin: false },
   { capability: "WriteAssessments", secretary: false, nurse: false, doctor: true, admin: false },
+  { capability: "ReadPrescriptions", secretary: false, nurse: false, doctor: true, admin: false },
+  { capability: "WritePrescriptions", secretary: false, nurse: false, doctor: true, admin: false },
   { capability: "ReadTranscription", secretary: false, nurse: false, doctor: true, admin: false },
   { capability: "WriteTranscription", secretary: false, nurse: false, doctor: true, admin: false },
   { capability: "ManageClinicMemberships", secretary: false, nurse: false, doctor: false, admin: true },
@@ -77,6 +79,8 @@ describe("matriz de capacidades do contexto ativo", () => {
   test("admin de secretaria não recebe prontuário e médico não recebe administração", () => {
     expect(can(session("Secretary", true), "ReadClinicalRecord")).toBe(false);
     expect(can(session("Secretary", true), "ReadExams")).toBe(false);
+    expect(can(session("Secretary", true), "ReadPrescriptions")).toBe(false);
+    expect(can(session("Nurse", true), "WritePrescriptions")).toBe(false);
     expect(can(session("Doctor"), "ManageClinicMemberships")).toBe(false);
   });
 
@@ -110,6 +114,8 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(requiredCapabilityForAppPath("/app/pacientes/abc")).toBe("ReadClinicalRecord");
   expect(requiredCapabilityForAppPath("/app/pacientes/abc/avaliacoes")).toBe("ReadAssessments");
   expect(requiredCapabilityForAppPath("/app/pacientes/abc/exames")).toBe("ReadExams");
+  expect(requiredCapabilityForAppPath("/app/pacientes/abc/receitas")).toBe("ReadPrescriptions");
+  expect(requiredCapabilityForAppPath("/app/pacientes/abc/receitas?receita=r1&acao=nova")).toBe("ReadPrescriptions");
   expect(requiredCapabilityForAppPath("/app/consultas/abc")).toBe("ReadTranscription");
   expect(requiredCapabilityForAppPath("/app/equipe")).toBe("ManageClinicMemberships");
   expect(requiredCapabilityForAppPath("/app/onboarding")).toBeUndefined();
@@ -120,6 +126,9 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/novo")).toBe(true);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/exames")).toBe(false);
+  expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/receitas")).toBe(false);
+  expect(canAccessAppPath(session("Nurse"), "/app/pacientes/abc/receitas")).toBe(false);
+  expect(canAccessAppPath(session("Doctor"), "/app/pacientes/abc/receitas")).toBe(true);
   expect(canAccessAppPath(secretaryAdmin, "/app/pacientes/abc/editar")).toBe(true);
   expect(getAppStart(secretaryAdmin)).toBe("/app/agenda");
   expect(getAppStart(session("Doctor"))).toBe("/app/inicio");
