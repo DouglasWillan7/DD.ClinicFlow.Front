@@ -1,7 +1,8 @@
 .reviewWorkspace {
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(420px, 0.88fr) minmax(560px, 1.12fr);
+  /* Sem mínimo fixo: 420 + 560px estouravam o conteúdo com o menu lateral fixado. */
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
   align-items: start;
   gap: var(--space-4);
 }
@@ -220,7 +221,7 @@
 }
 
 .progressActions button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 14px;
   font-size: 13px;
 }
@@ -347,7 +348,7 @@
 }
 
 .collectionHeading > button {
-  min-height: 40px;
+  min-height: 44px;
   flex: 0 0 auto;
   padding: 8px 14px;
   font-size: 13px;
@@ -424,7 +425,7 @@
 }
 
 .resultNameField input {
-  min-height: 34px;
+  min-height: 44px;
   padding: 4px 7px;
   border-color: transparent;
   border-radius: 8px;
@@ -448,7 +449,7 @@
 .referenceState,
 .editedBadge,
 .confidenceBadge {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
 }
 
@@ -506,7 +507,7 @@
 }
 
 .valueField input {
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 8px;
   border-radius: 10px;
   font-size: 14px;
@@ -531,7 +532,7 @@
 
 .referenceText span {
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .confirmButton {
@@ -543,7 +544,7 @@
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent);
   border-radius: 50%;
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   background: var(--color-surface);
   transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
 }
@@ -569,7 +570,7 @@
 
 .advancedFields summary {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 44px;
   align-items: center;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -591,7 +592,7 @@
 }
 
 .itemActions button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 10px;
   font-size: 12px;
 }
@@ -816,7 +817,7 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1279px) {
   .reviewWorkspace {
     grid-template-columns: 1fr;
   }

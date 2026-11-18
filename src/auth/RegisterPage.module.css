@@ -267,16 +267,6 @@
   outline-offset: 3px;
 }
 
-.terms button {
-  min-height: 22px;
-  padding: 0;
-  border: 0;
-  color: var(--color-primary);
-  background: transparent;
-  font: inherit;
-  font-weight: 600;
-}
-
 .errorBanner {
   padding: 12px 16px;
   border-radius: 14px;

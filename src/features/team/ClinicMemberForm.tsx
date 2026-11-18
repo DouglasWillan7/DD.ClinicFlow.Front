@@ -312,7 +312,6 @@ export function ClinicMemberForm({
         <section
           className={styles.confirmation}
           role="alertdialog"
-          aria-modal="true"
           aria-labelledby="remove-doctor-data-title"
         >
           <div>

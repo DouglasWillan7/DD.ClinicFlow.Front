@@ -307,7 +307,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
       </div>
 
       {selected?.status === "Em revisão" && selected.draftRevision && selected.capabilities.canEditRevision ? (
-        <main className={styles.reviewMode}>
+        <div className={styles.reviewMode}>
           <Button className={styles.reviewBack} type="button" variant="ghost" onClick={() => selectExam(null)}><ArrowLeft size={16} aria-hidden="true" />Voltar aos exames</Button>
           <ExamRevisionEditor
             exam={selected}
@@ -319,9 +319,9 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
             onCompleted={complete}
             onReload={() => void detail.refetch()}
           />
-        </main>
+        </div>
       ) : (
-      <main className={`${styles.workspace} ${selectedExamId ? styles.hasSelection : ""}`}>
+      <div className={`${styles.workspace} ${selectedExamId ? styles.hasSelection : ""}`}>
         <div className={styles.listColumn}>
           <ExamListPanel pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onRequest={() => openEmptyAction("solicitar")} onAttach={() => openEmptyAction("anexar")} />
         </div>
@@ -349,7 +349,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
             </>
           )}
         </div>
-      </main>
+      </div>
       )}
     </div>
   );

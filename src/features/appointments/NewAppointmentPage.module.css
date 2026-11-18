@@ -259,7 +259,7 @@
 }
 
 .searchPill input::placeholder {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
 }
 
 .doctorSearch {
@@ -653,7 +653,7 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   background: transparent;
   transition:
     color var(--transition-fast),
@@ -806,7 +806,7 @@
 
 .dialogHint {
   margin: 10px 0 0;
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.4;
   text-align: center;

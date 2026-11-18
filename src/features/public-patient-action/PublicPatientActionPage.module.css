@@ -5,9 +5,7 @@
   justify-items: center;
   gap: 20px;
   padding: 32px 20px;
-  background:
-    radial-gradient(circle at 15% 15%, var(--color-primary-soft), transparent 35%),
-    var(--color-app-background);
+  background: var(--color-app-background);
 }
 
 .brand {

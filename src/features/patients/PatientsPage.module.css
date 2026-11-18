@@ -63,7 +63,7 @@
 }
 
 .pageSearch input::placeholder {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
 }
 
 .pageSearch input::-webkit-search-cancel-button {

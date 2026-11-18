@@ -76,9 +76,9 @@
 .correctionComposer,
 .historyNote {
   padding: var(--space-6);
-  border: 1px solid var(--color-border-hairline);
   border-radius: var(--radius-panel);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .detailEmpty {

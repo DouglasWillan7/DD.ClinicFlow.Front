@@ -427,7 +427,7 @@
   margin-right: 2px;
   border-radius: 50%;
   background: color-mix(in srgb, white 12%, var(--color-ink));
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 650;
 }
 

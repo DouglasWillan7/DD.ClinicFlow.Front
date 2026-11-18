@@ -11,7 +11,6 @@
 
 .dialog::backdrop {
   background: color-mix(in srgb, var(--color-ink) 45%, transparent);
-  backdrop-filter: blur(3px);
 }
 
 .panel {
@@ -41,15 +40,15 @@
 
 .header p {
   margin: var(--space-1) 0 0;
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .close {
   display: inline-flex;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   flex: none;
   align-items: center;
   justify-content: center;
@@ -109,7 +108,7 @@
 }
 
 .dropHint {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -131,7 +130,7 @@
 
 .fileStatus {
   margin: calc(var(--space-3) * -1) 0 0;
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -195,7 +194,7 @@
 }
 
 .fileCard span {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -274,7 +273,7 @@
 }
 
 .stageWaiting {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
 }
 
 .stageWaiting .stageMark {
@@ -296,7 +295,7 @@
 .processingFooter p {
   margin: 0;
   flex: 1 1 220px;
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -319,7 +318,7 @@
 
 .successHeader span,
 .failureHeader span {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -362,7 +361,7 @@
 
 .counts dt {
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.3;
 }

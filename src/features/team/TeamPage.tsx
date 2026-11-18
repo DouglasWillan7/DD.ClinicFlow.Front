@@ -366,7 +366,7 @@ export function TeamPage({
     const editorTitle =
       editor.mode === "create" ? "Novo integrante" : memberName(editor.member);
     return (
-      <main className={styles.content}>
+      <div className={styles.content}>
         <div className={styles.contextRow}>
           <nav className={styles.breadcrumb} aria-label="Você está em">
             <Link to={TEAM_PATH}>Equipe</Link>
@@ -482,12 +482,12 @@ export function TeamPage({
             </section>
           ) : null}
         </section>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className={styles.content}>
+    <div className={styles.content}>
       <header className={styles.teamHeader}>
         <div>
           <span className={styles.overline}>
@@ -768,7 +768,6 @@ export function TeamPage({
                     <section
                       className={styles.invitationConfirmation}
                       role="alertdialog"
-                      aria-modal="true"
                       aria-labelledby={`cancel-invitation-${member.userClinicId}`}
                     >
                       <div>
@@ -809,6 +808,6 @@ export function TeamPage({
           </ul>
         )}
       </section>
-    </main>
+    </div>
   );
 }

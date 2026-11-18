@@ -1,9 +1,8 @@
 .checklist {
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
-  box-shadow: var(--shadow-low);
+  box-shadow: var(--shadow-card);
 }
 
 .checklist > header {

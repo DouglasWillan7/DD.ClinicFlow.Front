@@ -45,7 +45,8 @@
 
 /* O foco é da pill inteira (borda + anel); o outline do input desenharia um
    segundo retângulo dentro dela. */
-.fieldFocused {
+.fieldFocused,
+.field:has(.input:focus-visible) {
   border-color: var(--color-primary);
   box-shadow:
     var(--shadow-card),
@@ -75,7 +76,7 @@
 }
 
 .input::placeholder {
-  color: var(--color-text-disabled);
+  color: var(--color-text-muted);
 }
 
 /* O × nativo do type=search duplicaria o botão de limpar do handoff. */
@@ -84,23 +85,41 @@
 }
 
 .clear {
+  /* Alvo de 44px; o círculo visível de 26px é desenhado no ::before. */
+  position: relative;
   display: grid;
-  width: 26px;
-  height: 26px;
-  flex: 0 0 26px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   padding: 0;
   border: 0;
+  /* Margem negativa: o alvo não aumenta a pill de 44px da topbar móvel. */
+  margin: -2px -9px;
   color: var(--color-text-muted);
   border-radius: 50%;
+  background: transparent;
+  transition: color var(--transition-fast);
+}
+
+.clear::before {
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
   background: var(--color-app-background);
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast);
+  content: "";
+  transition: background var(--transition-fast);
+}
+
+.clear svg {
+  position: relative;
 }
 
 .clear:hover {
   color: var(--color-ink);
+}
+
+.clear:hover::before {
   background: var(--color-primary-subtle);
 }
 
@@ -138,9 +157,10 @@
 }
 
 .retry {
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
-  margin-left: 8px;
+  margin-left: 4px;
   color: var(--color-primary);
   background: transparent;
   font-size: 14px;
@@ -286,7 +306,8 @@
     box-shadow: none;
   }
 
-  .fieldFocused {
+  .fieldFocused,
+  .field:has(.input:focus-visible) {
     border-color: var(--color-primary);
   }
 

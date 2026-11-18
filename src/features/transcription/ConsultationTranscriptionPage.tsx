@@ -245,7 +245,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
   if (!clinicalContentAllowed) {
     const accessRequired = appointment.data.status === "AccessRequired";
     return (
-      <main className={styles.page}>
+      <div className={styles.page}>
         <section className={styles.accessState} aria-labelledby="access-state-title">
           <AlertCircle aria-hidden="true" />
           <div>
@@ -261,7 +261,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
             <Link to="/app/agenda">Voltar para a agenda</Link>
           </div>
         </section>
-      </main>
+      </div>
     );
   }
   if (transcript.isLoading) return <LoadingBlock label="Abrindo a consulta…" />;
@@ -288,7 +288,7 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
     return `Voz ${voiceNumberByKey.get(speakerKey(streamNumber, tag)) ?? ""} · não identificada`;
   };
 
-  return <main className={styles.page}>
+  return <div className={styles.page}>
     <header className={styles.contextHeader}>
       <div className={styles.contextNavigation}>
         <Link className={styles.backButton} to={`/app/pacientes/${appointment.data.patientId}`} aria-label={`Voltar para ${appointment.data.patientName}`}>
@@ -402,5 +402,5 @@ export function ConsultationTranscriptionPage({ appointmentId }: { appointmentId
         </section>
       </aside>
     </div>
-  </main>;
+  </div>;
 }

@@ -479,10 +479,8 @@ export function RegisterPage() {
               <span className={styles.checkbox} aria-hidden="true">
                 <Check size={13} strokeWidth={2.4} />
               </span>
-              <span>
-                Li e aceito os <button type="button">Termos de Uso</button> e a{" "}
-                <button type="button">Política de Privacidade</button>.
-              </span>
+              {/* Sem página de termos publicada, o texto não pode parecer um link. */}
+              <span>Li e aceito os Termos de Uso e a Política de Privacidade.</span>
             </label>
           </>
         ) : null}

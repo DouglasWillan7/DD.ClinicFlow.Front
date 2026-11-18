@@ -490,7 +490,7 @@ export function NewAppointmentPage() {
   const resourceError = clinic.isError || members.isError;
 
   return (
-    <main className={styles.bookingPage}>
+    <div className={styles.bookingPage}>
       <nav className={styles.breadcrumb} aria-label="Navegação estrutural">
         <button
           type="button"
@@ -738,6 +738,6 @@ export function NewAppointmentPage() {
         onClose={() => setPatientDialogOpen(false)}
         onCreate={createPatient}
       />
-    </main>
+    </div>
   );
 }
