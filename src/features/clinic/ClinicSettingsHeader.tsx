@@ -11,7 +11,7 @@ export function ClinicSettingsHeader() {
       <PageHeader
         eyebrow="Configuração"
         title="Clínica"
-        description="Dados da unidade, plano, convênios aceitos e confirmações por WhatsApp."
+        description="Dados da unidade, plano, convênios aceitos, confirmações por WhatsApp e receituário."
       />
       <ClinicSettingsTabs />
     </>

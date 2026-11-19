@@ -1,0 +1,117 @@
+/* Faixa de ferramentas: um cartão, com grupos que quebram linha quando falta largura. */
+.toolbar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.group,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.actions {
+  margin-left: auto;
+}
+
+.inlineLabel {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--color-app-background);
+}
+
+.segment {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  /* Raio interno do grupo: o de controle menos o recuo de 3px. */
+  border-radius: calc(var(--radius-control) - 3px);
+  background: transparent;
+  color: var(--color-text-body);
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.segment:hover {
+  color: var(--color-ink);
+}
+
+.segment[aria-pressed="true"] {
+  border-color: var(--color-primary-soft);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.fieldSelect {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fieldSelect:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+@media (max-width: 639px) {
+  .toolbar {
+    padding: var(--space-4);
+  }
+
+  .group,
+  .actions {
+    width: 100%;
+  }
+
+  .actions {
+    margin-left: 0;
+  }
+
+  .group > button,
+  .actions > button,
+  .fieldSelect {
+    flex: 1 1 auto;
+  }
+
+  .segmented {
+    flex: 1 1 auto;
+  }
+
+  .segment {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment {
+    transition: none;
+  }
+}

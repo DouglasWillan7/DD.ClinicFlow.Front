@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
+import { ApiError } from "../api/client";
 import type { AuthResponse } from "../api/types";
 import { App } from "./App";
 
@@ -263,6 +264,40 @@ describe("App routing", () => {
       await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
     ).toBeVisible();
     expect(window.location.pathname).toBe("/app/configuracoes/agenda");
+  });
+
+  test("administração abre o receituário como aba da configuração da clínica", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Secretary", true, ["Secretary", "Admin"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/clinica/receituario");
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path === "/clinics/prescription-template") {
+        throw new ApiError("Receituário não encontrado.", 404);
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText("A clínica usa o cabeçalho padrão")).toBeVisible();
+    expect(window.location.pathname).toBe("/app/configuracoes/clinica/receituario");
+  });
+
+  test("médico sem administração não abre o receituário e volta ao início", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Doctor", false, ["Doctor"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/clinica/receituario");
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe("/app/inicio"));
+    expect(
+      apiRequest.mock.calls.map(([path]) => path).filter((path) => String(path).includes("prescription-template")),
+    ).toEqual([]);
   });
 
   test("enfermagem sem administração não abre configuração de disponibilidade", async () => {
