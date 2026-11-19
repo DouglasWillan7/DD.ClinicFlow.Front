@@ -4,11 +4,14 @@ import styles from "./HealthcarePlansSettingsPage.module.css";
 export function UnsavedChangesBar({
   saving,
   error,
+  saveLabel = "Salvar convênios",
   onDiscard,
   onSave,
 }: {
   saving: boolean;
   error: string | null;
+  /** Rótulo da ação de salvar; cada aba nomeia o que salva. */
+  saveLabel?: string;
   onDiscard(): void;
   onSave(): void;
 }) {
@@ -32,7 +35,7 @@ export function UnsavedChangesBar({
         Descartar
       </button>
       <Button type="button" loading={saving} onClick={onSave}>
-        Salvar convênios
+        {saveLabel}
       </Button>
     </div>
   );

@@ -536,6 +536,66 @@ export interface CancelPrescriptionRequest {
   expectedVersion: number;
 }
 
+/*
+ * Receituário da clínica: cabeçalho e rodapé desenhados sobre a folha A4 da receita.
+ * Medidas em milímetros a partir do canto superior esquerdo da área; enums em inglês,
+ * com rótulos em pt-BR em `prescription-template/templateModel.ts`.
+ */
+export type TemplateZone = "Header" | "Footer";
+export type TemplateElementKind = "Text" | "Image" | "Line";
+export type TemplateFontFamily = "Lato" | "Lora";
+export type TemplateTextAlign = "Left" | "Center" | "Right";
+
+export interface PrescriptionTemplateElement {
+  /** Gerado pelo cliente; único no desenho, até 40 caracteres. */
+  id: string;
+  zone: TemplateZone;
+  kind: TemplateElementKind;
+  xMm: number;
+  yMm: number;
+  widthMm: number;
+  /** Só imagem. */
+  heightMm: number | null;
+  /** Só texto: até 300 caracteres, com campos como `{{clinic.name}}`. */
+  text: string | null;
+  fontFamily: TemplateFontFamily | null;
+  /** Só texto: de 6 a 36 pt. */
+  fontSizePt: number | null;
+  bold: boolean;
+  italic: boolean;
+  /** Texto e linha: "#rrggbb". */
+  colorHex: string | null;
+  align: TemplateTextAlign | null;
+  /** Só linha: de 0,25 a 8 pt. */
+  thicknessPt: number | null;
+  /** Só imagem: id devolvido pelo envio. */
+  imageId: string | null;
+}
+
+/** Desenho sem metadados: corpo da prévia e base do salvar. */
+export interface PrescriptionTemplateLayout {
+  headerHeightMm: number;
+  footerHeightMm: number;
+  elements: PrescriptionTemplateElement[];
+}
+
+/** `GET /clinics/prescription-template`; 404 quando a clínica usa o cabeçalho padrão. */
+export interface PrescriptionTemplate extends PrescriptionTemplateLayout {
+  version: number;
+  updatedAtUtc: string;
+}
+
+export interface SavePrescriptionTemplateRequest extends PrescriptionTemplateLayout {
+  /** `null` quando a clínica ainda não tem receituário. */
+  expectedVersion: number | null;
+}
+
+export interface PrescriptionTemplateImageUpload {
+  id: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
 export type ExamUploadStatus =
   | "Pendente"
   | "Processando"

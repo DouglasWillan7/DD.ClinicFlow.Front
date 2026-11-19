@@ -45,6 +45,11 @@ const ClinicSettingsPage = lazy(() =>
     default: module.ClinicSettingsPage,
   })),
 );
+const PrescriptionTemplatePage = lazy(() =>
+  import("../features/clinic/clinicSettingsPages").then((module) => ({
+    default: module.PrescriptionTemplatePage,
+  })),
+);
 const WhatsAppSettingsPage = lazy(() =>
   import("../features/clinic/WhatsAppSettingsPage").then((module) => ({
     default: module.WhatsAppSettingsPage,
@@ -207,6 +212,7 @@ function AppRoutes() {
       "/app/configuracoes/clinica": <ClinicSettingsPage />,
       "/app/configuracoes/clinica/convenios": <HealthcarePlansSettingsPage />,
       "/app/configuracoes/clinica/whatsapp": <WhatsAppSettingsPage />,
+      "/app/configuracoes/clinica/receituario": <PrescriptionTemplatePage />,
     };
     const commonRoutes: Record<string, React.ReactNode> = {
       "/app/inicio": <DoctorHomePage />,

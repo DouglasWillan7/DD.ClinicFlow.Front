@@ -139,9 +139,11 @@ export function requiredCapabilityForAppPath(
   }
   if (
     pathname === "/app/configuracoes/clinica" ||
-    // Convênios e WhatsApp são seções da configuração da clínica: só o administrador configura.
+    // Convênios, WhatsApp e Receituário são seções da configuração da clínica: só o
+    // administrador configura.
     pathname === "/app/configuracoes/clinica/convenios" ||
-    pathname === "/app/configuracoes/clinica/whatsapp"
+    pathname === "/app/configuracoes/clinica/whatsapp" ||
+    pathname === "/app/configuracoes/clinica/receituario"
   ) {
     return "ManageClinicSettings";
   }

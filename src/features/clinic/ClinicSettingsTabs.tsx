@@ -4,11 +4,13 @@ import styles from "./ClinicSettingsTabs.module.css";
 export const clinicSettingsPath = "/app/configuracoes/clinica";
 export const clinicHealthcarePlansPath = `${clinicSettingsPath}/convenios`;
 export const clinicWhatsAppPath = `${clinicSettingsPath}/whatsapp`;
+export const clinicPrescriptionTemplatePath = `${clinicSettingsPath}/receituario`;
 
 const tabs = [
   { to: clinicSettingsPath, label: "Dados da clínica" },
   { to: clinicHealthcarePlansPath, label: "Convênios" },
   { to: clinicWhatsAppPath, label: "WhatsApp" },
+  { to: clinicPrescriptionTemplatePath, label: "Receituário" },
 ];
 
 /**

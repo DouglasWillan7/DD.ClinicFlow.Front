@@ -141,4 +141,10 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   // WhatsApp é outra aba da configuração da clínica: mesma regra, só administração.
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/whatsapp")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/whatsapp")).toBe(true);
+  // Receituário também: a administração desenha; médico sem administração não entra.
+  expect(requiredCapabilityForAppPath("/app/configuracoes/clinica/receituario")).toBe("ManageClinicSettings");
+  expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/receituario")).toBe(true);
+  expect(canAccessAppPath(session("Doctor", true), "/app/configuracoes/clinica/receituario")).toBe(true);
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/receituario")).toBe(false);
+  expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/clinica/receituario")).toBe(false);
 });
