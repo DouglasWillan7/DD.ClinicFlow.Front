@@ -29,6 +29,11 @@ import {
   zoneHeightMm,
   zoneLabels,
   zoneMaxHeightMm,
+  contentMarginLabels,
+  contentMarginLimitsMm,
+  contentMarginMinMm,
+  contentMarginMm,
+  contentMarginSides,
 } from "./templateModel";
 import type { EditorAction } from "./templateReducer";
 import styles from "./ElementInspector.module.css";
@@ -119,6 +124,27 @@ function PageProperties({
             onValue={(cm) => onAction({ type: "setZoneHeight", zone, heightMm: cm * 10 })}
           />
         ))}
+        <hr className={styles.divider} />
+        <fieldset className={styles.margins}>
+          <legend>Margens do conteúdo</legend>
+          <div className={styles.pair}>
+            {contentMarginSides.map((side) => (
+              <NumberField
+                key={side}
+                id={`template-margin-${side.toLowerCase()}`}
+                label={`${contentMarginLabels[side]} (cm)`}
+                value={contentMarginMm(layout, side) / 10}
+                min={contentMarginMinMm(layout, side) / 10}
+                max={contentMarginLimitsMm[side].max / 10}
+                step={0.1}
+                onValue={(cm) => onAction({ type: "setContentMargin", side, valueMm: cm * 10 })}
+              />
+            ))}
+          </div>
+          <p className={styles.marginsHint}>
+            Esquerda e direita contam da borda da folha; acima e abaixo, do cabeçalho e do rodapé.
+          </p>
+        </fieldset>
         <hr className={styles.divider} />
         <ul className={styles.tips}>
           <li>Clique ou toque num bloco para editar; arraste para mover.</li>

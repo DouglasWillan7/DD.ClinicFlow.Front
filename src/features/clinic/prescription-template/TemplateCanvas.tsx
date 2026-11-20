@@ -476,9 +476,25 @@ function TemplateImage({ store, imageId }: { store: TemplateImageStore; imageId:
 function SampleBody({ layout }: { layout: TemplateLayout }) {
   return (
     <>
+      {/* Guia da área do conteúdo, definida pelas margens do receituário. */}
+      <div
+        className={styles.contentGuide}
+        style={{
+          top: mm(layout.headerHeightMm + layout.contentMarginTopMm),
+          bottom: mm(layout.footerHeightMm + layout.contentMarginBottomMm),
+          left: mm(layout.contentMarginLeftMm),
+          right: mm(layout.contentMarginRightMm),
+        }}
+        aria-hidden="true"
+      />
       <div
         className={styles.body}
-        style={{ top: mm(layout.headerHeightMm), bottom: mm(layout.footerHeightMm) }}
+        style={{
+          top: mm(layout.headerHeightMm + layout.contentMarginTopMm),
+          bottom: mm(layout.footerHeightMm + layout.contentMarginBottomMm),
+          left: mm(layout.contentMarginLeftMm),
+          right: mm(layout.contentMarginRightMm),
+        }}
         aria-hidden="true"
       >
         <div className={styles.bodyTitle}>Receita médica</div>

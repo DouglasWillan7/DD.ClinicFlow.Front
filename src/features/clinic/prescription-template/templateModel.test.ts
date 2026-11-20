@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { PrescriptionTemplate } from "../../../api/types";
 import {
+  defaultContentMargins,
   createImageElement,
   createLineElement,
   createTextElement,
@@ -28,7 +29,12 @@ import {
 } from "./templateModel";
 
 function layoutWith(elements: TemplateLayout["elements"], header = 30, footer = 20): TemplateLayout {
-  return { headerHeightMm: header, footerHeightMm: footer, elements };
+  return {
+    headerHeightMm: header,
+    footerHeightMm: footer,
+    ...defaultContentMargins(header, footer),
+    elements,
+  };
 }
 
 describe("campos automáticos", () => {
@@ -231,5 +237,49 @@ describe("arquivo de imagem", () => {
     );
     const big = new File([new Uint8Array(2 * 1024 * 1024 + 1)], "logo.png", { type: "image/png" });
     expect(validateImageFile(big)).toBe("A imagem tem mais de 2 MB. Reduza o arquivo e tente de novo.");
+  });
+});
+
+describe("margens do conteúdo", () => {
+  test("sem margens na resposta (API anterior), o editor assume as que o PDF sempre usou", () => {
+    const base = { version: 1, updatedAtUtc: "2026-11-18T12:00:00Z", elements: [] };
+    expect(layoutFromTemplate({ ...base, headerHeightMm: 40, footerHeightMm: 22 })).toMatchObject({
+      contentMarginLeftMm: 20,
+      contentMarginRightMm: 20,
+      contentMarginTopMm: 6,
+      contentMarginBottomMm: 4,
+    });
+    // Sem cabeçalho ou rodapé desenhado, o corpo mantém a distância da borda da folha.
+    expect(layoutFromTemplate({ ...base, headerHeightMm: 0, footerHeightMm: 0 })).toMatchObject({
+      contentMarginTopMm: 20,
+      contentMarginBottomMm: 16,
+    });
+    expect(
+      layoutFromTemplate({
+        ...base,
+        headerHeightMm: 40,
+        footerHeightMm: 22,
+        contentMarginLeftMm: 35,
+        contentMarginTopMm: 0,
+      }),
+    ).toMatchObject({ contentMarginLeftMm: 35, contentMarginRightMm: 20, contentMarginTopMm: 0 });
+  });
+
+  test("mudar uma margem conta como alteração do desenho", () => {
+    const layout = layoutWith([]);
+    expect(sameLayout(layout, { ...layout })).toBe(true);
+    expect(sameLayout(layout, { ...layout, contentMarginRightMm: 25 })).toBe(false);
+  });
+
+  test("recusa margens fora dos limites e conteúdo colado na borda da folha", () => {
+    const layout = layoutWith([]);
+    expect(validateLayout({ ...layout, contentMarginLeftMm: 4 })).toMatch(/entre 0,5 e 6 cm/);
+    expect(validateLayout({ ...layout, contentMarginRightMm: 61 })).toMatch(/entre 0,5 e 6 cm/);
+    expect(validateLayout({ ...layout, contentMarginTopMm: 51 })).toMatch(/entre 0 e 5 cm/);
+    expect(validateLayout({ ...layout, contentMarginBottomMm: -1 })).toMatch(/entre 0 e 5 cm/);
+    expect(validateLayout({ ...layoutWith([], 0, 20), contentMarginTopMm: 3 })).toMatch(
+      /pelo menos 0,5 cm do topo e da base/,
+    );
+    expect(validateLayout({ ...layout, contentMarginTopMm: 0 })).toBeNull();
   });
 });

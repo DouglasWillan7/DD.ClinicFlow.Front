@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   blankLayout,
+  defaultContentMargins,
   createImageElement,
   createLineElement,
   createTextElement,
@@ -21,7 +22,12 @@ function run(state: EditorState, ...actions: EditorAction[]) {
 }
 
 function withElements(elements: TemplateElement[], header = 30, footer = 20): EditorState {
-  return initialEditorState({ headerHeightMm: header, footerHeightMm: footer, elements });
+  return initialEditorState({
+    headerHeightMm: header,
+    footerHeightMm: footer,
+    ...defaultContentMargins(header, footer),
+    elements,
+  });
 }
 
 function element(state: EditorState, id: string) {
@@ -199,6 +205,7 @@ describe("medida dos textos e carga", () => {
     const layout: TemplateLayout = {
       headerHeightMm: 30,
       footerHeightMm: 20,
+      ...defaultContentMargins(30, 20),
       elements: [
         { ...createTextElement("a"), yMm: 25 },
         { ...createTextElement("b"), yMm: 25 },
@@ -225,5 +232,50 @@ describe("medida dos textos e carga", () => {
     expect(run(state, { type: "saved", layout: { ...savedLayout, elements: [] } }).selectedId).toBeNull();
     expect(run(state, { type: "load", layout: null })).toEqual(initialEditorState(null));
     expect(run(state, { type: "start", layout: blankLayout() }).selectedId).toBeNull();
+  });
+});
+
+describe("margens do conteúdo", () => {
+  test("a margem digitada fica dentro dos limites da API", () => {
+    let state = run(withElements([]), { type: "setContentMargin", side: "Left", valueMm: 35 });
+    expect(state.layout).toMatchObject({ contentMarginLeftMm: 35, contentMarginRightMm: 20 });
+
+    state = run(
+      state,
+      { type: "setContentMargin", side: "Left", valueMm: 2 },
+      { type: "setContentMargin", side: "Right", valueMm: 90 },
+      { type: "setContentMargin", side: "Top", valueMm: -3 },
+      { type: "setContentMargin", side: "Bottom", valueMm: 80 },
+    );
+    expect(state.layout).toMatchObject({
+      contentMarginLeftMm: 5,
+      contentMarginRightMm: 60,
+      contentMarginTopMm: 0,
+      contentMarginBottomMm: 50,
+    });
+  });
+
+  test("sem cabeçalho, a margem de cima não deixa o conteúdo a menos de 0,5 cm da borda", () => {
+    const state = run(
+      withElements([], 0, 20),
+      { type: "setContentMargin", side: "Top", valueMm: 1 },
+    );
+    expect(state.layout!.contentMarginTopMm).toBe(5);
+  });
+
+  test("encolher a área aumenta a margem que ficaria curta demais", () => {
+    const state = run(
+      withElements([]),
+      { type: "setContentMargin", side: "Top", valueMm: 0 },
+      { type: "setContentMargin", side: "Bottom", valueMm: 1 },
+      { type: "setZoneHeight", zone: "Header", heightMm: 2 },
+      { type: "setZoneHeight", zone: "Footer", heightMm: 0 },
+    );
+    expect(state.layout).toMatchObject({
+      headerHeightMm: 2,
+      contentMarginTopMm: 3,
+      footerHeightMm: 0,
+      contentMarginBottomMm: 5,
+    });
   });
 });

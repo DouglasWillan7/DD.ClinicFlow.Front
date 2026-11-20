@@ -572,15 +572,32 @@ export interface PrescriptionTemplateElement {
   imageId: string | null;
 }
 
+/**
+ * Margens do corpo da receita (título, paciente, texto, data e assinatura), em mm. Esquerda
+ * e direita contam da borda da folha; acima e abaixo, do fim do cabeçalho e do começo do rodapé.
+ */
+export interface PrescriptionContentMargins {
+  contentMarginLeftMm: number;
+  contentMarginRightMm: number;
+  contentMarginTopMm: number;
+  contentMarginBottomMm: number;
+}
+
 /** Desenho sem metadados: corpo da prévia e base do salvar. */
-export interface PrescriptionTemplateLayout {
+export interface PrescriptionTemplateLayout extends PrescriptionContentMargins {
   headerHeightMm: number;
   footerHeightMm: number;
   elements: PrescriptionTemplateElement[];
 }
 
-/** `GET /clinics/prescription-template`; 404 quando a clínica usa o cabeçalho padrão. */
-export interface PrescriptionTemplate extends PrescriptionTemplateLayout {
+/**
+ * `GET /clinics/prescription-template`; 404 quando a clínica usa o cabeçalho padrão. As margens
+ * podem faltar numa API anterior a essa opção; o editor assume as padrão.
+ */
+export interface PrescriptionTemplate extends Partial<PrescriptionContentMargins> {
+  headerHeightMm: number;
+  footerHeightMm: number;
+  elements: PrescriptionTemplateElement[];
   version: number;
   updatedAtUtc: string;
 }
