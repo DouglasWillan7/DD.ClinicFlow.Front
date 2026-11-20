@@ -364,9 +364,14 @@ test("a prévia manda o desenho atual e abre o PDF real numa aba nova; erro da A
   const [path, init] = requestBlobMock.mock.calls[0];
   expect(path).toBe(`${templatePath}/preview`);
   expect(init.method).toBe("POST");
+  // A prévia leva o desenho inteiro, margens do conteúdo incluídas.
   expect(JSON.parse(init.body)).toEqual({
     headerHeightMm: 30,
     footerHeightMm: 20,
+    contentMarginLeftMm: 20,
+    contentMarginRightMm: 20,
+    contentMarginTopMm: 6,
+    contentMarginBottomMm: 4,
     elements: savedTemplate.elements,
   });
 
@@ -392,4 +397,32 @@ test("os campos da clínica mostram os dados reais e avisam quando a clínica n�
     "title",
     "A clínica não tem telefone cadastrado; este campo sai vazio na receita.",
   );
+});
+
+test("as margens do conteúdo são editadas no painel da página e vão no salvar", async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await screen.findByRole("group", { name: "Folha da receita em escala" });
+
+  // Resposta sem margens (API anterior a essa opção): o painel mostra as padrão.
+  const left = screen.getByRole("spinbutton", { name: "Esquerda (cm)" });
+  expect(left).toHaveValue(2);
+  expect(screen.getByRole("spinbutton", { name: "Direita (cm)" })).toHaveValue(2);
+  expect(screen.getByRole("spinbutton", { name: "Acima (cm)" })).toHaveValue(0.6);
+  expect(screen.getByRole("spinbutton", { name: "Abaixo (cm)" })).toHaveValue(0.4);
+
+  await user.clear(left);
+  await user.type(left, "3.5");
+  await user.tab();
+  expect(screen.getByRole("region", { name: "Alterações não salvas" })).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Salvar receituário" }));
+  await waitFor(() => expect(putBodies).toHaveLength(1));
+  expect(putBodies[0]).toMatchObject({
+    contentMarginLeftMm: 35,
+    contentMarginRightMm: 20,
+    contentMarginTopMm: 6,
+    contentMarginBottomMm: 4,
+    expectedVersion: 2,
+  });
 });

@@ -284,6 +284,44 @@ for (const viewport of viewports) {
   });
 }
 
+test("as margens do conteúdo são ajustadas no painel, movem o corpo na folha e vão no salvar", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const state = await mockReceituario(page);
+  await page.goto("/app/configuracoes/clinica/receituario");
+  await page.getByRole("button", { name: "Começar um receituário" }).click();
+
+  const sheet = page.getByRole("group", { name: "Folha da receita em escala" });
+  const sheetBox = (await sheet.boundingBox())!;
+  const pxPerMm = sheetBox.width / 210;
+  const title = sheet.getByText("Receita médica");
+  const leftMm = async () => ((await title.boundingBox())!.x - sheetBox.x) / pxPerMm;
+  expect(await leftMm()).toBeCloseTo(20, 0);
+
+  const left = page.getByRole("spinbutton", { name: "Esquerda (cm)" });
+  await expect(left).toHaveValue("2");
+  await left.fill("4");
+  await left.blur();
+  expect(await leftMm()).toBeCloseTo(40, 0);
+
+  // Fora do limite, o campo volta ao máximo aceito pela API.
+  const right = page.getByRole("spinbutton", { name: "Direita (cm)" });
+  await right.fill("9");
+  await right.blur();
+  await expect(right).toHaveValue("6");
+  await page.getByRole("spinbutton", { name: "Acima (cm)" }).fill("1.5");
+  await page.getByRole("spinbutton", { name: "Abaixo (cm)" }).fill("2");
+
+  await page.getByRole("button", { name: "Salvar receituário" }).click();
+  await expect(page.getByRole("region", { name: "Alterações não salvas" })).toHaveCount(0);
+  expect(state.puts[0]).toMatchObject({
+    contentMarginLeftMm: 40,
+    contentMarginRightMm: 60,
+    contentMarginTopMm: 15,
+    contentMarginBottomMm: 20,
+  });
+  expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+});
+
 test("em 960px folha e painel ficam lado a lado sem rolagem horizontal", async ({ page }) => {
   await page.setViewportSize({ width: 960, height: 900 });
   await mockReceituario(page);

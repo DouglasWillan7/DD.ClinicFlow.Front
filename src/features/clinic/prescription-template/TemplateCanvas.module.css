@@ -120,13 +120,20 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
+/* Limite da área do conteúdo: acompanha as margens configuradas no painel da página. */
+.contentGuide {
+  position: absolute;
+  border: 1px dashed var(--color-primary);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 /* Corpo de exemplo, esmaecido */
 .body {
   position: absolute;
   right: 0;
   left: 0;
   overflow: hidden;
-  padding: calc(var(--u) * 6) calc(var(--u) * 20) 0;
   color: var(--sheet-ink);
   font-size: calc(var(--u) * 3.881);
   line-height: 1.35;

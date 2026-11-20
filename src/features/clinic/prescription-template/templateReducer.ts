@@ -1,14 +1,19 @@
 import type { TemplateZone } from "../../../api/types";
 import {
   clamp,
+  contentMarginLimitsMm,
+  contentMarginMinMm,
+  contentMarginMm,
   elementHeightMm,
   fitElement,
   lowestBottomMm,
   PAGE_WIDTH_MM,
   roundMm,
   TEMPLATE_LIMITS,
+  type ContentMarginSide,
   type TemplateElement,
   type TemplateLayout,
+  withContentMargin,
   withZoneHeight,
   zoneDefaultHeightMm,
   zoneHeightMm,
@@ -69,6 +74,8 @@ export type EditorAction =
   | { type: "remove"; id: string }
   | { type: "duplicate"; id: string; newId: string }
   | { type: "setZoneHeight"; zone: TemplateZone; heightMm: number }
+  /** Margem do corpo da receita; fica dentro dos limites que a API aceita. */
+  | { type: "setContentMargin"; side: ContentMarginSide; valueMm: number }
   | { type: "measureTexts"; heights: Readonly<Record<string, number>> };
 
 export function initialEditorState(layout: TemplateLayout | null): EditorState {
@@ -282,7 +289,25 @@ export function templateReducer(state: EditorState, action: EditorAction): Edito
       const floor = lowestBottomMm(state.layout, action.zone, state.textHeights);
       const heightMm = roundMm(clamp(action.heightMm, floor, zoneMaxHeightMm[action.zone]));
       if (heightMm === zoneHeightMm(state.layout, action.zone)) return state;
-      return { ...state, layout: withZoneHeight(state.layout, action.zone, heightMm) };
+      let layout = withZoneHeight(state.layout, action.zone, heightMm);
+      // Área muito baixa: a margem cresce para o conteúdo não encostar na borda da folha.
+      const side = action.zone === "Header" ? "Top" : "Bottom";
+      const minimum = contentMarginMinMm(layout, side);
+      if (contentMarginMm(layout, side) < minimum) layout = withContentMargin(layout, side, minimum);
+      return { ...state, layout };
+    }
+
+    case "setContentMargin": {
+      if (!state.layout) return state;
+      const valueMm = roundMm(
+        clamp(
+          action.valueMm,
+          contentMarginMinMm(state.layout, action.side),
+          contentMarginLimitsMm[action.side].max,
+        ),
+      );
+      if (valueMm === contentMarginMm(state.layout, action.side)) return state;
+      return { ...state, layout: withContentMargin(state.layout, action.side, valueMm) };
     }
 
     case "measureTexts": {

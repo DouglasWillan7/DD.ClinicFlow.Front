@@ -42,6 +42,67 @@ export const zoneMaxHeightMm: Record<TemplateZone, number> = { Header: 80, Foote
 /** Altura com que a área nasce num receituário em branco. */
 export const zoneDefaultHeightMm: Record<TemplateZone, number> = { Header: 30, Footer: 20 };
 
+/* ---------- Margens do conteúdo (espelham PrescriptionTemplateRules na API) ---------- */
+
+export type ContentMarginSide = "Left" | "Right" | "Top" | "Bottom";
+
+export const contentMarginSides: readonly ContentMarginSide[] = ["Left", "Right", "Top", "Bottom"];
+
+export const contentMarginLabels: Record<ContentMarginSide, string> = {
+  Left: "Esquerda",
+  Right: "Direita",
+  Top: "Acima",
+  Bottom: "Abaixo",
+};
+
+export const contentMarginLimitsMm: Record<ContentMarginSide, { min: number; max: number }> = {
+  Left: { min: 5, max: 60 },
+  Right: { min: 5, max: 60 },
+  Top: { min: 0, max: 50 },
+  Bottom: { min: 0, max: 50 },
+};
+
+/** O conteúdo fica a pelo menos esta distância do topo e da base da folha. */
+export const MIN_EDGE_DISTANCE_MM = 5;
+
+const marginKey = {
+  Left: "contentMarginLeftMm",
+  Right: "contentMarginRightMm",
+  Top: "contentMarginTopMm",
+  Bottom: "contentMarginBottomMm",
+} as const;
+
+/** As margens que o PDF usava antes de serem configuráveis. */
+export function defaultContentMargins(headerHeightMm: number, footerHeightMm: number) {
+  return {
+    contentMarginLeftMm: 20,
+    contentMarginRightMm: 20,
+    // Sem cabeçalho ou rodapé desenhado, o corpo mantém a distância da borda da folha.
+    contentMarginTopMm: headerHeightMm > 0 ? 6 : 20,
+    contentMarginBottomMm: footerHeightMm > 0 ? 4 : 16,
+  };
+}
+
+export function contentMarginMm(layout: PrescriptionTemplateLayout, side: ContentMarginSide) {
+  return layout[marginKey[side]];
+}
+
+/** Menor valor aceito: acima e abaixo dependem da altura do cabeçalho e do rodapé. */
+export function contentMarginMinMm(layout: PrescriptionTemplateLayout, side: ContentMarginSide) {
+  const { min } = contentMarginLimitsMm[side];
+  if (side === "Top") return Math.max(min, MIN_EDGE_DISTANCE_MM - layout.headerHeightMm);
+  if (side === "Bottom") return Math.max(min, MIN_EDGE_DISTANCE_MM - layout.footerHeightMm);
+  return min;
+}
+
+export function withContentMargin(
+  layout: PrescriptionTemplateLayout,
+  side: ContentMarginSide,
+  valueMm: number,
+): PrescriptionTemplateLayout {
+  return { ...layout, [marginKey[side]]: valueMm };
+}
+
 export const zoneLabels: Record<TemplateZone, string> = {
   Header: "Cabeçalho",
   Footer: "Rodapé",
@@ -452,9 +513,14 @@ export function normalizeElement(element: TemplateElement): TemplateElement {
 }
 
 export function layoutFromTemplate(template: PrescriptionTemplate): TemplateLayout {
+  const defaults = defaultContentMargins(template.headerHeightMm, template.footerHeightMm);
   return {
     headerHeightMm: template.headerHeightMm,
     footerHeightMm: template.footerHeightMm,
+    contentMarginLeftMm: template.contentMarginLeftMm ?? defaults.contentMarginLeftMm,
+    contentMarginRightMm: template.contentMarginRightMm ?? defaults.contentMarginRightMm,
+    contentMarginTopMm: template.contentMarginTopMm ?? defaults.contentMarginTopMm,
+    contentMarginBottomMm: template.contentMarginBottomMm ?? defaults.contentMarginBottomMm,
     elements: template.elements.map(normalizeElement),
   };
 }
@@ -466,6 +532,7 @@ function canonical(layout: TemplateLayout | null) {
   return JSON.stringify({
     h: number(layout.headerHeightMm),
     f: number(layout.footerHeightMm),
+    m: contentMarginSides.map((side) => number(contentMarginMm(layout, side))),
     e: layout.elements.map((element) => [
       element.id,
       element.zone,
@@ -495,6 +562,7 @@ export function blankLayout(): TemplateLayout {
   return {
     headerHeightMm: zoneDefaultHeightMm.Header,
     footerHeightMm: zoneDefaultHeightMm.Footer,
+    ...defaultContentMargins(zoneDefaultHeightMm.Header, zoneDefaultHeightMm.Footer),
     elements: [],
   };
 }
@@ -515,6 +583,7 @@ export function sampleLayout(nextId: () => string = createElementId): TemplateLa
   return {
     headerHeightMm: 40,
     footerHeightMm: 22,
+    ...defaultContentMargins(40, 22),
     elements: [
       text({ yMm: 9, widthMm: 170, text: "{{clinic.name}}", fontFamily: "Lora", fontSizePt: 20, bold: true }),
       text({
@@ -578,6 +647,21 @@ export function validateLayout(layout: TemplateLayout): string | null {
   }
   if (layout.footerHeightMm < 0 || layout.footerHeightMm > zoneMaxHeightMm.Footer) {
     return "O rodapé deve ter de 0 a 6 cm.";
+  }
+  for (const side of contentMarginSides) {
+    const value = contentMarginMm(layout, side);
+    const { min, max } = contentMarginLimitsMm[side];
+    if (!(value >= min - EPSILON && value <= max + EPSILON)) {
+      return side === "Left" || side === "Right"
+        ? "As margens esquerda e direita do conteúdo devem ficar entre 0,5 e 6 cm."
+        : "As margens acima e abaixo do conteúdo devem ficar entre 0 e 5 cm.";
+    }
+  }
+  if (
+    layout.headerHeightMm + layout.contentMarginTopMm < MIN_EDGE_DISTANCE_MM - EPSILON ||
+    layout.footerHeightMm + layout.contentMarginBottomMm < MIN_EDGE_DISTANCE_MM - EPSILON
+  ) {
+    return "O conteúdo precisa ficar a pelo menos 0,5 cm do topo e da base da folha. Aumente a margem ou a altura do cabeçalho ou do rodapé.";
   }
   if (layout.elements.length > TEMPLATE_LIMITS.elements) {
     return `O receituário aceita até ${TEMPLATE_LIMITS.elements} blocos.`;
