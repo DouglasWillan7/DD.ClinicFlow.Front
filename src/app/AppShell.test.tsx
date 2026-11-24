@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
@@ -142,7 +142,57 @@ test("rail expõe destinos e usuário sem depender de ícones", () => {
     "page",
   );
   expect(screen.getByRole("button", { name: /Ana Martins/ })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Sair" })).toBeVisible();
+});
+
+test("menu lateral não repete Meu perfil nem Sair, que ficam no menu de conta", () => {
+  renderShell();
+
+  const rail = within(screen.getByRole("complementary"));
+  expect(rail.queryByRole("link", { name: "Meu perfil" })).not.toBeInTheDocument();
+  expect(rail.queryByRole("button", { name: "Sair" })).not.toBeInTheDocument();
+  // Fechado, o menu de conta também não os expõe: só existem depois de abrir.
+  expect(screen.queryByRole("link", { name: "Meu perfil" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Sair" })).not.toBeInTheDocument();
+});
+
+test("menu de conta leva ao perfil e fecha ao navegar", async () => {
+  const user = userEvent.setup();
+  renderShell();
+  const trigger = screen.getByRole("button", { name: /Ana Martins/ });
+
+  await user.click(trigger);
+  const profile = screen.getByRole("link", { name: "Meu perfil" });
+  expect(profile).toHaveAttribute("href", "/app/configuracoes/perfil");
+
+  // O link do teste é um <a> comum; sem isto o jsdom tentaria navegar de verdade.
+  profile.addEventListener("click", (event) => event.preventDefault());
+  await user.click(profile);
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
+
+test("menu de conta encerra a sessão", async () => {
+  const user = userEvent.setup();
+  renderShell();
+
+  await user.click(screen.getByRole("button", { name: /Ana Martins/ }));
+  await user.click(screen.getByRole("button", { name: "Sair" }));
+
+  expect(logout).toHaveBeenCalledOnce();
+});
+
+test("a seta do menu de conta inverte enquanto ele está aberto", async () => {
+  const user = userEvent.setup();
+  renderShell();
+  const trigger = screen.getByRole("button", { name: /Ana Martins/ });
+  const chevron = trigger.querySelector("svg");
+
+  expect(chevron?.getAttribute("class")).not.toContain("userChevronOpen");
+
+  await user.click(trigger);
+  expect(chevron?.getAttribute("class")).toContain("userChevronOpen");
+
+  await user.click(screen.getByRole("heading", { name: "Conteúdo" }));
+  expect(chevron?.getAttribute("class")).not.toContain("userChevronOpen");
 });
 
 test("médico usa o Início pessoal e mantém o acesso a Agendas", () => {

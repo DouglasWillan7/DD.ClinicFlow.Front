@@ -137,7 +137,6 @@ export function AppShell({ children }: PropsWithChildren) {
     can(session, "ManageClinicMemberships")
       ? { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus }
       : undefined,
-    { to: "/app/configuracoes/perfil", label: "Meu perfil", icon: UserRound },
   ].filter((item) => item !== undefined);
   const configurationNav = [
     can(session, "ConfigureDoctorSchedule")
@@ -260,16 +259,6 @@ export function AppShell({ children }: PropsWithChildren) {
             </>
           ) : null}
         </nav>
-
-        <button
-          type="button"
-          className={clsx(styles.railItem, styles.logoutButton)}
-          onClick={() => confirmDiscard(logout)}
-          aria-label="Sair"
-        >
-          <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
-          <span className={styles.railItemText}>Sair</span>
-        </button>
       </aside>
 
       {menuOpen ? (
@@ -319,7 +308,13 @@ export function AppShell({ children }: PropsWithChildren) {
                   {activeClinicName} · {roleLabel}{adminLabel ? ` · ${adminLabel}` : ""}
                 </small>
               </span>
-              <ChevronDown className={styles.userChevron} aria-hidden="true" />
+              <ChevronDown
+                className={clsx(
+                  styles.userChevron,
+                  userMenuOpen && styles.userChevronOpen,
+                )}
+                aria-hidden="true"
+              />
             </button>
 
             {userMenuOpen ? (
@@ -348,13 +343,28 @@ export function AppShell({ children }: PropsWithChildren) {
                   <p className={styles.contextError} role="alert">{contextError}</p>
                 ) : null}
 
-                <NavLink
-                  to="/app/configuracoes/perfil"
-                  className={styles.profileLink}
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  Meu perfil
-                </NavLink>
+                {/* Conta e saída moram só aqui: o menu lateral fica com os destinos de trabalho. */}
+                <div className={styles.menuActions}>
+                  <NavLink
+                    to="/app/configuracoes/perfil"
+                    className={styles.menuAction}
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <UserRound size={18} aria-hidden="true" />
+                    Meu perfil
+                  </NavLink>
+                  <button
+                    type="button"
+                    className={styles.menuAction}
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      confirmDiscard(logout);
+                    }}
+                  >
+                    <LogOut size={18} aria-hidden="true" />
+                    Sair
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
