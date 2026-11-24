@@ -118,3 +118,89 @@ test("médico configura a semana sem perder a edição em viewport mobile", asyn
     fullPage: true,
   });
 });
+
+test("médico edita a própria disponibilidade em Meu perfil", async ({ page }) => {
+  let savedBody: Record<string, unknown> | undefined;
+  await page.addInitScript((value) => {
+    window.localStorage.setItem("clinicflow.session", JSON.stringify(value));
+  }, session);
+  await page.route("http://localhost:5094/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === "/users/me") {
+      await route.fulfill({
+        json: {
+          userId: doctorId,
+          email: session.email,
+          phone: session.phone,
+          name: session.name,
+          role: "Doctor",
+          isAdmin: false,
+          medicalLicense: "12345",
+          medicalLicenseState: "SP",
+          specialty: "Gastroenterologia",
+        },
+      });
+      return;
+    }
+    if (path === "/clinics/current") {
+      await route.fulfill({
+        json: { id: clinicId, name: "Clínica Vital", timeZoneId: "America/Sao_Paulo" },
+      });
+      return;
+    }
+    if (path === `/doctors/${doctorId}/schedule`) {
+      if (request.method() === "PUT") savedBody = request.postDataJSON();
+      await route.fulfill({
+        json: {
+          doctorUserId: doctorId,
+          slotDurationMinutes: 30,
+          intervals: [
+            {
+              id: "monday-morning",
+              dayOfWeek: "Monday",
+              startLocal: "08:00:00",
+              endLocal: "12:00:00",
+            },
+            ...(savedBody
+              ? [{ id: "tuesday", dayOfWeek: "Tuesday", startLocal: "08:00:00", endLocal: "12:00:00" }]
+              : []),
+          ],
+          blocks: [],
+        },
+      });
+      return;
+    }
+    await route.fulfill({ status: 404, json: { title: `Rota não simulada: ${path}` } });
+  });
+
+  await page.goto("/app/configuracoes/perfil");
+
+  await expect(page.getByRole("heading", { name: "Meu perfil" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Disponibilidade de atendimento" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Segunda-feira, período 1, início")).toHaveValue("08:00");
+  await page.getByLabel("Terça-feira").check();
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-profile-availability-desktop.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Salvar disponibilidade" }).click();
+
+  await expect(page.getByText("Disponibilidade atualizada.")).toBeVisible();
+  expect(savedBody).toEqual({
+    defaultAppointmentDurationMinutes: 30,
+    intervals: [
+      { dayOfWeek: "Monday", startLocal: "08:00", endLocal: "12:00" },
+      { dayOfWeek: "Tuesday", startLocal: "08:00", endLocal: "12:00" },
+    ],
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.body.scrollWidth)).toBe(390);
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-profile-availability-mobile.png",
+    fullPage: true,
+  });
+});

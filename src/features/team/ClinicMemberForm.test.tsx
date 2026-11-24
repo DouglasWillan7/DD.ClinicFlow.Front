@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
-import type { ClinicMember } from "../../api/types";
+import type { ClinicMember, DoctorSchedule } from "../../api/types";
 import { ClinicMemberForm } from "./ClinicMemberForm";
 
 const doctor: ClinicMember = {
@@ -135,4 +135,97 @@ test("valida contato, duração médica e preserva a administração fora da hie
   expect(screen.getByText("Informe a duração padrão da consulta.")).toBeVisible();
   expect(screen.getByRole("checkbox", { name: /Administrador da clínica/ })).toBeChecked();
   expect(onSubmit).not.toHaveBeenCalled();
+});
+
+const doctorSchedule: DoctorSchedule = {
+  doctorUserId: "user-doctor",
+  slotDurationMinutes: 30,
+  blocks: [],
+  intervals: [
+    { id: "interval-1", dayOfWeek: "Monday", startLocal: "08:00:00", endLocal: "08:45:00" },
+  ],
+};
+
+test("envia a semana só quando ela muda e barra período menor que a duração", async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  render(
+    <ClinicMemberForm
+      mode="edit"
+      member={doctor}
+      schedule={{ status: "ready", data: doctorSchedule }}
+      timeZone="America/Sao_Paulo"
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={onSubmit}
+    />,
+  );
+
+  expect(screen.getByRole("checkbox", { name: /Segunda-feira/ })).toBeChecked();
+  expect(screen.getByLabelText("Duração padrão da consulta")).toHaveValue("30");
+
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+  expect(onSubmit.mock.calls[0][1]).toBeUndefined();
+
+  // 45 minutos de atendimento não comportam uma consulta de 60.
+  await user.selectOptions(screen.getByLabelText("Duração padrão da consulta"), "60");
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  expect(
+    await screen.findByText("Em Segunda-feira, cada período deve ter ao menos 60 minutos."),
+  ).toBeVisible();
+  expect(onSubmit).toHaveBeenCalledOnce();
+
+  await user.clear(screen.getByLabelText("Segunda-feira, período 1, fim"));
+  await user.type(screen.getByLabelText("Segunda-feira, período 1, fim"), "12:00");
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  expect(onSubmit.mock.calls[1][1]).toEqual({
+    defaultAppointmentDurationMinutes: 60,
+    intervals: [{ dayOfWeek: "Monday", startLocal: "08:00", endLocal: "12:00" }],
+  });
+});
+
+test("falha ao carregar a agenda não impede salvar o vínculo nem apaga horários", async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  const retry = vi.fn();
+  render(
+    <ClinicMemberForm
+      mode="edit"
+      member={doctor}
+      schedule={{ status: "error", retry }}
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={onSubmit}
+    />,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    /Não foi possível carregar os horários/,
+  );
+  expect(screen.queryByRole("checkbox", { name: /Segunda-feira/ })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(retry).toHaveBeenCalledOnce();
+
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+  expect(onSubmit.mock.calls[0][1]).toBeUndefined();
+});
+
+test("mantém selecionável uma duração gravada fora da lista padrão", () => {
+  render(
+    <ClinicMemberForm
+      mode="edit"
+      member={{
+        ...doctor,
+        doctorProfile: { ...doctor.doctorProfile!, defaultAppointmentDurationMinutes: 25 },
+      }}
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByLabelText("Duração padrão da consulta")).toHaveValue("25");
 });

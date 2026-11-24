@@ -86,6 +86,12 @@ test("gestão de equipe usa membership único com teclado e layout mobile", asyn
   await page.route("**/patients?includeInactive=true", (route) =>
     route.fulfill({ status: 200, json: [] }),
   );
+  await page.route("**/doctors/*/schedule", (route) =>
+    route.fulfill({
+      status: 200,
+      json: { doctorUserId: "", slotDurationMinutes: 30, intervals: [], blocks: [] },
+    }),
+  );
 
   await page.goto("/app/equipe");
   await expect(page.getByRole("heading", { name: "Equipe", exact: true })).toBeVisible();
