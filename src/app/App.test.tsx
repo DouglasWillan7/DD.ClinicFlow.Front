@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { ApiError } from "../api/client";
 import type { AuthResponse } from "../api/types";
@@ -264,6 +264,74 @@ describe("App routing", () => {
       await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
     ).toBeVisible();
     expect(window.location.pathname).toBe("/app/configuracoes/agenda");
+  });
+
+  test("médico abre a aba Disponibilidade de Meu perfil pela rota própria", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Doctor", false, ["Doctor"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/perfil/disponibilidade");
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path === "/users/me") {
+        return {
+          userId: "user-1",
+          email: "pessoa@clinic.test",
+          phone: "+5511999999999",
+          name: "Pessoa da clínica",
+          role: "Doctor",
+          isAdmin: false,
+          medicalLicense: null,
+          medicalLicenseState: null,
+          specialty: null,
+        };
+      }
+      if (path === "/doctors/user-1/schedule") {
+        return {
+          doctorUserId: "user-1",
+          slotDurationMinutes: 30,
+          intervals: [],
+          blocks: [],
+        };
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
+    ).toBeVisible();
+    // O menu lateral também tem "Disponibilidade", que é a agenda da clínica.
+    const tabs = within(screen.getByRole("navigation", { name: "Meu perfil" }));
+    expect(tabs.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(window.location.pathname).toBe("/app/configuracoes/perfil/disponibilidade");
+  });
+
+  test.each([
+    "/app/configuracoes/perfil/disponibilidade",
+    "/app/configuracoes/perfil/convenios",
+  ])("quem não atende como médico volta para a conta ao abrir %s", async (path) => {
+    // Administrar a clínica não dá agenda nem convênios próprios.
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Secretary", true, ["Secretary", "Admin"])),
+    );
+    window.history.replaceState({}, "", path);
+
+    render(<App />);
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/app/configuracoes/perfil"),
+    );
+    expect(
+      apiRequest.mock.calls
+        .map(([requested]) => String(requested))
+        .filter((requested) => requested.includes("/schedule") || requested.includes("healthcare-plans")),
+    ).toEqual([]);
   });
 
   test("administração abre o receituário como aba da configuração da clínica", async () => {

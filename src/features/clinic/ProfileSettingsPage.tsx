@@ -1,25 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { ApiError } from "../../api/client";
 import type { CurrentUser } from "../../api/types";
+import { useUnsavedChangesGuard } from "../../app/unsavedChanges";
 import { useAuth } from "../../auth/AuthProvider";
 import { roleLabels } from "../../auth/roles";
 import { Button } from "../../components/Button";
-import {
-  ErrorBlock,
-  InlineError,
-  LoadingBlock,
-  SuccessNote,
-} from "../../components/Feedback";
+import { InlineError, SuccessNote } from "../../components/Feedback";
 import { Field } from "../../components/Field";
-import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
-import { timeZoneLabel, useClinicTimeZone } from "./clinicTimeZone";
-import { DoctorPlansPanel } from "./DoctorPlansPanel";
-import { DoctorSchedulePanel } from "./DoctorSchedulePanel";
+import { currentUserKey } from "./profileQueries";
+import { NoDoctorPracticeNote, ProfileSettingsFrame } from "./ProfileSettingsFrame";
 import styles from "./SettingsLayout.module.css";
 
 const profileSchema = z.object({
@@ -30,22 +24,30 @@ const profileSchema = z.object({
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
-const profileKey = ["user", "me"] as const;
 
+/** Aba "Conta" de Meu perfil, a entrada da tela. */
 export function ProfileSettingsPage() {
+  return (
+    <ProfileSettingsFrame>
+      {(profile) => (
+        <div className={styles.sectionStack}>
+          <AccountPanel profile={profile} />
+          {profile.role === "Doctor" ? null : <NoDoctorPracticeNote />}
+        </div>
+      )}
+    </ProfileSettingsFrame>
+  );
+}
+
+function AccountPanel({ profile }: { profile: CurrentUser }) {
   const { request, updateSessionName } = useAuth();
   const queryClient = useQueryClient();
-  const timeZone = useClinicTimeZone();
   const [saved, setSaved] = useState(false);
-  const query = useQuery({
-    queryKey: profileKey,
-    queryFn: () => request<CurrentUser>("/users/me"),
-  });
   const {
     register,
     reset,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -55,16 +57,17 @@ export function ProfileSettingsPage() {
       specialty: null,
     },
   });
+  // Com abas, trocar de seção desmonta o formulário: o que foi digitado só some após confirmação.
+  useUnsavedChangesGuard(isDirty);
 
   useEffect(() => {
-    if (!query.data) return;
     reset({
-      name: query.data.name,
-      medicalLicense: query.data.medicalLicense,
-      medicalLicenseState: query.data.medicalLicenseState,
-      specialty: query.data.specialty,
+      name: profile.name,
+      medicalLicense: profile.medicalLicense,
+      medicalLicenseState: profile.medicalLicenseState,
+      specialty: profile.specialty,
     });
-  }, [query.data, reset]);
+  }, [profile, reset]);
 
   const mutation = useMutation({
     mutationFn: (values: ProfileForm) =>
@@ -78,118 +81,70 @@ export function ProfileSettingsPage() {
         }),
       }),
     onMutate: () => setSaved(false),
-    onSuccess: (profile) => {
-      queryClient.setQueryData(profileKey, profile);
+    onSuccess: (next) => {
+      queryClient.setQueryData(currentUserKey, next);
       void queryClient.invalidateQueries({ queryKey: onboardingKey });
-      updateSessionName(profile.name);
+      updateSessionName(next.name);
       setSaved(true);
     },
   });
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Conta"
-        title="Meu perfil"
-        description="Mantenha sua identificação profissional clara para a equipe e para os atendimentos."
-      />
-      <div className={styles.content}>
-        {query.isLoading ? (
-          <LoadingBlock label="Carregando seu perfil…" />
-        ) : query.isError ? (
-          <ErrorBlock
-            message="Não foi possível carregar seu perfil."
-            retry={() => void query.refetch()}
-          />
-        ) : query.data ? (
-          <div className={styles.sectionStack}>
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <h2>Conta</h2>
-                  <p>
-                    {roleLabels[query.data.role]}
-                    {query.data.isAdmin ? " · Administração" : ""}
-                  </p>
-                </div>
-              </div>
-              <form
-                className={styles.form}
-                onSubmit={handleSubmit((values) => mutation.mutate(values))}
-                noValidate
-              >
-                <Field
-                  className={styles.wide}
-                  label="Nome"
-                  autoComplete="name"
-                  error={errors.name?.message}
-                  {...register("name")}
-                />
-                <Field
-                  id="profile-clinic-email"
-                  className={styles.wide}
-                  label="E-mail nesta clínica"
-                  value={query.data.email}
-                  readOnly
-                  hint="Este contato pertence ao seu vínculo com a clínica atual. O acesso usa seu documento."
-                />
-                {query.data.role === "Doctor" ? (
-                  <>
-                    <Field
-                      label="Registro profissional"
-                      {...register("medicalLicense")}
-                    />
-                    <Field
-                      label="Região do registro"
-                      {...register("medicalLicenseState")}
-                    />
-                    <Field
-                      className={styles.wide}
-                      label="Especialidade"
-                      {...register("specialty")}
-                    />
-                  </>
-                ) : null}
-                <div className={styles.actions}>
-                  {saved ? <SuccessNote>Perfil atualizado.</SuccessNote> : null}
-                  {mutation.isError ? (
-                    <InlineError>
-                      {mutation.error instanceof ApiError
-                        ? mutation.error.message
-                        : "Não foi possível salvar o perfil."}
-                    </InlineError>
-                  ) : null}
-                  <Button type="submit" loading={mutation.isPending}>
-                    Salvar conta
-                  </Button>
-                </div>
-              </form>
-            </section>
-
-            {query.data.role === "Doctor" ? (
-              // O médico cuida da própria agenda aqui, sem ir a outra área; tem salvar
-              // próprio porque conta e horários são gravados por rotas diferentes.
-              <>
-                <DoctorSchedulePanel
-                  doctorId={query.data.userId}
-                  title="Disponibilidade de atendimento"
-                  description={`Sua semana padrão nesta clínica, no fuso de ${timeZoneLabel(timeZone)}. Ausências e férias continuam sendo bloqueadas diretamente na Agenda.`}
-                />
-                {/* Convênios também são do vínculo: o médico os encontra junto da agenda. */}
-                <DoctorPlansPanel doctorName={query.data.name} />
-              </>
-            ) : (
-              <section className={styles.panel}>
-                <p className={styles.wide}>
-                  Este perfil não possui atuação médica. As informações de CRM e
-                  agenda aparecem quando a função Médico é adicionada pela
-                  administração.
-                </p>
-              </section>
-            )}
-          </div>
-        ) : null}
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h2>Conta</h2>
+          <p>
+            {roleLabels[profile.role]}
+            {profile.isAdmin ? " · Administração" : ""}
+          </p>
+        </div>
       </div>
-    </>
+      <form
+        className={styles.form}
+        onSubmit={handleSubmit((values) => mutation.mutate(values))}
+        noValidate
+      >
+        <Field
+          className={styles.wide}
+          label="Nome"
+          autoComplete="name"
+          error={errors.name?.message}
+          {...register("name")}
+        />
+        <Field
+          id="profile-clinic-email"
+          className={styles.wide}
+          label="E-mail nesta clínica"
+          value={profile.email}
+          readOnly
+          hint="Este contato pertence ao seu vínculo com a clínica atual. O acesso usa seu documento."
+        />
+        {profile.role === "Doctor" ? (
+          <>
+            <Field label="Registro profissional" {...register("medicalLicense")} />
+            <Field label="Região do registro" {...register("medicalLicenseState")} />
+            <Field
+              className={styles.wide}
+              label="Especialidade"
+              {...register("specialty")}
+            />
+          </>
+        ) : null}
+        <div className={styles.actions}>
+          {saved ? <SuccessNote>Perfil atualizado.</SuccessNote> : null}
+          {mutation.isError ? (
+            <InlineError>
+              {mutation.error instanceof ApiError
+                ? mutation.error.message
+                : "Não foi possível salvar o perfil."}
+            </InlineError>
+          ) : null}
+          <Button type="submit" loading={mutation.isPending}>
+            Salvar conta
+          </Button>
+        </div>
+      </form>
+    </section>
   );
 }

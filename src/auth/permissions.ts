@@ -94,6 +94,14 @@ export function isLimitedToOwnSchedule(
 }
 
 /**
+ * Quem atende como médico na clínica do contexto tem agenda e convênios próprios, que
+ * são as abas de médico em Meu perfil. Administrar a clínica não basta.
+ */
+export function actsAsDoctor(subject: PermissionSubject | null | undefined) {
+  return subject?.clinicRole === "Doctor";
+}
+
+/**
  * De quem a pessoa configura a disponibilidade: a administração alcança todos
  * os médicos da clínica; o médico sem administração, só a própria agenda.
  */
