@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarClock, RotateCcw, ShieldCheck, Stethoscope } from "lucide-react";
+import { CalendarClock, IdCard, RotateCcw, ShieldCheck, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
@@ -10,8 +10,10 @@ import type {
   ClinicMember,
   ClinicRole,
   DoctorSchedule,
+  HealthcarePlan,
   ScheduleDay,
   UpdateDoctorScheduleRequest,
+  UserClinicHealthcarePlans,
 } from "../../api/types";
 import {
   documentCountries,
@@ -23,6 +25,14 @@ import { InlineError, LoadingBlock } from "../../components/Feedback";
 import { Field, SelectField, TextAreaField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
 import { timeZoneLabel } from "../clinic/clinicTimeZone";
+import { DoctorPlansEditor } from "../clinic/DoctorPlansEditor";
+import {
+  type ClinicDraft,
+  type DoctorDraft,
+  doctorDraftFromSaved,
+  doctorSelectedIds,
+  isDoctorDirty,
+} from "../clinic/healthcarePlansDraft";
 import {
   buildScheduleRequest,
   emptyScheduleDraft,
@@ -49,6 +59,24 @@ export type MemberScheduleSource =
   | { status: "loading" }
   | { status: "error"; retry(): void }
   | { status: "ready"; data?: DoctorSchedule };
+
+/**
+ * Convênios do vínculo. `saved` só existe para quem já é médico na clínica; cadastro novo
+ * e integrante que ainda não é médico partem do padrão da clínica. Sem esta prop a seção
+ * de convênios não aparece.
+ */
+export type MemberPlansSource =
+  | { status: "loading" }
+  | { status: "error"; retry(): void }
+  | {
+      status: "ready";
+      catalog: HealthcarePlan[];
+      /** Convênios aceitos e padrão salvos na clínica: o teto da lista do médico. */
+      clinic: ClinicDraft;
+      saved?: UserClinicHealthcarePlans;
+    };
+
+const clinicDefaultPlans: DoctorDraft = { mode: "ClinicDefault", planIds: [] };
 
 const durationOptions = [15, 20, 30, 40, 45, 60, 90, 120];
 
@@ -79,6 +107,7 @@ export function ClinicMemberForm({
   member,
   initialRole,
   schedule,
+  plans,
   timeZone,
   pending,
   serverError,
@@ -89,13 +118,21 @@ export function ClinicMemberForm({
   member?: ClinicMember;
   initialRole?: ClinicRole;
   schedule?: MemberScheduleSource;
+  plans?: MemberPlansSource;
   /** Fuso da clínica, só para dizer em que horário a semana é interpretada. */
   timeZone?: string;
   pending: boolean;
   serverError?: string;
   onCancel(): void;
-  /** `schedule` só vem quando a semana foi alterada; sem ele os horários ficam como estão. */
-  onSubmit(payload: ClinicMemberPayload, schedule?: UpdateDoctorScheduleRequest): void;
+  /**
+   * `schedule` e `plans` só vêm quando foram alterados; sem eles os horários e os
+   * convênios ficam como estão.
+   */
+  onSubmit(
+    payload: ClinicMemberPayload,
+    schedule?: UpdateDoctorScheduleRequest,
+    plans?: DoctorDraft,
+  ): void;
 }) {
   const [pendingRole, setPendingRole] = useState<Exclude<ClinicRole, "Doctor">>();
   const loadedSchedule = schedule?.status === "ready" ? schedule.data : undefined;
@@ -111,6 +148,16 @@ export function ClinicMemberForm({
     if (loadedSchedule && !scheduleDirty) setDraft(scheduleToDraft(loadedSchedule));
   }
   const scheduleReady = !schedule || schedule.status === "ready";
+  // Sem rascunho a seção mostra o que está salvo; ele só nasce quando alguém mexe.
+  const [plansDraft, setPlansDraft] = useState<DoctorDraft | null>(null);
+  const readyPlans = plans?.status === "ready" ? plans : undefined;
+  const savedPlans = readyPlans?.saved
+    ? doctorDraftFromSaved(readyPlans.saved)
+    : clinicDefaultPlans;
+  const currentPlans = plansDraft ?? savedPlans;
+  const plansDirty = Boolean(
+    readyPlans && isDoctorDirty(currentPlans, savedPlans, readyPlans.clinic),
+  );
   const {
     control,
     register,
@@ -127,7 +174,7 @@ export function ClinicMemberForm({
     },
   });
   // Cancelar e os links do menu só descartam o que foi digitado após confirmação.
-  useUnsavedChangesGuard(isDirty || scheduleDirty);
+  useUnsavedChangesGuard(isDirty || scheduleDirty || plansDirty);
   const confirmDiscard = useConfirmDiscard();
   const [countryCode, documentType, role, durationValue] = useWatch({
     control,
@@ -156,8 +203,25 @@ export function ClinicMemberForm({
 
   function submit(value: ClinicMemberFormValue) {
     const payload = toClinicMemberPayload(value, mode);
+    // Convênios só vão junto quando mudaram, já limitados ao que a clínica aceita.
+    const plansRequest: DoctorDraft | undefined =
+      value.role === "Doctor" && readyPlans && plansDirty
+        ? {
+            mode: currentPlans.mode,
+            planIds:
+              currentPlans.mode === "Custom"
+                ? doctorSelectedIds(currentPlans, readyPlans.clinic)
+                : [],
+          }
+        : undefined;
+    const send = (scheduleRequest?: UpdateDoctorScheduleRequest) =>
+      plansRequest
+        ? onSubmit(payload, scheduleRequest, plansRequest)
+        : scheduleRequest
+          ? onSubmit(payload, scheduleRequest)
+          : onSubmit(payload);
     if (value.role !== "Doctor" || !scheduleReady) {
-      onSubmit(payload);
+      send();
       return;
     }
     // Valida mesmo sem mudança na semana: uma duração maior pode deixar um período curto.
@@ -170,7 +234,7 @@ export function ClinicMemberForm({
       return;
     }
     setScheduleError(undefined);
-    onSubmit(payload, scheduleDirty ? result.request : undefined);
+    send(scheduleDirty ? result.request : undefined);
   }
 
   function chooseRole(nextRole: ClinicRole) {
@@ -446,6 +510,59 @@ export function ClinicMemberForm({
             </>
           )}
           {scheduleError ? <InlineError>{scheduleError}</InlineError> : null}
+        </section>
+      ) : null}
+
+      {role === "Doctor" && plans ? (
+        <section className={styles.section} aria-labelledby="member-plans-heading">
+          <div className={styles.sectionHeading}>
+            <span className={styles.doctorIcon} aria-hidden="true"><IdCard /></span>
+            <div>
+              <h3 id="member-plans-heading">Convênios</h3>
+              <p>
+                Quais convênios o médico atende nesta clínica. É a lista oferecida ao
+                agendar uma consulta com ele.
+              </p>
+            </div>
+          </div>
+          {plans.status === "loading" ? (
+            <LoadingBlock label="Carregando os convênios…" />
+          ) : plans.status === "error" ? (
+            <div className={styles.scheduleUnavailable}>
+              <InlineError>
+                Não foi possível carregar os convênios. O restante do vínculo pode ser
+                salvo normalmente.
+              </InlineError>
+              <Button type="button" variant="secondary" onClick={plans.retry}>
+                <RotateCcw size={16} aria-hidden="true" />
+                Tentar novamente
+              </Button>
+            </div>
+          ) : (
+            <>
+              <DoctorPlansEditor
+                doctorName={member?.displayName ?? "este médico"}
+                plans={plans.catalog}
+                clinic={plans.clinic}
+                draft={currentPlans}
+                savedCustomPlanIds={
+                  plans.saved?.mode === "Custom" ? plans.saved.healthcarePlanIds : null
+                }
+                disabled={pending}
+                listHeadingAs="h4"
+                onChange={setPlansDraft}
+              />
+              {mode === "create" || member?.status === "Pending" ? (
+                <p className={styles.scheduleNote}>
+                  Os convênios passam a ser oferecidos na agenda quando o convite for aceito.
+                </p>
+              ) : member?.status !== "Active" ? (
+                <p className={styles.scheduleNote}>
+                  Os convênios voltam a ser oferecidos na agenda quando o vínculo for reativado.
+                </p>
+              ) : null}
+            </>
+          )}
         </section>
       ) : null}
 

@@ -27,9 +27,12 @@ import type {
   ClinicMember,
   ClinicMembershipInvitationStatus,
   ClinicMembershipInvitationSummary,
+  ClinicHealthcarePlans,
   ClinicRole,
   DoctorSchedule,
+  HealthcarePlan,
   UpdateDoctorScheduleRequest,
+  UserClinicHealthcarePlans,
   UserClinicStatus,
 } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
@@ -47,10 +50,24 @@ import {
 } from "../../components/Feedback";
 import { FilterChips } from "../../components/FilterChips";
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
-import { ClinicMemberForm, type MemberScheduleSource } from "./ClinicMemberForm";
+import {
+  ClinicMemberForm,
+  type MemberPlansSource,
+  type MemberScheduleSource,
+} from "./ClinicMemberForm";
 import type { ClinicMemberPayload } from "./memberFormModel";
 import { onboardingKey } from "../onboarding/onboarding";
 import { formatDateTimeInZone, useClinicTimeZone } from "../clinic/clinicTimeZone";
+import {
+  clinicHealthcarePlansKey,
+  clinicMembersSummaryKey,
+  doctorHealthcarePlansKey,
+  healthcarePlanCatalogKey,
+} from "../clinic/healthcarePlanQueries";
+import {
+  clinicDraftFromSaved,
+  type DoctorDraft,
+} from "../clinic/healthcarePlansDraft";
 import styles from "./TeamPage.module.css";
 
 const statusLabels: Record<UserClinicStatus, string> = {
@@ -168,8 +185,49 @@ function initials(member: ClinicMember) {
   return `${words[0]?.[0] ?? "?"}${words[1]?.[0] ?? ""}`.toUpperCase();
 }
 
-function scheduleWarningText(outcome: string, reason: string | undefined, next: string) {
-  return [outcome, reason, next].filter(Boolean).join(" ");
+/** Parte do vínculo gravada depois dele, por rota própria, e que pode falhar sozinha. */
+interface SecondarySaveFailure {
+  reason?: string;
+}
+
+interface SecondarySaveFailures {
+  schedule?: SecondarySaveFailure;
+  plans?: SecondarySaveFailure;
+}
+
+function hasFailure(failures: SecondarySaveFailures) {
+  return Boolean(failures.schedule || failures.plans);
+}
+
+/** Vínculo salvo, horários ou convênios não: diz o que ficou de fora e como retomar. */
+function partialSaveWarning(
+  outcome: "created" | "updated",
+  failures: SecondarySaveFailures,
+) {
+  const missing =
+    failures.schedule && failures.plans
+      ? "os horários e os convênios"
+      : failures.schedule
+        ? "os horários"
+        : "os convênios";
+  const target =
+    failures.schedule && failures.plans
+      ? "a disponibilidade e os convênios"
+      : failures.schedule
+        ? "a disponibilidade"
+        : "os convênios";
+  const reasons = [...new Set([failures.schedule?.reason, failures.plans?.reason])];
+  return [
+    outcome === "created"
+      ? `Integrante adicionado e convite enfileirado, mas ${missing} não foram salvos.`
+      : `O vínculo foi atualizado, mas ${missing} não foram salvos.`,
+    ...reasons,
+    outcome === "created"
+      ? `Defina ${target} no vínculo e salve novamente.`
+      : `Revise ${target} e salve novamente.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function safeError(error: unknown, fallback: string) {
@@ -195,8 +253,9 @@ export function TeamPage({
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ClinicRole | "All">("All");
   const [feedback, setFeedback] = useState<string>();
-  // Vínculo salvo, horários não: é aviso, não sucesso, e fica até a próxima tentativa.
-  const [scheduleWarning, setScheduleWarning] = useState<string>();
+  // Vínculo salvo, horários ou convênios não: é aviso, não sucesso, e fica até a
+  // próxima tentativa.
+  const [partialWarning, setPartialWarning] = useState<string>();
   const [cancelCandidate, setCancelCandidate] = useState<string>();
   const [cooldown, setCooldown] = useState<{
     userClinicId: string;
@@ -246,6 +305,57 @@ export function TeamPage({
         ? { status: "error", retry: () => void schedule.refetch() }
         : { status: "ready", data: schedule.data };
 
+  // Convênios do vínculo: o catálogo e o teto da clínica valem para qualquer médico;
+  // a lista própria só existe para quem já é médico na clínica.
+  const editedDoctorMembershipId =
+    editor?.mode === "edit" && editor.member.role === "Doctor"
+      ? editor.member.userClinicId
+      : undefined;
+  const planCatalog = useQuery({
+    queryKey: healthcarePlanCatalogKey,
+    queryFn: () => request<HealthcarePlan[]>("/healthcare-plans"),
+    enabled: Boolean(editor),
+  });
+  const clinicPlans = useQuery({
+    queryKey: clinicHealthcarePlansKey,
+    queryFn: () =>
+      request<ClinicHealthcarePlans>("/clinics/current/healthcare-plans"),
+    enabled: Boolean(editor),
+  });
+  const doctorPlans = useQuery({
+    queryKey: doctorHealthcarePlansKey(editedDoctorMembershipId ?? ""),
+    queryFn: () =>
+      request<UserClinicHealthcarePlans>(
+        `/clinics/${clinicId}/members/${editedDoctorMembershipId}/healthcare-plans`,
+      ),
+    enabled: Boolean(editedDoctorMembershipId),
+  });
+  const plansLoading =
+    planCatalog.isLoading ||
+    clinicPlans.isLoading ||
+    (Boolean(editedDoctorMembershipId) && doctorPlans.isLoading);
+  const plansSource: MemberPlansSource | undefined = !editor
+    ? undefined
+    : plansLoading
+      ? { status: "loading" }
+      : !planCatalog.data ||
+          !clinicPlans.data ||
+          (editedDoctorMembershipId && !doctorPlans.data)
+        ? {
+            status: "error",
+            retry: () => {
+              void planCatalog.refetch();
+              void clinicPlans.refetch();
+              if (editedDoctorMembershipId) void doctorPlans.refetch();
+            },
+          }
+        : {
+            status: "ready",
+            catalog: planCatalog.data,
+            clinic: clinicDraftFromSaved(clinicPlans.data),
+            saved: editedDoctorMembershipId ? doctorPlans.data : undefined,
+          };
+
   // A resposta da API entra na lista em cache na hora; o editor lê o vínculo dali.
   function storeMember(updated: ClinicMember) {
     queryClient.setQueryData<ClinicMember[]>(
@@ -261,7 +371,7 @@ export function TeamPage({
   async function saveSchedule(
     doctorUserId: string,
     payload: UpdateDoctorScheduleRequest,
-  ): Promise<{ reason?: string } | undefined> {
+  ): Promise<SecondarySaveFailure | undefined> {
     try {
       const saved = await request<DoctorSchedule>(
         `/doctors/${doctorUserId}/schedule`,
@@ -275,23 +385,52 @@ export function TeamPage({
     }
   }
 
+  /** Grava os convênios depois do vínculo, com a mesma tolerância a falha dos horários. */
+  async function savePlans(
+    userClinicId: string,
+    draft: DoctorDraft,
+  ): Promise<SecondarySaveFailure | undefined> {
+    try {
+      const saved = await request<UserClinicHealthcarePlans>(
+        `/clinics/${clinicId}/members/${userClinicId}/healthcare-plans`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            mode: draft.mode,
+            healthcarePlanIds: draft.mode === "Custom" ? draft.planIds : [],
+          }),
+        },
+      );
+      queryClient.setQueryData(doctorHealthcarePlansKey(userClinicId), saved);
+      // Modo e contagem aparecem em Configuração › Convênios e no novo agendamento.
+      void queryClient.invalidateQueries({ queryKey: clinicMembersSummaryKey });
+      void queryClient.invalidateQueries({ queryKey: ["new-appointment"] });
+      return undefined;
+    } catch (error) {
+      return { reason: error instanceof ApiError ? error.message : undefined };
+    }
+  }
+
   function openEditor(target: string) {
     setFeedback(undefined);
-    setScheduleWarning(undefined);
+    setPartialWarning(undefined);
     save.reset();
     changeStatus.reset();
     navigate(`${TEAM_PATH}?${EDITOR_PARAM}=${encodeURIComponent(target)}`);
   }
 
   const save = useMutation({
-    // O vínculo é gravado primeiro: a agenda pertence a ele e, no cadastro, só existe
-    // depois dele. Falha nos horários não desfaz o vínculo; vira aviso em `onSuccess`.
+    // O vínculo é gravado primeiro: a agenda e os convênios pertencem a ele e, no
+    // cadastro, só existem depois dele. Falha nos horários ou nos convênios não desfaz o
+    // vínculo; vira aviso em `onSuccess`.
     mutationFn: async ({
       payload,
       schedule: schedulePayload,
+      plans: plansPayload,
     }: {
       payload: ClinicMemberPayload;
       schedule?: UpdateDoctorScheduleRequest;
+      plans?: DoctorDraft;
     }) => {
       if (!editor) throw new Error("Nenhum vínculo selecionado.");
       if (editor.mode === "create") {
@@ -301,13 +440,20 @@ export function TeamPage({
           `/clinics/${clinicId}/members`,
           { method: "POST", body: JSON.stringify(payload) },
         );
-        // Sem o identificador do novo usuário não há onde gravar a semana.
-        const scheduleFailure: { reason?: string } | undefined = !schedulePayload
-          ? undefined
-          : created?.userId
-            ? await saveSchedule(created.userId, schedulePayload)
-            : {};
-        return { kind: "created" as const, created, scheduleFailure };
+        // Sem os identificadores do novo vínculo não há onde gravar a semana e os convênios.
+        const failures: SecondarySaveFailures = {
+          schedule: !schedulePayload
+            ? undefined
+            : created?.userId
+              ? await saveSchedule(created.userId, schedulePayload)
+              : {},
+          plans: !plansPayload
+            ? undefined
+            : created?.userClinicId
+              ? await savePlans(created.userClinicId, plansPayload)
+              : {},
+        };
+        return { kind: "created" as const, created, failures };
       }
       const member = await request<ClinicMember>(
         `/clinics/${clinicId}/members/${editor.member.userClinicId}`,
@@ -322,25 +468,24 @@ export function TeamPage({
           sessionRefreshFailed = true;
         }
       }
-      const scheduleFailure = schedulePayload
-        ? await saveSchedule(member.userId, schedulePayload)
-        : undefined;
-      return { kind: "updated" as const, member, scheduleFailure, sessionRefreshFailed };
+      const failures: SecondarySaveFailures = {
+        schedule: schedulePayload
+          ? await saveSchedule(member.userId, schedulePayload)
+          : undefined,
+        plans: plansPayload
+          ? await savePlans(member.userClinicId, plansPayload)
+          : undefined,
+      };
+      return { kind: "updated" as const, member, failures, sessionRefreshFailed };
     },
-    onMutate: () => setScheduleWarning(undefined),
+    onMutate: () => setPartialWarning(undefined),
     onSuccess: async (result) => {
       save.reset();
       if (result.kind === "created") {
-        if (result.scheduleFailure) {
+        if (hasFailure(result.failures)) {
           // Reenviar o cadastro criaria o integrante de novo: a correção continua na edição.
           setFeedback(undefined);
-          setScheduleWarning(
-            scheduleWarningText(
-              "Integrante adicionado e convite enfileirado, mas os horários não foram salvos.",
-              result.scheduleFailure.reason,
-              "Defina a disponibilidade no vínculo e salve novamente.",
-            ),
-          );
+          setPartialWarning(partialSaveWarning("created", result.failures));
           await queryClient.invalidateQueries({
             queryKey: clinicMembersKey(clinicId),
           });
@@ -357,16 +502,10 @@ export function TeamPage({
         }
       } else {
         storeMember(result.member);
-        if (result.scheduleFailure) {
-          // O formulário não é remontado: a semana digitada fica na tela para nova tentativa.
+        if (hasFailure(result.failures)) {
+          // O formulário não é remontado: o que foi digitado fica na tela para nova tentativa.
           setFeedback(undefined);
-          setScheduleWarning(
-            scheduleWarningText(
-              "O vínculo foi atualizado, mas os horários não foram salvos.",
-              result.scheduleFailure.reason,
-              "Revise a disponibilidade e salve novamente.",
-            ),
-          );
+          setPartialWarning(partialSaveWarning("updated", result.failures));
         } else {
           setFeedback(
             result.sessionRefreshFailed
@@ -519,7 +658,7 @@ export function TeamPage({
         />
 
         {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
-        {scheduleWarning ? <InlineError>{scheduleWarning}</InlineError> : null}
+        {partialWarning ? <InlineError>{partialWarning}</InlineError> : null}
 
         <section className={styles.editorPanel} aria-label="Editor de vínculo">
           {selectedMember?.status === "Pending" ? (
@@ -545,6 +684,7 @@ export function TeamPage({
             member={selectedMember}
             initialRole={editor.mode === "create" ? initialRole : undefined}
             schedule={scheduleSource}
+            plans={plansSource}
             timeZone={timeZone}
             pending={save.isPending}
             serverError={
@@ -558,11 +698,11 @@ export function TeamPage({
             onCancel={() => {
               save.reset();
               setFeedback(undefined);
-              setScheduleWarning(undefined);
+              setPartialWarning(undefined);
               navigate(TEAM_PATH);
             }}
-            onSubmit={(payload, schedulePayload) =>
-              save.mutate({ payload, schedule: schedulePayload })
+            onSubmit={(payload, schedulePayload, plansPayload) =>
+              save.mutate({ payload, schedule: schedulePayload, plans: plansPayload })
             }
           />
 
@@ -666,7 +806,7 @@ export function TeamPage({
       </ContextBar>
 
       {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
-      {scheduleWarning ? <InlineError>{scheduleWarning}</InlineError> : null}
+      {partialWarning ? <InlineError>{partialWarning}</InlineError> : null}
 
       <section
         className={styles.directory}
