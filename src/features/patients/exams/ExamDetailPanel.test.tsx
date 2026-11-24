@@ -15,6 +15,7 @@ const capabilities: PatientExamDetail["capabilities"] = {
   canEditRevision: false,
   canClassify: false,
   canValidate: false,
+  canRequestAnalysis: false,
 };
 
 const revision: PatientExamRevision = {
@@ -85,6 +86,7 @@ function detail(overrides: Partial<PatientExamDetail> = {}): PatientExamDetail {
     activeRevision: null,
     draftRevision: null,
     attemptsRemaining: 0,
+    analysisHold: null,
     capabilities,
     ...overrides,
   };
@@ -440,4 +442,75 @@ test("células estruturadas carregam rótulos equivalentes para o layout abaixo 
   expect(screen.getByText("Hemoglobina").closest("td")).toHaveAttribute("data-label", "Resultado");
   expect(screen.getByText("10,2 g/dL").closest("td")).toHaveAttribute("data-label", "Valor");
   expect(screen.getByText("12–16 g/dL").closest("td")).toHaveAttribute("data-label", "Referência");
+});
+
+test("documento sem análise continua acessível e oferece a análise por IA", async () => {
+  const onRetry = vi.fn().mockResolvedValue(undefined);
+  render(<ExamDetailPanel
+    exam={detail({
+      status: "Sem análise",
+      document,
+      analysisHold: "NaoSolicitada",
+      attemptsRemaining: 2,
+      capabilities: { ...capabilities, canRequestAnalysis: true, canDiscardExam: true },
+    })}
+    analysisAvailability={{ available: true, reason: null }}
+    onRetry={onRetry}
+    onDiscard={vi.fn()}
+  />);
+
+  expect(screen.getByLabelText("Status: Sem análise — documento salvo, sem análise por IA")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Abrir laudo original em nova aba" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Documento salvo, sem análise por IA" })).toBeInTheDocument();
+  expect(screen.getByText(/Este laudo foi só guardado/)).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Descartar exame" })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Analisar com IA" }));
+  await waitFor(() => expect(onRetry).toHaveBeenCalledOnce());
+});
+
+test("com a IA indisponível o pedido de análise fica bloqueado e explicado", () => {
+  render(<ExamDetailPanel
+    exam={detail({
+      status: "Sem análise",
+      document,
+      analysisHold: "Indisponivel",
+      capabilities: { ...capabilities, canRequestAnalysis: true },
+    })}
+    analysisAvailability={{ available: false, reason: "DesabilitadaPelaClinica" }}
+    onRetry={vi.fn()}
+  />);
+
+  expect(screen.getByText(/A análise foi pedida, mas a IA estava indisponível/)).toBeInTheDocument();
+  expect(screen.getByText("A análise por IA está desativada nas configurações da clínica. O documento continua salvo.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Analisar com IA" })).toBeDisabled();
+});
+
+test("recusa do pedido de análise aparece na tela sem perder o documento", async () => {
+  const onRetry = vi.fn().mockRejectedValue(
+    new ApiError("A análise por IA está sem créditos disponíveis. O documento continua salvo; tente novamente mais tarde.", 409),
+  );
+  render(<ExamDetailPanel
+    exam={detail({
+      status: "Sem análise",
+      document,
+      analysisHold: "NaoSolicitada",
+      capabilities: { ...capabilities, canRequestAnalysis: true },
+    })}
+    onRetry={onRetry}
+  />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Analisar com IA" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("sem créditos disponíveis");
+  expect(screen.getByRole("button", { name: "Abrir laudo original em nova aba" })).toBeInTheDocument();
+});
+
+test("falha da análise avisa que o documento original continua salvo", () => {
+  render(<ExamDetailPanel exam={detail({ status: "Falhou", document, error: "Não foi possível processar o laudo.", attemptsRemaining: 1, capabilities: { ...capabilities, canReprocess: true } })} onRetry={vi.fn()} />);
+
+  expect(screen.getByLabelText("Status: Análise falhou — o documento está salvo; a análise por IA falhou")).toBeInTheDocument();
+  expect(screen.getByText("O documento original continua salvo e pode ser aberto acima.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Abrir laudo original em nova aba" })).toBeInTheDocument();
 });

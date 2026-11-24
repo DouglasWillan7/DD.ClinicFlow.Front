@@ -38,6 +38,7 @@ const capabilities: PatientExamDetail["capabilities"] = {
   canEditRevision: true,
   canClassify: false,
   canValidate: true,
+  canRequestAnalysis: false,
 };
 
 function detail(overrides: Partial<PatientExamDetail> = {}): PatientExamDetail {
@@ -61,6 +62,7 @@ function detail(overrides: Partial<PatientExamDetail> = {}): PatientExamDetail {
     activeRevision: null,
     draftRevision: revision,
     attemptsRemaining: 2,
+    analysisHold: null,
     capabilities,
     ...overrides,
   };

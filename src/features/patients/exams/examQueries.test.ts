@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest";
 import type { ExamListFilters } from "../../../api/types";
 import {
+  analysisUnavailableMessage,
   examKeys,
   examListSearchParams,
+  normalizeExamAnalysisAvailability,
   normalizePatientExamDetail,
   normalizePatientExamPage,
 } from "./examQueries";
@@ -100,5 +102,48 @@ describe("exam transport normalization", () => {
 
     expect(detail.capabilities.canDiscardFailedExam).toBe(false);
     expect(detail.capabilities.canDiscardExam).toBe(false);
+  });
+});
+
+describe("documento guardado sem análise por IA", () => {
+  test("traduz Anexado para o estado apresentável nos dois sentidos", () => {
+    const page = normalizePatientExamPage({
+      items: [{ id: "exam-1", patientId: "patient-1", name: "Ultrassom", category: "Imagem", scheduledOn: null, status: "Anexado", version: 1, hasDocument: true, averageConfidence: null, createdAtUtc: "2026-11-24T10:00:00Z", updatedAtUtc: "2026-11-24T10:00:00Z" }],
+      nextCursor: null,
+      capabilities: { canRequest: true, canAttachDocument: true },
+    });
+
+    expect(page.items[0].status).toBe("Sem análise");
+    expect(examListSearchParams({ ...filters, statuses: ["Sem análise"] }).get("statuses")).toBe("Anexado");
+  });
+
+  test("resposta de backend anterior não inventa motivo nem pedido de análise", () => {
+    const detail = normalizePatientExamDetail({
+      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: null,
+      name: "Ultrassom", category: "Imagem", scheduledOn: null, status: "Falhou", version: 1, error: null,
+      createdAtUtc: "2026-11-24T10:00:00Z", updatedAtUtc: "2026-11-24T10:00:00Z", processedAtUtc: null,
+      cancelledByUserId: null, cancelledAtUtc: null, document: null, activeRevision: null, draftRevision: null,
+      attemptsRemaining: 0,
+      capabilities: { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
+    });
+
+    expect(detail.analysisHold).toBeNull();
+    expect(detail.capabilities.canRequestAnalysis).toBe(false);
+  });
+
+  test("só uma recusa explícita bloqueia a análise e todo motivo tem texto próprio", () => {
+    expect(normalizeExamAnalysisAvailability({ available: true, reason: null })).toEqual({ available: true, reason: null });
+    // Resposta incompleta não esconde a opção: o backend decide de novo no envio.
+    expect(normalizeExamAnalysisAvailability({})).toEqual({ available: true, reason: null });
+
+    const semCreditos = normalizeExamAnalysisAvailability({ available: false, reason: "SemCreditos" });
+    expect(semCreditos).toEqual({ available: false, reason: "SemCreditos" });
+    expect(analysisUnavailableMessage(semCreditos)).toBe("A análise por IA está sem créditos disponíveis no momento.");
+
+    const desconhecido = normalizeExamAnalysisAvailability({ available: false, reason: "MotivoNovo" });
+    expect(desconhecido).toEqual({ available: false, reason: null });
+    expect(analysisUnavailableMessage(desconhecido)).toBe("A análise por IA está indisponível no momento.");
+    expect(analysisUnavailableMessage({ available: true, reason: null })).toBeNull();
+    expect(analysisUnavailableMessage(null)).toBeNull();
   });
 });

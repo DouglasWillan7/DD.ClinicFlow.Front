@@ -201,6 +201,8 @@ export interface Clinic {
   subscriptionStatus: "Active" | "Suspended" | "Canceled";
   maxDoctors: number | null;
   createdAtUtc: string;
+  /** Opção do administrador; ausente em respostas antigas guardadas em cache (vale como ligada). */
+  aiExamAnalysisEnabled?: boolean;
 }
 
 export interface Member {
@@ -657,7 +659,25 @@ export type ExamStatus =
   | "Em revisão"
   | "Validado"
   | "Falhou"
-  | "Cancelado";
+  | "Cancelado"
+  /** `Anexado` no backend: documento guardado, sem análise por IA. */
+  | "Sem análise";
+
+/** Por que um documento está guardado sem análise por IA. */
+export type ExamAnalysisHold = "NaoSolicitada" | "Indisponivel";
+
+/** Espelha `ExamAnalysisUnavailableReason` do backend; nunca vai cru para a tela. */
+export type ExamAnalysisUnavailableReason =
+  | "Desabilitada"
+  | "NaoConfigurada"
+  | "DesabilitadaPelaClinica"
+  | "SemCreditos"
+  | "CredencialRecusada";
+
+export interface ExamAnalysisAvailability {
+  available: boolean;
+  reason: ExamAnalysisUnavailableReason | null;
+}
 
 export type ExamCategory =
   | "Não classificado"
@@ -737,6 +757,8 @@ export interface PatientExamDetailCapabilities {
   canEditRevision: boolean;
   canClassify: boolean;
   canValidate: boolean;
+  /** Pedir a análise por IA de um documento que foi só guardado. */
+  canRequestAnalysis: boolean;
 }
 
 export interface PatientExamStructuredResult {
@@ -829,6 +851,8 @@ export interface PatientExamDetail {
   draftRevision: PatientExamRevision | null;
   attemptsRemaining: number;
   capabilities: PatientExamDetailCapabilities;
+  /** Só em "Sem análise". */
+  analysisHold: ExamAnalysisHold | null;
 }
 
 export interface CreateExamRequest {

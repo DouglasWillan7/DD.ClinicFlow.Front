@@ -68,15 +68,17 @@ test("renderiza grupos, categoria, status e seleção sem depender só da cor", 
   expect(screen.getByRole("button", { name: /Perfil lipídico/ })).toHaveTextContent("Em revisão");
 });
 
-test("os sete estados combinam rótulo, ícone semântico, tom e nome acessível exato", () => {
+test("os oito estados combinam rótulo, ícone semântico, tom e nome acessível exato", () => {
+  // Estado, rótulo na tela, significado e tom. "Falhou" fala só da análise: o documento está salvo.
   const expected = [
-    ["Solicitado", "aguardando laudo", "neutral"],
-    ["Pendente", "aguardando processamento", "primary"],
-    ["Processando", "processamento em andamento", "primary"],
-    ["Em revisão", "revisão clínica necessária", "warning"],
-    ["Validado", "resultado validado", "success"],
-    ["Falhou", "falha no processamento", "danger"],
-    ["Cancelado", "solicitação cancelada", "muted"],
+    ["Solicitado", "Solicitado", "aguardando laudo", "neutral"],
+    ["Pendente", "Pendente", "aguardando processamento", "primary"],
+    ["Processando", "Processando", "processamento em andamento", "primary"],
+    ["Em revisão", "Em revisão", "revisão clínica necessária", "warning"],
+    ["Validado", "Validado", "resultado validado", "success"],
+    ["Falhou", "Análise falhou", "o documento está salvo; a análise por IA falhou", "danger"],
+    ["Cancelado", "Cancelado", "solicitação cancelada", "muted"],
+    ["Sem análise", "Sem análise", "documento salvo, sem análise por IA", "neutral"],
   ] as const;
   setup({
     pages: [{
@@ -87,10 +89,10 @@ test("os sete estados combinam rótulo, ícone semântico, tom e nome acessível
     hasNextPage: false,
   });
 
-  for (const [status, meaning, tone] of expected) {
-    const badge = screen.getByLabelText(`Status: ${status} — ${meaning}`);
-    expect(badge).toHaveAccessibleName(`Status: ${status} — ${meaning}`);
-    expect(badge).toHaveTextContent(status);
+  for (const [, label, meaning, tone] of expected) {
+    const badge = screen.getByLabelText(`Status: ${label} — ${meaning}`);
+    expect(badge).toHaveAccessibleName(`Status: ${label} — ${meaning}`);
+    expect(badge).toHaveTextContent(label);
     expect(badge.querySelector("svg")).toBeInTheDocument();
     expect(badge).toHaveAttribute("data-tone", tone);
   }
@@ -192,4 +194,61 @@ test("erro inicial oferece retentativa sem fingir lista vazia", () => {
   setup({ pages: [], error: new Error("rede") });
   expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar os exames");
   expect(screen.queryByText("Nenhum exame registrado.")).not.toBeInTheDocument();
+});
+
+test("todo exame com documento abre o PDF pela linha, em qualquer estado da análise", async () => {
+  const user = userEvent.setup();
+  const onOpenDocument = vi.fn().mockResolvedValue(undefined);
+  const { props } = setup({
+    pages: [{
+      items: [
+        exam("failed", "Função tireoidiana", "Falhou"),
+        exam("stored", "Ultrassom", "Sem análise"),
+        exam("requested", "Glicemia", "Solicitado"),
+      ],
+      nextCursor: null,
+      capabilities: { canRequest: true, canAttachDocument: true },
+    }],
+    hasNextPage: false,
+    onOpenDocument,
+  });
+
+  expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent))
+    .toEqual(["Análise com falha", "Em andamento", "Documentos sem análise"]);
+  // Solicitação sem laudo não tem o que abrir.
+  const documentButtons = screen.getAllByRole("button", { name: "Abrir PDF" });
+  expect(documentButtons).toHaveLength(2);
+  expect(documentButtons[0]).toHaveAccessibleDescription("Função tireoidiana");
+  expect(documentButtons[1]).toHaveAccessibleDescription("Ultrassom");
+
+  await user.click(documentButtons[0]);
+
+  expect(onOpenDocument).toHaveBeenCalledWith("failed");
+  // Abrir o PDF não troca o exame selecionado.
+  expect(props.onSelect).not.toHaveBeenCalled();
+});
+
+test("avisa quando o PDF não abre e mantém a lista", async () => {
+  const user = userEvent.setup();
+  setup({
+    pages: [{
+      items: [exam("stored", "Ultrassom", "Sem análise")],
+      nextCursor: null,
+      capabilities: { canRequest: true, canAttachDocument: true },
+    }],
+    hasNextPage: false,
+    onOpenDocument: vi.fn().mockRejectedValue(new Error("rede")),
+  });
+
+  await user.click(screen.getByRole("button", { name: "Abrir PDF" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("O laudo original está indisponível no momento.");
+  expect(screen.getByText("Ultrassom")).toBeInTheDocument();
+});
+
+test("o filtro de status usa os rótulos da tela, incluindo documento sem análise", () => {
+  setup();
+  const status = screen.getByRole("combobox", { name: "Status" });
+  expect(within(status).getByRole("option", { name: "Análise falhou" })).toHaveValue("Falhou");
+  expect(within(status).getByRole("option", { name: "Sem análise" })).toHaveValue("Sem análise");
 });

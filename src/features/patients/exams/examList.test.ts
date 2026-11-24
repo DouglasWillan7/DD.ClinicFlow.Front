@@ -31,13 +31,15 @@ describe("groupExams", () => {
       exam("pending", "Pendente"),
       exam("review", "Em revisão"),
       exam("failed", "Falhou"),
+      exam("stored", "Sem análise"),
     ]);
 
     expect(groups.map((group) => [group.label, group.items.map((item) => item.id)]))
       .toEqual([
         ["Revisar", ["review"]],
-        ["Falhas", ["failed"]],
+        ["Análise com falha", ["failed"]],
         ["Em andamento", ["pending"]],
+        ["Documentos sem análise", ["stored"]],
         ["Histórico validado", ["validated"]],
       ]);
   });
@@ -56,9 +58,10 @@ describe("groupExams", () => {
 
   test("mapeia todo estado para um grupo nomeado", () => {
     expect([
-      "Solicitado", "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Cancelado",
+      "Solicitado", "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Cancelado", "Sem análise",
     ].map((status) => examGroupLabel(status as PatientExamSummary["status"]))).toEqual([
-      "Em andamento", "Em andamento", "Em andamento", "Revisar", "Histórico validado", "Falhas", "Cancelados",
+      "Em andamento", "Em andamento", "Em andamento", "Revisar", "Histórico validado",
+      "Análise com falha", "Cancelados", "Documentos sem análise",
     ]);
   });
 });

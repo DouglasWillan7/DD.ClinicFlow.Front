@@ -255,3 +255,16 @@ test("descarta campos clínicos/PII injetados no evento e não persiste notifica
   expect(screen.queryByText(/PII injetada|Dado clínico injetado|secret-key/)).not.toBeInTheDocument();
   expect(storage).not.toHaveBeenCalled();
 });
+
+test("análise indisponível avisa que o documento ficou salvo", async () => {
+  const select = vi.fn();
+  const user = userEvent.setup();
+  const rendered = renderRealtime({ select });
+  await act(async () => undefined);
+  act(() => rendered.connection.emit({ examId: "exam-1", patientId: "patient-1", status: "Anexado", version: 2, updatedAtUtc: "2026-11-24T12:00:00Z" }));
+
+  const toast = screen.getByRole("status", { name: "Atualização de exame" });
+  expect(toast).toHaveTextContent("Documento salvo; a análise por IA está indisponível");
+  await user.click(screen.getByRole("button", { name: "Abrir exame" }));
+  expect(select).toHaveBeenCalledWith("exam-1");
+});

@@ -98,6 +98,22 @@ export function ClinicSettingsPage() {
     },
   });
 
+  // Salva na hora, como a troca de plano: é uma opção isolada, sem relação com o formulário acima.
+  const examAnalysisMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      request<Clinic>("/clinics/current/exam-analysis", {
+        method: "PUT",
+        body: JSON.stringify({ enabled }),
+      }),
+    onSuccess: (clinic) => {
+      queryClient.setQueryData(clinicKey, clinic);
+      // A tela de exames pergunta à API se a análise pode começar; a resposta acabou de mudar.
+      void queryClient.invalidateQueries({ queryKey: ["exams", "analysis-availability"] });
+    },
+  });
+  // Resposta antiga em cache não traz o campo; a opção nasce ligada no backend.
+  const examAnalysisEnabled = query.data?.aiExamAnalysisEnabled ?? true;
+
   const submit = handleSubmit((values) => mutation.mutate(values));
 
   return (
@@ -231,6 +247,42 @@ export function ClinicSettingsPage() {
                   {planMutation.error instanceof ApiError
                     ? planMutation.error.message
                     : "Não foi possível alterar o plano."}
+                </InlineError>
+              ) : null}
+            </section>
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <h2>Análise de laudos por IA</h2>
+                  <p>
+                    O PDF anexado é sempre guardado no histórico do paciente. A
+                    análise por IA é um passo opcional sobre ele.
+                  </p>
+                </div>
+              </div>
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={examAnalysisEnabled}
+                  disabled={examAnalysisMutation.isPending}
+                  onChange={(event) =>
+                    examAnalysisMutation.mutate(event.target.checked)
+                  }
+                />
+                <span>
+                  Permitir análise por IA
+                  <small>
+                    {examAnalysisEnabled
+                      ? "Quem anexa um laudo pode pedir a extração dos resultados para revisão do médico."
+                      : "Os laudos são apenas guardados. Nenhum documento desta clínica é enviado para análise."}
+                  </small>
+                </span>
+              </label>
+              {examAnalysisMutation.isError ? (
+                <InlineError>
+                  {examAnalysisMutation.error instanceof ApiError
+                    ? examAnalysisMutation.error.message
+                    : "Não foi possível alterar a análise por IA."}
                 </InlineError>
               ) : null}
             </section>

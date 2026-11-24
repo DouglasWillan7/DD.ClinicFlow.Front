@@ -70,7 +70,8 @@
 }
 
 /* O erro da troca de plano fica logo abaixo das opções. */
-.planOptions + p {
+.planOptions + p,
+.toggle + p {
   margin-top: var(--space-3);
 }
 

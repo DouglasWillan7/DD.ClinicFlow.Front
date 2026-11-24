@@ -12,6 +12,7 @@ import {
 } from "react";
 import { ApiError } from "../../../api/client";
 import type {
+  ExamAnalysisAvailability,
   ExamCategory,
   PatientExamDetail,
   PatientExamSummary,
@@ -19,7 +20,7 @@ import type {
 import { Button } from "../../../components/Button";
 import { Field, SelectField } from "../../../components/Field";
 import { formatFileSize } from "./examDetail";
-import { toExamCategoryApi } from "./examQueries";
+import { analysisUnavailableMessage, toExamCategoryApi } from "./examQueries";
 import { MAX_EXAM_PDF_BYTES, validateExamPdf } from "./examFileValidation";
 import { examRequestCategories } from "./examRequestForm";
 import { summarizeExtraction } from "./extractionSummary";
@@ -32,6 +33,11 @@ interface ExamUploadComposerProps {
   pendingRequests: PatientExamSummary[];
   /** Detalhe vivo do exame aceito nesta sessão do modal — alimenta as fases e o resumo. */
   trackedExam: PatientExamDetail | null;
+  /**
+   * Se a análise por IA pode começar agora. Sem resposta ainda, a opção fica disponível: quem
+   * decide de fato é o backend, que guarda o documento de qualquer jeito.
+   */
+  analysisAvailability?: ExamAnalysisAvailability | null;
   onUpload(body: FormData, signal: AbortSignal): Promise<PatientExamDetail>;
   onTrackChange(examId: string | null): void;
   onOpenExam(examId: string): void;
@@ -57,6 +63,7 @@ export function ExamUploadComposer({
   patientName,
   pendingRequests,
   trackedExam,
+  analysisAvailability,
   onUpload,
   onTrackChange,
   onOpenExam,
@@ -74,16 +81,26 @@ export function ExamUploadComposer({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [acceptedExamId, setAcceptedExamId] = useState<string | null>(null);
+  const [wantsAnalysis, setWantsAnalysis] = useState(true);
+  const [acceptedExam, setAcceptedExam] = useState<PatientExamDetail | null>(null);
 
-  const tracked = acceptedExamId && trackedExam?.id === acceptedExamId ? trackedExam : null;
-  const stage = !acceptedExamId
+  // Enviar e analisar são passos separados: o documento é guardado mesmo sem IA.
+  const analysisUnavailable = analysisUnavailableMessage(analysisAvailability);
+  const analyze = wantsAnalysis && !analysisUnavailable;
+
+  // A resposta do envio já diz o estado inicial; o detalhe vivo assume quando chega.
+  const tracked = acceptedExam
+    ? (trackedExam?.id === acceptedExam.id ? trackedExam : acceptedExam)
+    : null;
+  const stage = !tracked
     ? (sending ? "sending" : "form")
-    : tracked?.status === "Em revisão"
+    : tracked.status === "Em revisão"
       ? "done"
-      : tracked?.status === "Falhou"
+      : tracked.status === "Falhou"
         ? "failed"
-        : "processing";
+        : tracked.status === "Sem análise"
+          ? "stored"
+          : "processing";
   const activeStage = stage === "sending" ? 0 : tracked?.status === "Processando" ? 2 : 1;
 
   /** Zera só o ciclo de envio: o arquivo escolhido sobrevive para o reenvio após descartar uma duplicata. */
@@ -91,7 +108,7 @@ export function ExamUploadComposer({
     setErrors({});
     setDuplicateId(null);
     setSending(false);
-    setAcceptedExamId(null);
+    setAcceptedExam(null);
   }
 
   function resetForm() {
@@ -100,6 +117,7 @@ export function ExamUploadComposer({
     setLinkChoice(standaloneChoice);
     setName("");
     setCategory("Laboratório");
+    setWantsAnalysis(true);
   }
 
   // O elemento só existe enquanto o modal está aberto: abrir na montagem evita
@@ -189,6 +207,7 @@ export function ExamUploadComposer({
     } else {
       body.append("requestExamId", linkChoice);
     }
+    body.append("analyze", analyze ? "true" : "false");
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -197,7 +216,7 @@ export function ExamUploadComposer({
     setDuplicateId(null);
     try {
       const exam = await onUpload(body, controller.signal);
-      setAcceptedExamId(exam.id);
+      setAcceptedExam(exam);
       onTrackChange(exam.id);
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -336,6 +355,26 @@ export function ExamUploadComposer({
               </div>
             ) : null}
 
+            <label className={styles.analysisOption}>
+              {/* O rótulo inteiro é clicável, mas o nome acessível é só a opção; a explicação é a descrição. */}
+              <input
+                type="checkbox"
+                checked={analyze}
+                disabled={Boolean(analysisUnavailable)}
+                aria-label="Analisar com IA"
+                aria-describedby="exam-upload-analysis-hint"
+                onChange={(event) => setWantsAnalysis(event.target.checked)}
+              />
+              <span>
+                <strong>Analisar com IA</strong>
+                <span id="exam-upload-analysis-hint">
+                  {analysisUnavailable
+                    ? `${analysisUnavailable} O documento será guardado e a análise pode ser pedida depois.`
+                    : "Extrai os resultados do PDF para a sua revisão. Desmarque para só guardar o documento."}
+                </span>
+              </span>
+            </label>
+
             {errors.submit ? (
               <div className={styles.submitError} role="alert">
                 <span>{errors.submit}</span>
@@ -349,7 +388,9 @@ export function ExamUploadComposer({
 
             <div className={styles.actions}>
               <Button type="button" variant="ghost" onClick={close}>Cancelar</Button>
-              <Button type="button" loading={sending} onClick={() => void submit()}>Enviar laudo</Button>
+              <Button type="button" loading={sending} onClick={() => void submit()}>
+                {analyze ? "Enviar laudo" : "Guardar documento"}
+              </Button>
             </div>
           </>
         ) : null}
@@ -433,6 +474,28 @@ export function ExamUploadComposer({
           </>
         ) : null}
 
+        {stage === "stored" && tracked ? (
+          <>
+            <div className={styles.successHeader} role="status">
+              <span className={styles.successIcon} aria-hidden="true">
+                <Check size={20} />
+              </span>
+              <div>
+                <strong>Documento salvo</strong>
+                <span>
+                  {tracked.analysisHold === "Indisponivel"
+                    ? `${analysisUnavailable ?? "A análise por IA estava indisponível."} O PDF está guardado no histórico; peça a análise pelo exame quando ela voltar.`
+                    : "Guardado sem análise por IA. Você pode pedir a análise depois, pelo exame."}
+                </span>
+              </div>
+            </div>
+            <div className={styles.actions}>
+              <Button type="button" variant="secondary" onClick={attachAnother}>Anexar outro</Button>
+              <Button type="button" onClick={() => review(tracked.id)}>Abrir exame</Button>
+            </div>
+          </>
+        ) : null}
+
         {stage === "failed" && tracked ? (
           <>
             <div className={styles.failureHeader} role="alert">
@@ -440,8 +503,9 @@ export function ExamUploadComposer({
                 <AlertTriangle size={20} />
               </span>
               <div>
-                <strong>A extração falhou</strong>
-                <span>{tracked.error ?? "Não foi possível ler este laudo."}</span>
+                {/* O envio deu certo: o que falhou foi a análise, e o texto não pode confundir os dois. */}
+                <strong>Documento salvo, mas a análise por IA falhou</strong>
+                <span>{tracked.error ?? "Não foi possível ler este laudo."} O PDF continua disponível no exame.</span>
               </div>
             </div>
             <div className={styles.actions}>

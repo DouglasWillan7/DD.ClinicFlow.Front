@@ -1,9 +1,11 @@
 import type { PatientExamPage, PatientExamSummary } from "../../../api/types";
 
+// A ordem acompanha a ordenação da API (`ExamRepository.ListPageAsync`): mudar uma pede a outra.
 const groupOrder = [
   "Revisar",
-  "Falhas",
+  "Análise com falha",
   "Em andamento",
+  "Documentos sem análise",
   "Histórico validado",
   "Cancelados",
 ] as const;
@@ -12,7 +14,8 @@ type ExamGroupLabel = (typeof groupOrder)[number];
 
 export function examGroupLabel(status: PatientExamSummary["status"]): ExamGroupLabel {
   if (status === "Em revisão") return "Revisar";
-  if (status === "Falhou") return "Falhas";
+  if (status === "Falhou") return "Análise com falha";
+  if (status === "Sem análise") return "Documentos sem análise";
   if (status === "Validado") return "Histórico validado";
   if (status === "Cancelado") return "Cancelados";
   return "Em andamento";

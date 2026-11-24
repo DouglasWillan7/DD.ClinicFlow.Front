@@ -8,13 +8,16 @@ import styles from "./FailedExamRecovery.module.css";
 
 interface FailedExamRecoveryProps {
   exam: PatientExamDetail;
-  onRetry?(): void;
+  /** Por que a análise por IA não pode recomeçar agora; nulo quando pode. */
+  analysisUnavailable?: string | null;
+  onRetry?(): Promise<void> | void;
   onDiscard?(): Promise<void>;
   onReload?(): void;
 }
 
 export function FailedExamRecovery({
   exam,
+  analysisUnavailable,
   onRetry,
   onDiscard,
   onReload,
@@ -22,6 +25,8 @@ export function FailedExamRecovery({
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<"conflict" | "generic" | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const triggerContainerRef = useRef<HTMLSpanElement>(null);
   const confirmationTitleRef = useRef<HTMLHeadingElement>(null);
   const mountedRef = useRef(true);
@@ -68,6 +73,21 @@ export function FailedExamRecovery({
     }
   }
 
+  async function retry() {
+    if (!onRetry || retrying) return;
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      await onRetry();
+    } catch (caught) {
+      if (mountedRef.current) {
+        setRetryError(caught instanceof Error ? caught.message : "Não foi possível reprocessar o laudo.");
+      }
+    } finally {
+      if (mountedRef.current) setRetrying(false);
+    }
+  }
+
   const confirmationId = `discard-confirmation-${exam.id}`;
 
   return (
@@ -79,12 +99,25 @@ export function FailedExamRecovery({
       <p className={styles.processingError} role="alert">
         {exam.error || "A extração não foi concluída. Tente novamente ou envie outro PDF."}
       </p>
+      {/* A falha é da análise por IA: o envio deu certo e o PDF segue no histórico. */}
+      <p className={styles.documentKept}>
+        O documento original continua salvo e pode ser aberto acima.
+      </p>
       <strong>{processingAttemptsLabel(exam.attemptsRemaining)}</strong>
+      {analysisUnavailable && exam.capabilities.canReprocess && exam.attemptsRemaining > 0 ? (
+        <p className={styles.documentKept}>{analysisUnavailable}</p>
+      ) : null}
+      {retryError ? <p className={styles.processingError} role="alert">{retryError}</p> : null}
 
       {!confirming ? (
         <div className={styles.actions}>
           {exam.capabilities.canReprocess && exam.attemptsRemaining > 0 && onRetry ? (
-            <Button variant="secondary" onClick={onRetry}>
+            <Button
+              variant="secondary"
+              loading={retrying}
+              disabled={Boolean(analysisUnavailable)}
+              onClick={() => void retry()}
+            >
               <RefreshCcw size={16} aria-hidden="true" />
               Tentar processar novamente
             </Button>

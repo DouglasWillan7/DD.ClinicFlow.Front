@@ -33,6 +33,7 @@ function detail(hasDocument = false): PatientExamDetail {
     activeRevision: null,
     draftRevision: null,
     attemptsRemaining: 3,
+    analysisHold: null,
     capabilities: {
       canEditRequest: !hasDocument,
       canCancelRequest: !hasDocument,
@@ -44,6 +45,7 @@ function detail(hasDocument = false): PatientExamDetail {
       canEditRevision: false,
       canClassify: false,
       canValidate: false,
+      canRequestAnalysis: false,
     },
   };
 }

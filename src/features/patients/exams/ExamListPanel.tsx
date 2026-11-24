@@ -2,12 +2,15 @@ import clsx from "clsx";
 import {
   Activity,
   FileQuestion,
+  FileText,
   FlaskConical,
   HeartPulse,
   Image,
+  LoaderCircle,
   Search,
   type LucideIcon,
 } from "lucide-react";
+import { useState } from "react";
 import type {
   ExamCategory,
   ExamListFilters,
@@ -17,12 +20,14 @@ import type {
   PatientExamSummary,
 } from "../../../api/types";
 import { fallbackTimeZone } from "../../clinic/clinicTimeZone";
+import { examDocumentUnavailableMessage } from "./examDocument";
 import { flattenExamPages, groupExams } from "./examList";
+import { examStatusLabels } from "./examQueries";
 import { ExamStatusBadge } from "./ExamStatusBadge";
 import styles from "./ExamListPanel.module.css";
 
 const statusOptions: ExamStatus[] = [
-  "Solicitado", "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Cancelado",
+  "Solicitado", "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Sem análise", "Cancelado",
 ];
 const categoryOptions: ExamCategory[] = [
   "Não classificado", "Laboratório", "Imagem", "Endoscopia", "Cardiologia",
@@ -50,6 +55,11 @@ export interface ExamListPanelProps {
   onRetry(): void;
   onRequest(): void;
   onAttach(): void;
+  /**
+   * Abre o PDF do exame direto da lista. O documento existe em qualquer estado, inclusive quando a
+   * análise por IA falhou ou nem foi pedida, e não deve depender de entrar no detalhe.
+   */
+  onOpenDocument?(examId: string): Promise<void>;
   /** Fuso da clínica; as datas de atualização vêm em UTC. */
   timeZone?: string;
 }
@@ -58,37 +68,81 @@ function ExamRow({
   exam,
   selected,
   timeZone,
+  openingDocument,
   onSelect,
+  onOpenDocument,
 }: {
   timeZone: string;
   exam: PatientExamSummary;
   selected: boolean;
+  openingDocument: boolean;
   onSelect(): void;
+  onOpenDocument?(): void;
 }) {
   const CategoryIcon = categoryIcons[exam.category];
   const date = exam.scheduledOn
     ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${exam.scheduledOn}T00:00:00Z`))
     : new Intl.DateTimeFormat("pt-BR", { timeZone }).format(new Date(exam.updatedAtUtc));
+  const nameId = `exam-row-name-${exam.id}`;
+  const showDocument = exam.hasDocument && onOpenDocument;
   return (
-    <button
-      type="button"
-      className={clsx(styles.examRow, selected && styles.examRowSelected)}
-      aria-pressed={selected}
-      onClick={onSelect}
-    >
-      <span className={styles.categoryIcon} aria-hidden="true">
-        <CategoryIcon size={18} />
-      </span>
-      <span className={styles.examCopy}>
-        <strong>{exam.name}</strong>
-        <span>{date} · {exam.category}</span>
-      </span>
-      <ExamStatusBadge status={exam.status} />
-    </button>
+    <div className={clsx(styles.examRowWrap, selected && styles.examRowSelected)}>
+      <button
+        type="button"
+        className={styles.examRow}
+        aria-pressed={selected}
+        onClick={onSelect}
+      >
+        <span className={styles.categoryIcon} aria-hidden="true">
+          <CategoryIcon size={18} />
+        </span>
+        <span className={styles.examCopy}>
+          <strong id={nameId}>{exam.name}</strong>
+          <span>{date} · {exam.category}</span>
+        </span>
+        <ExamStatusBadge status={exam.status} />
+      </button>
+      {showDocument ? (
+        // Fora do botão da linha: botão dentro de botão é inválido e some para o leitor de tela.
+        // O nome do exame entra como descrição, para o rótulo curto bastar em cada linha.
+        <button
+          type="button"
+          className={styles.documentButton}
+          aria-label="Abrir PDF"
+          aria-describedby={nameId}
+          aria-busy={openingDocument}
+          title="Abrir PDF"
+          disabled={openingDocument}
+          onClick={onOpenDocument}
+        >
+          {openingDocument
+            ? <LoaderCircle className={styles.spinning} size={18} aria-hidden="true" />
+            : <FileText size={18} aria-hidden="true" />}
+          <span>PDF</span>
+        </button>
+      ) : null}
+    </div>
   );
 }
 
 export function ExamListPanel(props: ExamListPanelProps) {
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
+  const { onOpenDocument } = props;
+
+  async function openDocument(examId: string) {
+    if (!onOpenDocument || openingDocumentId) return;
+    setDocumentError(null);
+    setOpeningDocumentId(examId);
+    try {
+      await onOpenDocument(examId);
+    } catch {
+      setDocumentError(examDocumentUnavailableMessage);
+    } finally {
+      setOpeningDocumentId(null);
+    }
+  }
+
   const items = flattenExamPages(props.pages);
   const groups = groupExams(items);
   const filtered = Boolean(
@@ -129,7 +183,9 @@ export function ExamListPanel(props: ExamListPanelProps) {
             })}
           >
             <option value="">Todos</option>
-            {statusOptions.map((status) => <option key={status}>{status}</option>)}
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>{examStatusLabels[status]}</option>
+            ))}
           </select>
         </label>
         <label>
@@ -198,6 +254,12 @@ export function ExamListPanel(props: ExamListPanelProps) {
               <button type="button" onClick={props.onRetry}>Tentar novamente</button>
             </div>
           ) : null}
+          {documentError ? (
+            <div className={styles.error} role="alert">
+              <span>{documentError}</span>
+              <button type="button" onClick={() => setDocumentError(null)}>Fechar aviso</button>
+            </div>
+          ) : null}
           {groups.map((group) => (
             <section key={group.label} className={styles.group} aria-labelledby={`exam-group-${group.label}`}>
               <h3 id={`exam-group-${group.label}`}>{group.label}</h3>
@@ -208,7 +270,9 @@ export function ExamListPanel(props: ExamListPanelProps) {
                     exam={exam}
                     selected={exam.id === props.selectedExamId}
                     timeZone={props.timeZone ?? fallbackTimeZone}
+                    openingDocument={openingDocumentId === exam.id}
                     onSelect={() => props.onSelect(exam.id)}
+                    onOpenDocument={onOpenDocument ? () => void openDocument(exam.id) : undefined}
                   />
                 ))}
               </div>

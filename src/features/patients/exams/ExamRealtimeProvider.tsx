@@ -65,7 +65,7 @@ interface ExamToast {
   examId: string;
   patientName: string;
   examName: string;
-  status: "EmRevisao" | "Falhou";
+  status: "EmRevisao" | "Falhou" | "Anexado";
   onSelectExam(examId: string): void;
   scope: string;
 }
@@ -75,6 +75,13 @@ interface ExamRealtimeContextValue {
   scope: string | null;
   registerVisiblePatient(value: VisiblePatientContext): () => void;
 }
+
+// Em todos os casos o documento está salvo; o aviso fala só do que houve com a análise por IA.
+const toastMessages: Record<ExamToast["status"], { message: string; action: string }> = {
+  EmRevisao: { message: "Pronto para revisão", action: "Revisar agora" },
+  Falhou: { message: "A análise por IA falhou; o documento está salvo", action: "Ver falha" },
+  Anexado: { message: "Documento salvo; a análise por IA está indisponível", action: "Abrir exame" },
+};
 
 const ExamRealtimeContext = createContext<ExamRealtimeContextValue | null>(null);
 
@@ -157,7 +164,8 @@ export function ExamRealtimeProvider({
       void queryClient.invalidateQueries({ queryKey: examKeys.patient(event.patientId) });
       void queryClient.invalidateQueries({ queryKey: examKeys.detail(event.examId) });
 
-      if (event.status !== "EmRevisao" && event.status !== "Falhou") return;
+      // "Anexado" vindo do worker: a análise pedida não pôde rodar e o documento ficou só guardado.
+      if (event.status !== "EmRevisao" && event.status !== "Falhou" && event.status !== "Anexado") return;
       const exam = visible.exams.find((item) => item.id === event.examId);
       if (!exam) return;
       setToast({
@@ -198,13 +206,13 @@ export function ExamRealtimeProvider({
           <div>
             <span>{toast.patientName}</span>
             <strong>{toast.examName}</strong>
-            <p>{toast.status === "EmRevisao" ? "Pronto para revisão" : "A extração falhou"}</p>
+            <p>{toastMessages[toast.status].message}</p>
           </div>
           <Button type="button" variant="secondary" onClick={() => {
             toast.onSelectExam(toast.examId);
             setToast(null);
           }}>
-            {toast.status === "EmRevisao" ? "Revisar agora" : "Ver falha"}
+            {toastMessages[toast.status].action}
           </Button>
         </aside>
       ) : null}
