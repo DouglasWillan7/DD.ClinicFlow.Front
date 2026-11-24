@@ -35,7 +35,6 @@ import { listReachableDoctors } from "./agendaDoctors";
 import { getAuthScope } from "../../auth/sessionScope";
 import { ContextBar } from "../../components/ContextBar";
 import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
-import { onboardingKey } from "../onboarding/onboarding";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { AppointmentSummary } from "./AppointmentSummary";
 import { appointmentTypeLabels, parseDateOnly } from "./appointmentLabels";
@@ -412,7 +411,6 @@ export function NewAppointmentPage() {
         queryKey: attempt.availabilityKey,
         exact: true,
       });
-      void queryClient.invalidateQueries({ queryKey: onboardingKey });
       const destination = openedFromHome
         ? `/app/inicio?date=${attempt.date}&appointmentId=${encodeURIComponent(appointment.id)}&created=true`
         : `/app/agenda?date=${attempt.date}&doctorId=${encodeURIComponent(appointment.doctorUserId)}&appointmentId=${encodeURIComponent(appointment.id)}&created=true`;

@@ -22,7 +22,6 @@ import type {
   Clinic,
   DoctorAvailability,
   Member,
-  OnboardingStatus,
 } from "../../api/types";
 import { parseGuid } from "../../api/identifiers";
 import { useNavigate, useSearchParams } from "../../app/navigation";
@@ -35,7 +34,7 @@ import { FilterChips } from "../../components/FilterChips";
 import { OnboardingChecklist } from "../onboarding/OnboardingChecklist";
 import { AppointmentPatientActionDialog } from "../patient-actions/AppointmentPatientActionDialog";
 import { DoctorBlocksCard } from "./DoctorBlocksCard";
-import { onboardingKey } from "../onboarding/onboarding";
+import { useOnboardingStatus } from "../onboarding/useOnboardingStatus";
 import {
   appointmentTypeLabels,
   parseDateOnly,
@@ -110,10 +109,8 @@ export function AgendaPage({
       `/clinics/${session?.clinicId}/members/summary`,
     ),
   });
-  const onboarding = useQuery({
-    queryKey: onboardingKey,
+  const onboarding = useOnboardingStatus({
     enabled: can(session, "ManageClinicSettings"),
-    queryFn: () => request<OnboardingStatus>("/onboarding/status"),
   });
 
   const timeZone = clinic.data?.timeZoneId ?? "America/Sao_Paulo";

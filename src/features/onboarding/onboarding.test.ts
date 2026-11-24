@@ -2,6 +2,7 @@ import type { OnboardingStatus } from "../../api/types";
 import {
   getNextOnboardingStep,
   getOnboardingProgress,
+  getOnboardingStepPath,
 } from "./onboarding";
 
 const status: OnboardingStatus = {
@@ -52,5 +53,28 @@ describe("onboarding helpers", () => {
     };
 
     expect(getNextOnboardingStep(blockedFirst)).toBeUndefined();
+  });
+
+  it("leva as etapas da clínica às abas atuais, mesmo com caminho antigo vindo da API", () => {
+    const step = { label: "Etapa", completed: false, blocked: false };
+
+    expect(
+      getOnboardingStepPath({ ...step, code: "clinic", path: "/app/configuracoes/clinica" }),
+    ).toBe("/app/configuracoes/clinica/dados");
+    expect(
+      getOnboardingStepPath({ ...step, code: "whatsapp", path: "/app/configuracoes/whatsapp" }),
+    ).toBe("/app/configuracoes/clinica/whatsapp");
+  });
+
+  it("mantém o caminho da API nas etapas que não são abas da clínica", () => {
+    expect(
+      getOnboardingStepPath({
+        code: "schedule",
+        label: "Horários",
+        path: "/app/configuracoes/agenda",
+        completed: false,
+        blocked: false,
+      }),
+    ).toBe("/app/configuracoes/agenda");
   });
 });

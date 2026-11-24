@@ -47,6 +47,7 @@ import { FilterChips } from "../../components/FilterChips";
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
 import { ClinicMemberForm } from "./ClinicMemberForm";
 import type { ClinicMemberPayload } from "./memberFormModel";
+import { onboardingKey } from "../onboarding/onboarding";
 import { formatDateTimeInZone, useClinicTimeZone } from "../clinic/clinicTimeZone";
 import styles from "./TeamPage.module.css";
 
@@ -270,6 +271,8 @@ export function TeamPage({
           }
         }
       }
+      // A etapa "médico" dos primeiros passos depende dos vínculos da clínica.
+      void queryClient.invalidateQueries({ queryKey: onboardingKey });
       await queryClient.invalidateQueries({
         queryKey: clinicMembersKey(clinicId),
       });
@@ -300,6 +303,7 @@ export function TeamPage({
             ? "Vínculo suspenso e sessões invalidadas."
             : "Status do vínculo atualizado.",
       );
+      void queryClient.invalidateQueries({ queryKey: onboardingKey });
       await queryClient.invalidateQueries({
         queryKey: clinicMembersKey(clinicId),
       });

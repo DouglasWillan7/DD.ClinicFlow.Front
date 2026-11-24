@@ -57,7 +57,7 @@ test("é uma aba da configuração da clínica, com o mesmo cabeçalho das outra
   );
   expect(within(tabs).getByRole("link", { name: "Dados da clínica" })).toHaveAttribute(
     "href",
-    "/app/configuracoes/clinica",
+    "/app/configuracoes/clinica/dados",
   );
   expect(
     await screen.findByRole("heading", { level: 2, name: "Confirmações por WhatsApp" }),

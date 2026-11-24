@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import {
   Link as WouterLink,
+  Redirect as WouterRedirect,
   useLocation as useWouterLocation,
   useSearchParams as useWouterSearchParams,
 } from "wouter";
@@ -93,6 +94,9 @@ export function NavLink({
     </WouterLink>
   );
 }
+
+/** Mesmo `Redirect` do roteador, exposto aqui para as páginas não importarem wouter. */
+export const Redirect = WouterRedirect;
 
 export function useNavigate() {
   const [, navigate] = useWouterLocation();

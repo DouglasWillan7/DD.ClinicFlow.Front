@@ -56,7 +56,7 @@ const WhatsAppSettingsPage = lazy(() =>
   })),
 );
 const OnboardingPage = lazy(() =>
-  import("../features/onboarding/OnboardingPage").then((module) => ({
+  import("../features/clinic/clinicSettingsPages").then((module) => ({
     default: module.OnboardingPage,
   })),
 );
@@ -202,14 +202,27 @@ function AppRoutes() {
       );
     }
 
+    // "Primeiros passos" virou a entrada da configuração da clínica; o link antigo
+    // continua valendo. O destino é decidido aqui porque dois <Redirect> em sequência
+    // não funcionam: o do roteador só navega ao montar.
+    if (path === "/app/onboarding") {
+      const clinicSettings = "/app/configuracoes/clinica";
+      return (
+        <Redirect
+          to={canAccessAppPath(session, clinicSettings) ? clinicSettings : appStart}
+          replace
+        />
+      );
+    }
+
     if (!canAccessAppPath(session, path)) {
       return <Redirect to={appStart} replace />;
     }
 
     const adminRoutes: Record<string, React.ReactNode> = {
-      "/app/onboarding": <OnboardingPage />,
       "/app/equipe/novo": <TeamPage initialMode="create" initialRole="Doctor" />,
-      "/app/configuracoes/clinica": <ClinicSettingsPage />,
+      "/app/configuracoes/clinica": <OnboardingPage />,
+      "/app/configuracoes/clinica/dados": <ClinicSettingsPage />,
       "/app/configuracoes/clinica/convenios": <HealthcarePlansSettingsPage />,
       "/app/configuracoes/clinica/whatsapp": <WhatsAppSettingsPage />,
       "/app/configuracoes/clinica/receituario": <PrescriptionTemplatePage />,

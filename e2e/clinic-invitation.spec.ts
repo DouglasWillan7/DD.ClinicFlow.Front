@@ -68,17 +68,6 @@ async function fulfillJson(
   });
 }
 
-async function mockOnboarding(page: Page) {
-  await page.route("**/onboarding/status", async (route) => {
-    await fulfillJson(route, {
-      completed: false,
-      completedCount: 0,
-      totalCount: 0,
-      steps: [],
-    });
-  });
-}
-
 async function postBody(request: Request) {
   return request.postDataJSON() as Record<string, unknown>;
 }
@@ -87,7 +76,6 @@ test("médico novo ativa a conta sem colocar a referência na URL da API", async
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await mockOnboarding(page);
   let acceptedBody: Record<string, unknown> | null = null;
   let acceptedUrl = "";
   await page.route("**/public/clinic-membership-invitations/**", async (route) => {
@@ -114,7 +102,7 @@ test("médico novo ativa a conta sem colocar a referência na URL da API", async
   await page.getByLabel("Confirme sua senha").fill("Senha123!");
   await page.getByRole("button", { name: "Ativar meu acesso" }).click();
 
-  await expect(page).toHaveURL(/\/app\/onboarding$/);
+  await expect(page).toHaveURL(/\/app\/inicio$/);
   expect(acceptedUrl).toContain(`${publicBase}/accept-new`);
   expect(acceptedUrl).not.toContain(reference);
   expect(acceptedBody).toEqual({ reference, password: "Senha123!" });
@@ -129,7 +117,6 @@ test("médico novo ativa a conta sem colocar a referência na URL da API", async
 test("conta existente aceita com a senha atual sem alterar a credencial", async ({
   page,
 }) => {
-  await mockOnboarding(page);
   let acceptedBody: Record<string, unknown> | null = null;
   await page.route("**/public/clinic-membership-invitations/**", async (route) => {
     const request = route.request();
@@ -148,7 +135,7 @@ test("conta existente aceita com a senha atual sem alterar a credencial", async 
   await page.getByLabel("Senha atual").fill("Atual123!");
   await page.getByRole("button", { name: "Aceitar convite" }).click();
 
-  await expect(page).toHaveURL(/\/app\/onboarding$/);
+  await expect(page).toHaveURL(/\/app\/inicio$/);
   expect(acceptedBody).toEqual({ reference, currentPassword: "Atual123!" });
   const persisted = await page.evaluate(() =>
     window.localStorage.getItem("clinicflow.session"),

@@ -118,7 +118,8 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(requiredCapabilityForAppPath("/app/pacientes/abc/receitas?receita=r1&acao=nova")).toBe("ReadPrescriptions");
   expect(requiredCapabilityForAppPath("/app/consultas/abc")).toBe("ReadTranscription");
   expect(requiredCapabilityForAppPath("/app/equipe")).toBe("ManageClinicMemberships");
-  expect(requiredCapabilityForAppPath("/app/onboarding")).toBeUndefined();
+  expect(requiredCapabilityForAppPath("/app/configuracoes/clinica")).toBe("ManageClinicSettings");
+  expect(requiredCapabilityForAppPath("/app/configuracoes/clinica/dados")).toBe("ManageClinicSettings");
 
   const secretaryAdmin = session("Secretary", true);
   expect(canAccessAppPath(secretaryAdmin, "/app/equipe")).toBe(true);
@@ -133,7 +134,10 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(getAppStart(secretaryAdmin)).toBe("/app/agenda");
   expect(getAppStart(session("Doctor"))).toBe("/app/inicio");
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/agenda")).toBe(true);
-  expect(canAccessAppPath(session("Doctor"), "/app/onboarding")).toBe(true);
+  // Primeiros passos é a entrada da configuração da clínica: só administração.
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica")).toBe(false);
+  expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/dados")).toBe(false);
+  expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/dados")).toBe(true);
   expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/agenda")).toBe(false);
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/convenios")).toBe(false);
   expect(canAccessAppPath(secretaryAdmin, "/app/configuracoes/clinica/convenios")).toBe(true);

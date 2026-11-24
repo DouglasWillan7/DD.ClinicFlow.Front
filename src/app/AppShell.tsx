@@ -8,7 +8,6 @@ import {
   LogOut,
   Menu,
   Pin,
-  Stethoscope,
   UserRound,
   UserRoundPlus,
   UsersRound,
@@ -147,9 +146,6 @@ export function AppShell({ children }: PropsWithChildren) {
           label: "Disponibilidade",
           icon: CalendarClock,
         }
-      : undefined,
-    can(session, "ManageClinicSettings")
-      ? { to: "/app/onboarding", label: "Primeiros passos", icon: Stethoscope }
       : undefined,
     can(session, "ManageClinicSettings") ? {
       to: "/app/configuracoes/clinica",

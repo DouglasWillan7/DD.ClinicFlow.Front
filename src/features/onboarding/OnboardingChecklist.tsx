@@ -5,6 +5,7 @@ import { Link } from "../../app/navigation";
 import {
   getNextOnboardingStep,
   getOnboardingProgress,
+  getOnboardingStepPath,
 } from "./onboarding";
 import styles from "./OnboardingChecklist.module.css";
 
@@ -68,7 +69,7 @@ export function OnboardingChecklist({
                   <small>Conclua a etapa necessária primeiro</small>
                 </span>
               ) : (
-                <Link to={step.path}>{step.label}</Link>
+                <Link to={getOnboardingStepPath(step)}>{step.label}</Link>
               )}
               {step.blocked && !step.completed ? (
                 <LockKeyhole size={14} aria-label="Etapa bloqueada" />
@@ -79,7 +80,7 @@ export function OnboardingChecklist({
           ))}
         </ol>
       ) : nextStep ? (
-        <Link className={styles.nextAction} to={nextStep.path}>
+        <Link className={styles.nextAction} to={getOnboardingStepPath(nextStep)}>
           <span>
             <small>Próxima etapa</small>
             <strong>{nextStep.label}</strong>

@@ -1,48 +1,44 @@
-import { useQuery } from "@tanstack/react-query";
-import type { OnboardingStatus } from "../../api/types";
-import { useAuth } from "../../auth/AuthProvider";
-import { ErrorBlock, LoadingBlock } from "../../components/Feedback";
-import { PageHeader } from "../../components/PageHeader";
+import { Redirect } from "../../app/navigation";
+import { LoadingBlock } from "../../components/Feedback";
+import { ClinicSettingsHeader } from "../clinic/ClinicSettingsHeader";
+import { clinicDataPath } from "../clinic/clinicSettingsPaths";
 import { OnboardingChecklist } from "./OnboardingChecklist";
-import { onboardingKey } from "./onboarding";
+import { useOnboardingStatus } from "./useOnboardingStatus";
 import styles from "./OnboardingPage.module.css";
 
+/**
+ * Aba "Primeiros passos", a entrada da configuração da clínica enquanto houver etapa
+ * pendente. O onboarding acontece no cadastro; aqui a pessoa só vê o que ficou para depois.
+ */
 export function OnboardingPage() {
-  const { request } = useAuth();
-  const query = useQuery({
-    queryKey: onboardingKey,
-    queryFn: () => request<OnboardingStatus>("/onboarding/status"),
-  });
+  const query = useOnboardingStatus();
+
+  // Tudo configurado, ou progresso indisponível: não há o que listar e a configuração
+  // abre direto nos dados da clínica.
+  if (query.data?.completed || query.isError) {
+    return <Redirect to={clinicDataPath} replace />;
+  }
 
   return (
     <>
-      <PageHeader
-        eyebrow="Configuração guiada"
-        title="Vamos colocar sua clínica em fluxo"
-        description="Conclua uma etapa por vez. A agenda continua disponível durante toda a configuração."
-      />
+      <ClinicSettingsHeader showFirstSteps />
       <div className={styles.content}>
-        {query.isLoading ? (
-          <LoadingBlock label="Organizando seus primeiros passos…" />
-        ) : query.isError ? (
-          <ErrorBlock
-            message="Não foi possível consultar o progresso da configuração."
-            retry={() => void query.refetch()}
-          />
-        ) : query.data ? (
+        {query.data ? (
           <>
             <OnboardingChecklist status={query.data} />
             <aside>
               <span>Como funciona</span>
-              <h2>O progresso acompanha a operação real.</h2>
+              <h2>O que ficou para depois no cadastro.</h2>
               <p>
                 Cada etapa é concluída quando o ClinicFlow encontra a
-                configuração correspondente. Paciente e consulta só são
-                liberados quando suas dependências estiverem prontas.
+                configuração correspondente. Quando todas estiverem prontas,
+                esta aba deixa de aparecer.
               </p>
             </aside>
           </>
-        ) : null}
+        ) : (
+          <LoadingBlock label="Organizando seus primeiros passos…" />
+        )}
       </div>
     </>
   );
