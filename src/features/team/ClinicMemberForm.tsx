@@ -1,20 +1,35 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldCheck, Stethoscope } from "lucide-react";
+import { CalendarClock, RotateCcw, ShieldCheck, Stethoscope } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   useConfirmDiscard,
   useUnsavedChangesGuard,
 } from "../../app/unsavedChanges";
-import type { ClinicMember, ClinicRole } from "../../api/types";
+import type {
+  ClinicMember,
+  ClinicRole,
+  DoctorSchedule,
+  ScheduleDay,
+  UpdateDoctorScheduleRequest,
+} from "../../api/types";
 import {
   documentCountries,
   documentPlaceholder,
   documentTypesFor,
 } from "../../auth/documentIdentity";
 import { Button } from "../../components/Button";
-import { InlineError } from "../../components/Feedback";
+import { InlineError, LoadingBlock } from "../../components/Feedback";
 import { Field, SelectField, TextAreaField } from "../../components/Field";
 import { InternationalPhoneField } from "../../components/InternationalPhoneField";
+import { timeZoneLabel } from "../clinic/clinicTimeZone";
+import {
+  buildScheduleRequest,
+  emptyScheduleDraft,
+  scheduleToDraft,
+  type ScheduleDraft,
+} from "../clinic/scheduleForm";
+import { ScheduleWeekEditor } from "../clinic/ScheduleWeekEditor";
 import {
   clearDoctorData,
   createClinicMemberSchema,
@@ -25,7 +40,17 @@ import {
   type ClinicMemberPayload,
 } from "./memberFormModel";
 import styles from "./ClinicMemberForm.module.css";
-import { useState } from "react";
+
+/**
+ * Agenda semanal de quem já é médico na clínica. Sem esta prop (cadastro novo ou
+ * integrante que ainda não é médico) o formulário parte de uma semana vazia.
+ */
+export type MemberScheduleSource =
+  | { status: "loading" }
+  | { status: "error"; retry(): void }
+  | { status: "ready"; data?: DoctorSchedule };
+
+const durationOptions = [15, 20, 30, 40, 45, 60, 90, 120];
 
 const roles: Array<{
   value: ClinicRole;
@@ -53,6 +78,8 @@ export function ClinicMemberForm({
   mode,
   member,
   initialRole,
+  schedule,
+  timeZone,
   pending,
   serverError,
   onCancel,
@@ -61,12 +88,29 @@ export function ClinicMemberForm({
   mode: "create" | "edit";
   member?: ClinicMember;
   initialRole?: ClinicRole;
+  schedule?: MemberScheduleSource;
+  /** Fuso da clínica, só para dizer em que horário a semana é interpretada. */
+  timeZone?: string;
   pending: boolean;
   serverError?: string;
   onCancel(): void;
-  onSubmit(payload: ClinicMemberPayload): void;
+  /** `schedule` só vem quando a semana foi alterada; sem ele os horários ficam como estão. */
+  onSubmit(payload: ClinicMemberPayload, schedule?: UpdateDoctorScheduleRequest): void;
 }) {
   const [pendingRole, setPendingRole] = useState<Exclude<ClinicRole, "Doctor">>();
+  const loadedSchedule = schedule?.status === "ready" ? schedule.data : undefined;
+  const [syncedSchedule, setSyncedSchedule] = useState(loadedSchedule);
+  const [draft, setDraft] = useState<ScheduleDraft>(() =>
+    loadedSchedule ? scheduleToDraft(loadedSchedule) : emptyScheduleDraft(),
+  );
+  const [scheduleDirty, setScheduleDirty] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string>();
+  // A agenda chega depois do formulário; quem já mexeu na semana não perde o rascunho.
+  if (loadedSchedule !== syncedSchedule) {
+    setSyncedSchedule(loadedSchedule);
+    if (loadedSchedule && !scheduleDirty) setDraft(scheduleToDraft(loadedSchedule));
+  }
+  const scheduleReady = !schedule || schedule.status === "ready";
   const {
     control,
     register,
@@ -83,12 +127,51 @@ export function ClinicMemberForm({
     },
   });
   // Cancelar e os links do menu só descartam o que foi digitado após confirmação.
-  useUnsavedChangesGuard(isDirty);
+  useUnsavedChangesGuard(isDirty || scheduleDirty);
   const confirmDiscard = useConfirmDiscard();
-  const [countryCode, documentType, role] = useWatch({
+  const [countryCode, documentType, role, durationValue] = useWatch({
     control,
-    name: ["countryCode", "documentType", "role"],
+    name: [
+      "countryCode",
+      "documentType",
+      "role",
+      "defaultAppointmentDurationMinutes",
+    ],
   });
+  // Duração gravada fora da lista (definida em Configurações) continua selecionável.
+  const savedDuration = member?.doctorProfile?.defaultAppointmentDurationMinutes;
+  const durations =
+    savedDuration && !durationOptions.includes(savedDuration)
+      ? [...durationOptions, savedDuration].sort((left, right) => left - right)
+      : durationOptions;
+
+  function changeDraft(
+    day: ScheduleDay,
+    transform: (intervals: ScheduleDraft[ScheduleDay]) => ScheduleDraft[ScheduleDay],
+  ) {
+    setDraft((current) => ({ ...current, [day]: transform(current[day]) }));
+    setScheduleDirty(true);
+    setScheduleError(undefined);
+  }
+
+  function submit(value: ClinicMemberFormValue) {
+    const payload = toClinicMemberPayload(value, mode);
+    if (value.role !== "Doctor" || !scheduleReady) {
+      onSubmit(payload);
+      return;
+    }
+    // Valida mesmo sem mudança na semana: uma duração maior pode deixar um período curto.
+    const result = buildScheduleRequest(
+      draft,
+      Number(value.defaultAppointmentDurationMinutes),
+    );
+    if (!result.request) {
+      setScheduleError(result.error);
+      return;
+    }
+    setScheduleError(undefined);
+    onSubmit(payload, scheduleDirty ? result.request : undefined);
+  }
 
   function chooseRole(nextRole: ClinicRole) {
     const current = getValues();
@@ -122,7 +205,7 @@ export function ClinicMemberForm({
   return (
     <form
       className={styles.form}
-      onSubmit={handleSubmit((value) => onSubmit(toClinicMemberPayload(value, mode)))}
+      onSubmit={handleSubmit(submit)}
       noValidate
     >
       <header className={styles.heading}>
@@ -277,7 +360,7 @@ export function ClinicMemberForm({
             <span className={styles.doctorIcon} aria-hidden="true"><Stethoscope /></span>
             <div>
               <h3 id="member-doctor-heading">Perfil médico nesta clínica</h3>
-              <p>Registro, apresentação e duração pertencem a este vínculo.</p>
+              <p>Registro e apresentação pertencem a este vínculo.</p>
             </div>
           </div>
           <div className={styles.grid}>
@@ -290,17 +373,7 @@ export function ClinicMemberForm({
               placeholder="BR"
               {...register("professionalRegistrationCountryCode")}
             />
-            <Field label="Especialidade" {...register("specialty")} />
-            <SelectField
-              label="Duração padrão da consulta"
-              error={errors.defaultAppointmentDurationMinutes?.message}
-              {...register("defaultAppointmentDurationMinutes")}
-            >
-              <option value="">Selecionar</option>
-              {[15, 20, 30, 40, 45, 60, 90, 120].map((minutes) => (
-                <option key={minutes} value={minutes}>{minutes} minutos</option>
-              ))}
-            </SelectField>
+            <Field className={styles.wide} label="Especialidade" {...register("specialty")} />
             <Field className={styles.wide} label="Áreas de atuação" {...register("practiceAreas")} />
             <TextAreaField
               className={styles.wide}
@@ -310,6 +383,69 @@ export function ClinicMemberForm({
               {...register("bio")}
             />
           </div>
+        </section>
+      ) : null}
+
+      {role === "Doctor" ? (
+        <section className={styles.section} aria-labelledby="member-availability-heading">
+          <div className={styles.sectionHeading}>
+            <span className={styles.doctorIcon} aria-hidden="true"><CalendarClock /></span>
+            <div>
+              <h3 id="member-availability-heading">Disponibilidade de atendimento</h3>
+              <p>
+                Semana padrão do médico nesta clínica
+                {timeZone ? `, no fuso de ${timeZoneLabel(timeZone)}` : ""}. Ausências e
+                férias são bloqueadas direto na Agenda.
+              </p>
+            </div>
+          </div>
+          <div className={styles.grid}>
+            <SelectField
+              label="Duração padrão da consulta"
+              error={errors.defaultAppointmentDurationMinutes?.message}
+              {...register("defaultAppointmentDurationMinutes", {
+                onChange: () => setScheduleError(undefined),
+              })}
+            >
+              <option value="">Selecionar</option>
+              {durations.map((minutes) => (
+                <option key={minutes} value={minutes}>{minutes} minutos</option>
+              ))}
+            </SelectField>
+          </div>
+          {schedule?.status === "loading" ? (
+            <LoadingBlock label="Carregando os horários de atendimento…" />
+          ) : schedule?.status === "error" ? (
+            <div className={styles.scheduleUnavailable}>
+              <InlineError>
+                Não foi possível carregar os horários. O restante do vínculo pode ser
+                salvo normalmente.
+              </InlineError>
+              <Button type="button" variant="secondary" onClick={schedule.retry}>
+                <RotateCcw size={16} aria-hidden="true" />
+                Tentar novamente
+              </Button>
+            </div>
+          ) : (
+            <>
+              <ScheduleWeekEditor
+                draft={draft}
+                duration={Number(durationValue) || 30}
+                disabled={pending}
+                onChange={changeDraft}
+              />
+              {mode === "create" || member?.status === "Pending" ? (
+                <p className={styles.scheduleNote}>
+                  Os horários passam a ser oferecidos na agenda quando o convite for aceito.
+                </p>
+              ) : member?.status !== "Active" ? (
+                <p className={styles.scheduleNote}>
+                  Os horários voltam a ser oferecidos na agenda quando o vínculo for reativado.
+                </p>
+              ) : null}
+            </>
+          )}
+          {scheduleError ? <InlineError>{scheduleError}</InlineError> : null}
         </section>
       ) : null}
 

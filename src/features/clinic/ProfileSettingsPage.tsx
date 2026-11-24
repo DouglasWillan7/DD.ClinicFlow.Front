@@ -17,6 +17,8 @@ import {
 import { Field } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
+import { timeZoneLabel, useClinicTimeZone } from "./clinicTimeZone";
+import { DoctorSchedulePanel } from "./DoctorSchedulePanel";
 import styles from "./SettingsLayout.module.css";
 
 const profileSchema = z.object({
@@ -32,6 +34,7 @@ const profileKey = ["user", "me"] as const;
 export function ProfileSettingsPage() {
   const { request, updateSessionName } = useAuth();
   const queryClient = useQueryClient();
+  const timeZone = useClinicTimeZone();
   const [saved, setSaved] = useState(false);
   const query = useQuery({
     queryKey: profileKey,
@@ -162,7 +165,15 @@ export function ProfileSettingsPage() {
               </form>
             </section>
 
-            {query.data.role !== "Doctor" ? (
+            {query.data.role === "Doctor" ? (
+              // O médico cuida da própria agenda aqui, sem ir a outra área; tem salvar
+              // próprio porque conta e horários são gravados por rotas diferentes.
+              <DoctorSchedulePanel
+                doctorId={query.data.userId}
+                title="Disponibilidade de atendimento"
+                description={`Sua semana padrão nesta clínica, no fuso de ${timeZoneLabel(timeZone)}. Ausências e férias continuam sendo bloqueadas diretamente na Agenda.`}
+              />
+            ) : (
               <section className={styles.panel}>
                 <p className={styles.wide}>
                   Este perfil não possui atuação médica. As informações de CRM e
@@ -170,7 +181,7 @@ export function ProfileSettingsPage() {
                   administração.
                 </p>
               </section>
-            ) : null}
+            )}
           </div>
         ) : null}
       </div>

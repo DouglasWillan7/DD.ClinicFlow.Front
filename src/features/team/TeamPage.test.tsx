@@ -7,6 +7,7 @@ import type {
   AuthResponse,
   ClinicMember,
   ClinicMembershipInvitationStatus,
+  DoctorSchedule,
 } from "../../api/types";
 import { ApiError } from "../../api/client";
 import { UnsavedChangesProvider } from "../../app/unsavedChanges";
@@ -378,7 +379,10 @@ test("permite desistir do cancelamento sem chamar a API", async () => {
 
 test("explica a invalidação e o reenvio explícito ao editar e-mail pendente", async () => {
   const user = userEvent.setup();
-  requestMock = vi.fn(async () => [invitedDoctor("Sent")]);
+  requestMock = vi.fn(async (path: string) => {
+    if (path === "/clinics/clinic-1/members") return [invitedDoctor("Sent")];
+    throw new Error(`Rota inesperada: ${path}`);
+  });
   render(<Harness><TeamPage /></Harness>);
 
   await user.click(
@@ -564,4 +568,136 @@ test("depois de salvar, o formulário deixa de pedir confirmação", async () =>
   await user.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "Pessoas da clínica" })).toBeVisible();
+});
+
+const ownerSchedule: DoctorSchedule = {
+  doctorUserId: "owner-user",
+  slotDurationMinutes: 30,
+  blocks: [],
+  intervals: [
+    { id: "interval-1", dayOfWeek: "Monday", startLocal: "08:00:00", endLocal: "12:00:00" },
+  ],
+};
+
+/** API da equipe com a agenda da médica proprietária; guarda as gravações na ordem. */
+function mockTeamWithSchedule(
+  options: { scheduleSave?: () => DoctorSchedule } = {},
+) {
+  const writes: Array<{ method: string; path: string; body: unknown }> = [];
+  requestMock = vi.fn(async (path: string, init?: RequestInit) => {
+    if (!init) {
+      if (path === "/clinics/clinic-1/members") return members;
+      if (path === "/doctors/owner-user/schedule") return ownerSchedule;
+      throw new Error(`Rota inesperada: ${path}`);
+    }
+    const body = init.body ? JSON.parse(String(init.body)) : undefined;
+    writes.push({ method: init.method ?? "GET", path, body });
+    if (path === "/clinics/clinic-1/members") {
+      return { userId: "new-user", userClinicId: "new-membership" };
+    }
+    if (path.endsWith("/schedule")) {
+      return options.scheduleSave
+        ? options.scheduleSave()
+        : { ...ownerSchedule, intervals: [] };
+    }
+    return members[0];
+  });
+  return writes;
+}
+
+test("mostra a semana do médico no vínculo e salva vínculo e horários no mesmo envio", async () => {
+  const user = userEvent.setup();
+  const writes = mockTeamWithSchedule();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Ana Martins" }));
+
+  expect(
+    screen.getByRole("heading", { name: "Disponibilidade de atendimento" }),
+  ).toBeVisible();
+  expect(await screen.findByRole("checkbox", { name: /Segunda-feira/ })).toBeChecked();
+  expect(screen.getByLabelText("Segunda-feira, período 1, início")).toHaveValue("08:00");
+
+  await user.click(screen.getByRole("checkbox", { name: /Terça-feira/ }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+
+  expect(await screen.findByText("Vínculo atualizado.")).toBeVisible();
+  expect(writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+    "PUT /clinics/clinic-1/members/owner-membership",
+    "PUT /doctors/owner-user/schedule",
+  ]);
+  expect(writes[1].body).toEqual({
+    defaultAppointmentDurationMinutes: 30,
+    intervals: [
+      { dayOfWeek: "Monday", startLocal: "08:00", endLocal: "12:00" },
+      { dayOfWeek: "Tuesday", startLocal: "08:00", endLocal: "12:00" },
+    ],
+  });
+});
+
+test("não regrava os horários quando só o vínculo muda", async () => {
+  const user = userEvent.setup();
+  const writes = mockTeamWithSchedule();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Ana Martins" }));
+  await screen.findByRole("checkbox", { name: /Segunda-feira/ });
+
+  await user.type(screen.getByLabelText("Áreas de atuação"), "Endoscopia");
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+
+  expect(await screen.findByText("Vínculo atualizado.")).toBeVisible();
+  expect(writes.map((write) => write.path)).toEqual([
+    "/clinics/clinic-1/members/owner-membership",
+  ]);
+});
+
+test("avisa quando o vínculo é salvo mas os horários falham e mantém a semana digitada", async () => {
+  const user = userEvent.setup();
+  mockTeamWithSchedule({
+    scheduleSave: () => {
+      throw new ApiError("Os intervalos de um mesmo dia não podem se sobrepor.", 400);
+    },
+  });
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Ana Martins" }));
+  await user.click(await screen.findByRole("checkbox", { name: /Terça-feira/ }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "O vínculo foi atualizado, mas os horários não foram salvos. Os intervalos de um mesmo dia não podem se sobrepor. Revise a disponibilidade e salve novamente.",
+  );
+  expect(screen.queryByText("Vínculo atualizado.")).not.toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: /Terça-feira/ })).toBeChecked();
+
+  // A semana segue pendente: sair ainda pede confirmação.
+  await user.click(screen.getByRole("button", { name: "Cancelar" }));
+  expect(screen.getByRole("dialog", { name: "Descartar alterações?" })).toBeVisible();
+});
+
+test("cadastra o médico e grava a disponibilidade no usuário recém-criado", async () => {
+  const user = userEvent.setup();
+  const writes = mockTeamWithSchedule();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Novo integrante" }));
+
+  await user.type(screen.getByLabelText("Nome completo"), "Rui Antunes");
+  await user.type(screen.getByLabelText("Documento"), "12345678901");
+  await user.type(screen.getByLabelText("E-mail na clínica"), "rui@centro.test");
+  await user.type(screen.getByLabelText("Telefone"), "11999998888");
+  await user.click(screen.getByRole("radio", { name: /Médico/ }));
+  await user.selectOptions(screen.getByLabelText("Duração padrão da consulta"), "40");
+  expect(
+    screen.getByText(/passam a ser oferecidos na agenda quando o convite for aceito/i),
+  ).toBeVisible();
+  await user.click(screen.getByRole("checkbox", { name: /Quarta-feira/ }));
+  await user.click(screen.getByRole("button", { name: "Adicionar integrante" }));
+
+  expect(await screen.findByText(/convite foi enfileirado/i)).toBeVisible();
+  expect(writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+    "POST /clinics/clinic-1/members",
+    "PUT /doctors/new-user/schedule",
+  ]);
+  expect(writes[1].body).toEqual({
+    defaultAppointmentDurationMinutes: 40,
+    intervals: [{ dayOfWeek: "Wednesday", startLocal: "08:00", endLocal: "12:00" }],
+  });
 });

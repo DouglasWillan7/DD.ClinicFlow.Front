@@ -186,7 +186,92 @@ async function authenticate(page: Page) {
   await page.route("**/patients?includeInactive=true", (route) =>
     route.fulfill({ status: 200, json: [] }),
   );
+  // O vínculo de médico carrega a semana de atendimento junto com o formulário.
+  await page.route("**/doctors/*/schedule", (route) =>
+    route.fulfill({ status: 200, json: emptySchedule }),
+  );
 }
+
+const emptySchedule = {
+  doctorUserId: "doctor-user",
+  slotDurationMinutes: 30,
+  intervals: [],
+  blocks: [],
+};
+
+test("administração define a disponibilidade do médico dentro do vínculo", async ({
+  page,
+}) => {
+  await authenticate(page);
+  const writes: string[] = [];
+  let schedulePayload: Record<string, unknown> | undefined;
+  await page.route(`**/clinics/${clinicId}/members`, (route) =>
+    route.fulfill({ status: 200, json: [owner, doctor] }),
+  );
+  await page.route(`**/clinics/${clinicId}/members/${doctor.userClinicId}`, (route) => {
+    writes.push("vínculo");
+    return route.fulfill({ status: 200, json: doctor });
+  });
+  await page.route(`**/doctors/${doctor.userId}/schedule`, (route) => {
+    if (route.request().method() !== "PUT") {
+      return route.fulfill({ status: 200, json: emptySchedule });
+    }
+    writes.push("horários");
+    schedulePayload = route.request().postDataJSON();
+    return route.fulfill({
+      status: 200,
+      json: {
+        ...emptySchedule,
+        intervals: [
+          { id: "interval-1", dayOfWeek: "Monday", startLocal: "08:00:00", endLocal: "12:00:00" },
+          { id: "interval-2", dayOfWeek: "Monday", startLocal: "13:00:00", endLocal: "17:00:00" },
+        ],
+      },
+    });
+  });
+
+  await page.goto(`/app/equipe?vinculo=${doctor.userClinicId}`);
+  await expect(
+    page.getByRole("heading", { name: "Disponibilidade de atendimento" }),
+  ).toBeVisible();
+  await page.getByRole("checkbox", { name: /Segunda-feira/ }).check();
+  await page.getByRole("button", { name: "Adicionar período" }).click();
+  await page.getByLabel("Segunda-feira, período 2, início").fill("13:00");
+  await page.getByLabel("Segunda-feira, período 2, fim").fill("17:00");
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-team-availability-desktop.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Salvar vínculo" }).click();
+
+  await expect(page.getByText("Vínculo atualizado.")).toBeVisible();
+  expect(writes).toEqual(["vínculo", "horários"]);
+  expect(schedulePayload).toEqual({
+    defaultAppointmentDurationMinutes: 30,
+    intervals: [
+      { dayOfWeek: "Monday", startLocal: "08:00", endLocal: "12:00" },
+      { dayOfWeek: "Monday", startLocal: "13:00", endLocal: "17:00" },
+    ],
+  });
+  await expect(page.getByLabel("Segunda-feira, período 2, início")).toHaveValue("13:00");
+
+  // No celular a semana cabe sem rolagem horizontal e os alvos seguem com 44 px.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const remove = page.getByRole("button", { name: "Remover período 2 de Segunda-feira" });
+  await remove.scrollIntoViewIfNeeded();
+  const box = await remove.boundingBox();
+  expect(box?.width).toBeGreaterThanOrEqual(44);
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-team-availability-mobile.png",
+    fullPage: true,
+  });
+});
 
 test("administração cria médico por documento com contato e duração contextuais", async ({
   page,
