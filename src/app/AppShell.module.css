@@ -227,10 +227,6 @@
   font-weight: 600;
 }
 
-.logoutButton {
-  flex: 0 0 auto;
-}
-
 .workspace {
   min-width: 0;
 }
@@ -278,6 +274,12 @@
   flex: 0 0 17px;
   color: var(--color-text-muted);
   stroke-width: 1.8;
+  transition: transform var(--transition-fast);
+}
+
+/* A seta acompanha o estado: para baixo fechado, para cima aberto. */
+.userChevronOpen {
+  transform: rotate(180deg);
 }
 
 .userButton:hover {
@@ -392,19 +394,39 @@
   line-height: 1.45;
 }
 
-.profileLink {
+.menuActions {
   display: flex;
-  min-height: 44px;
-  align-items: center;
-  padding: 10px 12px;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
   border-top: 1px solid var(--color-border-hairline);
-  border-radius: 12px;
   margin-top: 8px;
-  font-size: 14px;
-  font-weight: 600;
 }
 
-.profileLink:hover {
+.menuAction {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  color: var(--color-ink);
+  border-radius: 12px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.menuAction svg {
+  flex: 0 0 auto;
+}
+
+.menuAction:hover {
   color: var(--color-primary);
   background: var(--color-primary-subtle);
 }
@@ -602,7 +624,9 @@
   .navLabel,
   .navLabel::before,
   .railItem,
-  .railItemText {
+  .railItemText,
+  .userChevron,
+  .menuAction {
     transition: none;
   }
 }
