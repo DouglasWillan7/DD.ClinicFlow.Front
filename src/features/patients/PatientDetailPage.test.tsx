@@ -65,7 +65,7 @@ const summary: PatientClinicalSummary = {
   findings: [],
   trends: [],
   latestCollectionDate: null,
-  capabilities: { canRequest: false, canAttachDocument: true },
+  capabilities: { canAttachDocument: true },
 };
 
 function defaultRequest(path: string): Promise<unknown> {
@@ -121,7 +121,7 @@ test("substitui a anatomia antiga por cabeçalho compartilhado e resumo clínico
   expect(requestedPaths).not.toContain("/clinics/members");
 });
 
-test("oculta ação de solicitação sem capacidade e mantém anexo permitido", async () => {
+test("cabeçalho leva ao anexo de laudo quando a capacidade permite", async () => {
   renderPage();
 
   expect(await screen.findByRole("link", { name: "Anexar laudo" }))
@@ -129,8 +129,6 @@ test("oculta ação de solicitação sem capacidade e mantém anexo permitido", 
       "href",
       `/app/pacientes/${patient.id}/exames?acao=anexar`,
     );
-  expect(screen.queryByRole("link", { name: "Solicitar exame" }))
-    .not.toBeInTheDocument();
 });
 
 test("estado vazio da próxima consulta agenda o paciente atual", async () => {

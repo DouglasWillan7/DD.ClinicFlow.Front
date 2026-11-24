@@ -3,7 +3,6 @@ import type { PatientListItem, PatientSituation } from "../../api/types";
 export const situationLabels: Record<PatientSituation, string> = {
   EmAcompanhamento: "Em acompanhamento",
   NovoPaciente: "Novo paciente",
-  ExamePendente: "Exame pendente",
   Inativo: "Inativo",
 };
 
@@ -16,7 +15,6 @@ export const situationFilters: Array<{
   { value: "todos", label: "Todos" },
   { value: "EmAcompanhamento", label: "Em acompanhamento" },
   { value: "NovoPaciente", label: "Novos" },
-  { value: "ExamePendente", label: "Exame pendente" },
 ];
 
 function normalizeText(value: string) {
@@ -55,7 +53,6 @@ export function countBySituation(patients: PatientListItem[]) {
   const counts: Record<PatientSituation, number> = {
     EmAcompanhamento: 0,
     NovoPaciente: 0,
-    ExamePendente: 0,
     Inativo: 0,
   };
   for (const patient of patients) counts[patient.situation] += 1;

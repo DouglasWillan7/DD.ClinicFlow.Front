@@ -1,7 +1,6 @@
 import {
   Ban,
   CircleCheck,
-  ClipboardList,
   FileText,
   Clock3,
   LoaderCircle,
@@ -16,13 +15,12 @@ import { examStatusLabels } from "./examQueries";
 type ExamTone = "neutral" | "primary" | "warning" | "success" | "danger" | "muted";
 
 const statusSemantics: Record<ExamStatus, { icon: LucideIcon; meaning: string; tone: ExamTone }> = {
-  Solicitado: { icon: ClipboardList, meaning: "aguardando laudo", tone: "neutral" },
   Pendente: { icon: Clock3, meaning: "aguardando processamento", tone: "primary" },
   Processando: { icon: LoaderCircle, meaning: "processamento em andamento", tone: "primary" },
   "Em revisão": { icon: Stethoscope, meaning: "revisão clínica necessária", tone: "warning" },
   Validado: { icon: CircleCheck, meaning: "resultado validado", tone: "success" },
   Falhou: { icon: TriangleAlert, meaning: "o documento está salvo; a análise por IA falhou", tone: "danger" },
-  Cancelado: { icon: Ban, meaning: "solicitação cancelada", tone: "muted" },
+  Cancelado: { icon: Ban, meaning: "registro cancelado", tone: "muted" },
   "Sem análise": { icon: FileText, meaning: "documento salvo, sem análise por IA", tone: "neutral" },
 };
 

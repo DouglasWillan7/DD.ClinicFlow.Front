@@ -461,7 +461,6 @@ export interface Patient extends PatientDemographic {
 export type PatientSituation =
   | "EmAcompanhamento"
   | "NovoPaciente"
-  | "ExamePendente"
   | "Inativo";
 
 /** Projeção operacional de GET /patients para listagem e agendamento. */
@@ -653,7 +652,6 @@ export interface ExamGrid {
 }
 
 export type ExamStatus =
-  | "Solicitado"
   | "Pendente"
   | "Processando"
   | "Em revisão"
@@ -713,7 +711,6 @@ export interface ExamListFilters {
 }
 
 export interface PatientExamCapabilities {
-  canRequest: boolean;
   canAttachDocument: boolean;
 }
 
@@ -728,7 +725,6 @@ export interface PatientExamSummary {
   patientId: string;
   name: string;
   category: ExamCategory;
-  scheduledOn: string | null;
   status: ExamStatus;
   version: number;
   hasDocument: boolean;
@@ -747,9 +743,6 @@ export interface PatientExamDocument {
 }
 
 export interface PatientExamDetailCapabilities {
-  canEditRequest: boolean;
-  canCancelRequest: boolean;
-  canAttachDocument: boolean;
   canReprocess: boolean;
   canDiscardFailedExam: boolean;
   canDiscardExam: boolean;
@@ -834,10 +827,8 @@ export interface PatientExamDetail {
   id: string;
   patientId: string;
   doctorUserId: string;
-  requestedByUserId: string | null;
   name: string;
   category: ExamCategory;
-  scheduledOn: string | null;
   status: ExamStatus;
   version: number;
   error: string | null;
@@ -853,20 +844,6 @@ export interface PatientExamDetail {
   capabilities: PatientExamDetailCapabilities;
   /** Só em "Sem análise". */
   analysisHold: ExamAnalysisHold | null;
-}
-
-export interface CreateExamRequest {
-  name: string;
-  category: ExamCategory;
-  scheduledOn: string | null;
-}
-
-export interface UpdateExamRequest extends CreateExamRequest {
-  expectedVersion: number;
-}
-
-export interface CancelExamRequest {
-  expectedVersion: number;
 }
 
 export interface DiscardFailedExamRequest {

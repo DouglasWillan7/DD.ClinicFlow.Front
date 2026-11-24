@@ -5,9 +5,6 @@ import type { ClinicalExamReport, PatientExamDetail, PatientExamRevision } from 
 import { ExamDetailPanel } from "./ExamDetailPanel";
 
 const capabilities: PatientExamDetail["capabilities"] = {
-  canEditRequest: false,
-  canCancelRequest: false,
-  canAttachDocument: false,
   canReprocess: false,
   canDiscardFailedExam: false,
   canDiscardExam: false,
@@ -70,11 +67,9 @@ function detail(overrides: Partial<PatientExamDetail> = {}): PatientExamDetail {
     id: "exam-1",
     patientId: "patient-1",
     doctorUserId: "doctor-1",
-    requestedByUserId: "doctor-1",
     name: "Hemograma completo",
     category: "Laboratório",
-    scheduledOn: "2026-08-15",
-    status: "Solicitado",
+    status: "Pendente",
     version: 4,
     error: null,
     createdAtUtc: "2026-08-09T10:00:00Z",
@@ -141,34 +136,6 @@ const clinicalReport: ClinicalExamReport = {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
-});
-
-test("solicitado apresenta previsão, solicitante e somente ações permitidas", () => {
-  const onEditRequest = vi.fn();
-  const onAttachDocument = vi.fn();
-  render(<ExamDetailPanel exam={detail({ capabilities: { ...capabilities, canEditRequest: true, canAttachDocument: true } })} requesterLabel="Dra. Ana" onEditRequest={onEditRequest} onAttachDocument={onAttachDocument} />);
-  expect(screen.getByText("15/08/2026")).toBeInTheDocument();
-  expect(screen.getByText("Dra. Ana")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Editar solicitação" }));
-  fireEvent.click(screen.getByRole("button", { name: "Anexar laudo" }));
-  expect([onEditRequest.mock.calls.length, onAttachDocument.mock.calls.length]).toEqual([1, 1]);
-});
-
-test("oculta manutenção clínica quando a capacidade não foi concedida", () => {
-  render(<ExamDetailPanel exam={detail({ requestedByUserId: null })} requesterLabel={null} />);
-  expect(screen.getByText("Solicitante não informado")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Editar solicitação" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Anexar laudo" })).not.toBeInTheDocument();
-});
-
-test("mostra o solicitante conhecido e não afirma ausência quando só falta o nome", () => {
-  const { rerender } = render(<ExamDetailPanel exam={detail()} requesterLabel="Dra. Helena Costa" />);
-  expect(screen.getByText("Dra. Helena Costa")).toBeInTheDocument();
-
-  // O exame tem solicitante, mas a tela não sabe o nome: a linha some em vez de mentir.
-  rerender(<ExamDetailPanel exam={detail()} requesterLabel={null} />);
-  expect(screen.queryByText("Solicitante")).not.toBeInTheDocument();
-  expect(screen.queryByText("Solicitante não informado")).not.toBeInTheDocument();
 });
 
 test("pendente usa skeleton estrutural e descreve a etapa", () => {
@@ -431,10 +398,17 @@ test("falha do blob fecha a aba provisória e informa indisponibilidade regional
   expect(screen.queryByText("storage key missing")).not.toBeInTheDocument();
 });
 
-test("documento ausente fora da solicitação mantém o detalhe e marca o original indisponível", () => {
+test("documento ausente mantém o detalhe e marca o original indisponível", () => {
   render(<ExamDetailPanel exam={detail({ status: "Falhou", error: "Falha na extração" })} />);
   expect(screen.getByRole("region", { name: "Documento original" })).toHaveTextContent("Original indisponível");
   expect(screen.getByRole("heading", { name: "Hemograma completo" })).toBeInTheDocument();
+});
+
+test("registro cancelado que nunca recebeu laudo não promete documento", () => {
+  render(<ExamDetailPanel exam={detail({ status: "Cancelado" })} />);
+  expect(screen.getByLabelText("Status: Cancelado — registro cancelado")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Documento original" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Original indisponível")).not.toBeInTheDocument();
 });
 
 test("células estruturadas carregam rótulos equivalentes para o layout abaixo de 640px", () => {

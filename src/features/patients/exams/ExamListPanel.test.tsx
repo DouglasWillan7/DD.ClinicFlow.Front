@@ -4,16 +4,20 @@ import { expect, test, vi } from "vitest";
 import type { ExamListFilters, PatientExamPage, PatientExamSummary } from "../../../api/types";
 import { ExamListPanel } from "./ExamListPanel";
 
-function exam(id: string, name: string, status: PatientExamSummary["status"]): PatientExamSummary {
+function exam(
+  id: string,
+  name: string,
+  status: PatientExamSummary["status"],
+  hasDocument = true,
+): PatientExamSummary {
   return {
     id,
     patientId: "patient-1",
     name,
     category: "Laboratório",
-    scheduledOn: "2026-08-15",
     status,
     version: 1,
-    hasDocument: status !== "Solicitado",
+    hasDocument,
     averageConfidence: status === "Em revisão" ? 0.91 : null,
     createdAtUtc: "2026-08-01T10:00:00Z",
     updatedAtUtc: "2026-08-02T10:00:00Z",
@@ -34,13 +38,13 @@ const pages: PatientExamPage[] = [{
     exam("validated", "Hemograma completo", "Validado"),
   ],
   nextCursor: "next",
-  capabilities: { canRequest: true, canAttachDocument: true },
+  capabilities: { canAttachDocument: true },
 }];
 
 function setup(overrides: Partial<React.ComponentProps<typeof ExamListPanel>> = {}) {
   const props: React.ComponentProps<typeof ExamListPanel> = {
     pages,
-    capabilities: { canRequest: true, canAttachDocument: true },
+    capabilities: { canAttachDocument: true },
     filters,
     selectedExamId: "review",
     isLoading: false,
@@ -51,7 +55,6 @@ function setup(overrides: Partial<React.ComponentProps<typeof ExamListPanel>> = 
     onSelect: vi.fn(),
     onLoadMore: vi.fn(),
     onRetry: vi.fn(),
-    onRequest: vi.fn(),
     onAttach: vi.fn(),
     ...overrides,
   };
@@ -68,23 +71,22 @@ test("renderiza grupos, categoria, status e seleção sem depender só da cor", 
   expect(screen.getByRole("button", { name: /Perfil lipídico/ })).toHaveTextContent("Em revisão");
 });
 
-test("os oito estados combinam rótulo, ícone semântico, tom e nome acessível exato", () => {
+test("os sete estados combinam rótulo, ícone semântico, tom e nome acessível exato", () => {
   // Estado, rótulo na tela, significado e tom. "Falhou" fala só da análise: o documento está salvo.
   const expected = [
-    ["Solicitado", "Solicitado", "aguardando laudo", "neutral"],
     ["Pendente", "Pendente", "aguardando processamento", "primary"],
     ["Processando", "Processando", "processamento em andamento", "primary"],
     ["Em revisão", "Em revisão", "revisão clínica necessária", "warning"],
     ["Validado", "Validado", "resultado validado", "success"],
     ["Falhou", "Análise falhou", "o documento está salvo; a análise por IA falhou", "danger"],
-    ["Cancelado", "Cancelado", "solicitação cancelada", "muted"],
+    ["Cancelado", "Cancelado", "registro cancelado", "muted"],
     ["Sem análise", "Sem análise", "documento salvo, sem análise por IA", "neutral"],
   ] as const;
   setup({
     pages: [{
       items: expected.map(([status], index) => exam(`exam-${index}`, `Exame ${index + 1}`, status)),
       nextCursor: null,
-      capabilities: { canRequest: true, canAttachDocument: true },
+      capabilities: { canAttachDocument: true },
     }],
     hasNextPage: false,
   });
@@ -140,44 +142,26 @@ test("distingue carregamento inicial, vazio e nenhum resultado", () => {
 
 test.each([
   {
-    capabilities: { canRequest: true, canAttachDocument: true },
-    guidance: "Comece solicitando um exame ou anexando um laudo já disponível.",
-    request: true,
-    attach: true,
-  },
-  {
-    capabilities: { canRequest: true, canAttachDocument: false },
-    guidance: "Comece solicitando o exame que fará parte do histórico deste paciente.",
-    request: true,
-    attach: false,
-  },
-  {
-    capabilities: { canRequest: false, canAttachDocument: true },
+    capabilities: { canAttachDocument: true },
     guidance: "Comece anexando um laudo em PDF ao histórico deste paciente.",
-    request: false,
     attach: true,
   },
   {
-    capabilities: { canRequest: false, canAttachDocument: false },
-    guidance: "Os exames aparecerão aqui quando uma solicitação ou laudo for registrado.",
-    request: false,
+    capabilities: { canAttachDocument: false },
+    guidance: "Os exames aparecerão aqui quando um laudo for anexado.",
     attach: false,
   },
-])("vazio instrui o fluxo e expõe somente ações permitidas: $guidance", async ({ capabilities, guidance, request, attach }) => {
+])("vazio instrui o fluxo e expõe somente ações permitidas: $guidance", async ({ capabilities, guidance, attach }) => {
   const user = userEvent.setup();
   const result = setup({ pages: [], capabilities, hasNextPage: false });
   const empty = screen.getByRole("region", { name: "Começar histórico de exames" });
 
   expect(within(empty).getByText("Nenhum exame registrado.")).toBeInTheDocument();
   expect(within(empty).getByText(guidance)).toBeInTheDocument();
-  if (request) expect(within(empty).getByRole("button", { name: "Solicitar exame" })).toBeInTheDocument();
-  else expect(within(empty).queryByRole("button", { name: "Solicitar exame" })).not.toBeInTheDocument();
   if (attach) expect(within(empty).getByRole("button", { name: "Anexar laudo" })).toBeInTheDocument();
   else expect(within(empty).queryByRole("button", { name: "Anexar laudo" })).not.toBeInTheDocument();
 
-  if (request) await user.click(within(empty).getByRole("button", { name: "Solicitar exame" }));
   if (attach) await user.click(within(empty).getByRole("button", { name: "Anexar laudo" }));
-  expect(result.props.onRequest).toHaveBeenCalledTimes(request ? 1 : 0);
   expect(result.props.onAttach).toHaveBeenCalledTimes(attach ? 1 : 0);
 });
 
@@ -204,18 +188,18 @@ test("todo exame com documento abre o PDF pela linha, em qualquer estado da aná
       items: [
         exam("failed", "Função tireoidiana", "Falhou"),
         exam("stored", "Ultrassom", "Sem análise"),
-        exam("requested", "Glicemia", "Solicitado"),
+        exam("legacy", "Glicemia", "Cancelado", false),
       ],
       nextCursor: null,
-      capabilities: { canRequest: true, canAttachDocument: true },
+      capabilities: { canAttachDocument: true },
     }],
     hasNextPage: false,
     onOpenDocument,
   });
 
   expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent))
-    .toEqual(["Análise com falha", "Em andamento", "Documentos sem análise"]);
-  // Solicitação sem laudo não tem o que abrir.
+    .toEqual(["Análise com falha", "Documentos sem análise", "Cancelados"]);
+  // Registro cancelado antigo, que nunca recebeu laudo, não tem o que abrir.
   const documentButtons = screen.getAllByRole("button", { name: "Abrir PDF" });
   expect(documentButtons).toHaveLength(2);
   expect(documentButtons[0]).toHaveAccessibleDescription("Função tireoidiana");
@@ -234,7 +218,7 @@ test("avisa quando o PDF não abre e mantém a lista", async () => {
     pages: [{
       items: [exam("stored", "Ultrassom", "Sem análise")],
       nextCursor: null,
-      capabilities: { canRequest: true, canAttachDocument: true },
+      capabilities: { canAttachDocument: true },
     }],
     hasNextPage: false,
     onOpenDocument: vi.fn().mockRejectedValue(new Error("rede")),

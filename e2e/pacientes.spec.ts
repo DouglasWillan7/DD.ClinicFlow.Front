@@ -89,7 +89,6 @@ const patients = [
     phone: "+5511999990004",
     document: "10659948233",
     birthDate: "1975-06-19",
-    situation: "ExamePendente",
   }),
   makePatient({
     id: "60000000-0000-4000-8000-000000000005",
@@ -97,7 +96,6 @@ const patients = [
     phone: "+5511999990005",
     document: "74302195840",
     birthDate: "1981-11-02",
-    situation: "ExamePendente",
     nextAppointmentUtc: "2026-08-12T18:00:00Z",
     nextAppointmentType: "InPerson",
   }),
@@ -162,7 +160,7 @@ function clinicalSummary(patientId: string) {
       findings: [],
       trends: [],
       latestCollectionDate: null,
-      capabilities: { canRequest: true, canAttachDocument: true },
+      capabilities: { canAttachDocument: true },
     };
   }
 
@@ -205,7 +203,7 @@ function clinicalSummary(patientId: string) {
     findings: [finding],
     trends: [],
     latestCollectionDate: "2026-08-08",
-    capabilities: { canRequest: true, canAttachDocument: true },
+    capabilities: { canAttachDocument: true },
   };
 }
 
@@ -328,21 +326,20 @@ test("lista completa: 9 pacientes em ordem alfabética com resumo", async ({
   });
 });
 
-test("chip Exame pendente filtra a lista e o contador", async ({ page }) => {
+test("chip Novos filtra a lista e o contador", async ({ page }) => {
   await mockPacientes(page);
   await page.goto("/app/pacientes");
   await expect(page.getByText("9 de 9")).toBeVisible();
 
-  await page.getByRole("button", { name: "Exame pendente · 2" }).click();
+  await page.getByRole("button", { name: "Novos · 1" }).click();
 
-  await expect(page.getByText("2 de 9")).toBeVisible();
+  await expect(page.getByText("1 de 9")).toBeVisible();
   const rows = page.getByRole("button", { name: /Abrir detalhes de/ });
-  await expect(rows).toHaveCount(2);
-  await expect(rows.first()).toContainText("Carlos Eduardo Souza");
-  await expect(rows.last()).toContainText("Carlos Souza Filho");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText("Fernanda Costa");
 
   await page.screenshot({
-    path: "test-results/pacientes-02-filtro-exame-pendente.png",
+    path: "test-results/pacientes-02-filtro-novos.png",
     fullPage: false,
   });
 });

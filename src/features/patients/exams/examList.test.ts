@@ -8,10 +8,9 @@ function exam(id: string, status: PatientExamSummary["status"]): PatientExamSumm
     patientId: "patient-1",
     name: `Exame ${id}`,
     category: "Laboratório",
-    scheduledOn: null,
     status,
     version: 1,
-    hasDocument: status !== "Solicitado",
+    hasDocument: true,
     averageConfidence: null,
     createdAtUtc: "2026-08-01T10:00:00Z",
     updatedAtUtc: "2026-08-01T10:00:00Z",
@@ -21,7 +20,7 @@ function exam(id: string, status: PatientExamSummary["status"]): PatientExamSumm
 const page = (items: PatientExamSummary[]): PatientExamPage => ({
   items,
   nextCursor: null,
-  capabilities: { canRequest: true, canAttachDocument: true },
+  capabilities: { canAttachDocument: true },
 });
 
 describe("groupExams", () => {
@@ -44,12 +43,11 @@ describe("groupExams", () => {
       ]);
   });
 
-  test("mantém solicitados, pendentes e processando no mesmo grupo", () => {
+  test("mantém pendentes e processando no mesmo grupo", () => {
     expect(groupExams([
-      exam("requested", "Solicitado"),
       exam("pending", "Pendente"),
       exam("processing", "Processando"),
-    ])[0].items.map((item) => item.id)).toEqual(["requested", "pending", "processing"]);
+    ])[0].items.map((item) => item.id)).toEqual(["pending", "processing"]);
   });
 
   test("coloca cancelados por último quando recebidos da consulta opt-in", () => {
@@ -58,9 +56,9 @@ describe("groupExams", () => {
 
   test("mapeia todo estado para um grupo nomeado", () => {
     expect([
-      "Solicitado", "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Cancelado", "Sem análise",
+      "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Cancelado", "Sem análise",
     ].map((status) => examGroupLabel(status as PatientExamSummary["status"]))).toEqual([
-      "Em andamento", "Em andamento", "Em andamento", "Revisar", "Histórico validado",
+      "Em andamento", "Em andamento", "Revisar", "Histórico validado",
       "Análise com falha", "Cancelados", "Documentos sem análise",
     ]);
   });

@@ -34,15 +34,6 @@ export function formatExamResultValue(result: {
   return result.textValue?.trim() || "Não informado";
 }
 
-export function formatExamDate(value: string | null) {
-  if (!value) return "Não informada";
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? new Date(`${value}T00:00:00Z`)
-    : new Date(value);
-  if (Number.isNaN(date.getTime())) return "Não informada";
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(date);
-}
-
 export function processingAttemptsLabel(attemptsRemaining: number) {
   if (attemptsRemaining <= 0) {
     return "Nenhuma tentativa restante. Envie outro PDF para continuar.";

@@ -49,21 +49,19 @@ const patient: Patient = {
 const doctorUserId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
 const summaries = [
-  { id: "11111111-1111-4111-8111-111111111111", patientId: patient.id, name: "Perfil lipídico", category: "Laboratorio", scheduledOn: null, status: "EmRevisao", version: 2, hasDocument: true, averageConfidence: 0.92, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z" },
-  { id: "22222222-2222-4222-8222-222222222222", patientId: patient.id, name: "Hemograma", category: "Laboratorio", scheduledOn: "2026-08-15", status: "Solicitado", version: 1, hasDocument: false, averageConfidence: null, createdAtUtc: "2026-08-09T09:00:00Z", updatedAtUtc: "2026-08-09T09:00:00Z" },
+  { id: "11111111-1111-4111-8111-111111111111", patientId: patient.id, name: "Perfil lipídico", category: "Laboratorio", status: "EmRevisao", version: 2, hasDocument: true, averageConfidence: 0.92, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z" },
+  { id: "22222222-2222-4222-8222-222222222222", patientId: patient.id, name: "Hemograma", category: "Laboratorio", status: "Pendente", version: 1, hasDocument: true, averageConfidence: null, createdAtUtc: "2026-08-09T09:00:00Z", updatedAtUtc: "2026-08-09T09:00:00Z" },
 ];
 
-const capabilities = { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canDiscardFailedExam: false, canDiscardExam: false, canOpenCorrection: false, canEditRevision: true, canClassify: false, canValidate: true };
+const capabilities = { canReprocess: false, canDiscardFailedExam: false, canDiscardExam: false, canOpenCorrection: false, canEditRevision: true, canClassify: false, canValidate: true };
 
 function rawDetail(id = summaries[0].id, overrides: Record<string, unknown> = {}) {
   return {
     id,
     patientId: patient.id,
     doctorUserId,
-    requestedByUserId: doctorUserId,
     name: id === summaries[1].id ? "Hemograma" : "Perfil lipídico",
     category: "Laboratorio",
-    scheduledOn: null,
     status: "EmRevisao",
     version: 2,
     error: null,
@@ -108,7 +106,7 @@ function rawClinicalReport(overrides: Record<string, unknown> = {}) {
 }
 
 function pagePayload(overrides: Record<string, unknown> = {}) {
-  return { items: summaries, nextCursor: null, capabilities: { canRequest: true, canAttachDocument: true }, ...overrides };
+  return { items: summaries, nextCursor: null, capabilities: { canAttachDocument: true }, ...overrides };
 }
 
 function defaultRequest(path: string, init?: RequestInit) {
@@ -465,15 +463,12 @@ test("query acao anexar abre o modal de anexar laudo", async () => {
   expect(await screen.findByRole("dialog", { name: "Anexar laudo" })).toBeInTheDocument();
 });
 
-test("cabeçalho expõe uma ação por capacidade e reabre composer após fechar", async () => {
+test("cabeçalho expõe o anexo como link e reabre o modal após fechar", async () => {
   const user = userEvent.setup();
   renderPage();
   await screen.findByText("Perfil lipídico");
 
-  const requestLink = screen.getByRole("link", { name: "Solicitar exame" });
   const attachLink = screen.getByRole("link", { name: "Anexar laudo" });
-  expect(screen.queryByRole("button", { name: "Solicitar exame" }))
-    .not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Anexar laudo" }))
     .not.toBeInTheDocument();
 
@@ -483,52 +478,42 @@ test("cabeçalho expõe uma ação por capacidade e reabre composer após fechar
   await user.click(screen.getByRole("button", { name: "Fechar" }));
   await waitFor(() => expect(window.location.search).toBe(""));
 
-  await user.click(requestLink);
-  expect(await screen.findByRole("region", { name: "Solicitar exame" }))
+  await user.click(attachLink);
+  expect(await screen.findByRole("dialog", { name: "Anexar laudo" }))
     .toBeVisible();
 });
 
-test("capabilities escondem comandos Doctor mas mantêm leitura operacional", async () => {
-  requestMock.mockImplementation((path: string, init?: RequestInit) => {
-    if (path.startsWith(`/exams/patients/${patient.id}`) && !init?.method) return Promise.resolve(pagePayload({ capabilities: { canRequest: false, canAttachDocument: true } }));
-    return defaultRequest(path, init);
-  });
-  renderPage();
-  expect(await screen.findByText("Perfil lipídico")).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "Solicitar exame" })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Anexar laudo" })).toBeInTheDocument();
-});
-
-test("ação permitida no vazio abre a solicitação inline", async () => {
-  const user = userEvent.setup();
+test("sem capacidade de anexar a leitura continua e o anexo some do cabeçalho e do vazio", async () => {
+  let items: unknown[] = summaries;
   requestMock.mockImplementation((path: string, init?: RequestInit) => {
     if (path.startsWith(`/exams/patients/${patient.id}`) && !init?.method) {
-      return Promise.resolve(pagePayload({ items: [], capabilities: { canRequest: true, canAttachDocument: false } }));
+      return Promise.resolve(pagePayload({ items, capabilities: { canAttachDocument: false } }));
     }
     return defaultRequest(path, init);
   });
-  renderPage();
+  const view = renderPage();
+  expect(await screen.findByText("Perfil lipídico")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Anexar laudo" })).not.toBeInTheDocument();
+  view.unmount();
 
+  items = [];
+  renderPage();
   const empty = await screen.findByRole("region", { name: "Começar histórico de exames" });
   expect(within(empty).queryByRole("button", { name: "Anexar laudo" })).not.toBeInTheDocument();
-  await user.click(within(empty).getByRole("button", { name: "Solicitar exame" }));
-
-  expect(await screen.findByRole("region", { name: "Solicitar exame" })).toBeInTheDocument();
-  expect(window.location.search).toBe("?acao=solicitar");
+  expect(screen.queryByRole("link", { name: "Anexar laudo" })).not.toBeInTheDocument();
 });
 
-test("acesso operacional no vazio abre somente o anexo", async () => {
+test("o vazio abre o anexo", async () => {
   const user = userEvent.setup();
   requestMock.mockImplementation((path: string, init?: RequestInit) => {
     if (path.startsWith(`/exams/patients/${patient.id}`) && !init?.method) {
-      return Promise.resolve(pagePayload({ items: [], capabilities: { canRequest: false, canAttachDocument: true } }));
+      return Promise.resolve(pagePayload({ items: [], capabilities: { canAttachDocument: true } }));
     }
     return defaultRequest(path, init);
   });
   renderPage();
 
   const empty = await screen.findByRole("region", { name: "Começar histórico de exames" });
-  expect(within(empty).queryByRole("button", { name: "Solicitar exame" })).not.toBeInTheDocument();
   await user.click(within(empty).getByRole("button", { name: "Anexar laudo" }));
 
   expect(await screen.findByRole("dialog", { name: "Anexar laudo" })).toBeInTheDocument();
@@ -609,8 +594,8 @@ test("abre o PDF pela lista sem trocar o exame selecionado", async () => {
   vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:exam-list");
   renderPage();
 
-  // Só o exame com laudo tem o que abrir; a solicitação não.
-  const documentButton = await screen.findByRole("button", { name: "Abrir PDF" });
+  // Cada laudo abre o próprio PDF; o primeiro da lista é o que está em revisão.
+  const [documentButton] = await screen.findAllByRole("button", { name: "Abrir PDF" });
   expect(documentButton).toHaveAccessibleDescription("Perfil lipídico");
   await user.click(documentButton);
 
@@ -866,21 +851,6 @@ test("conflito ao descartar preserva seleção e recarrega somente por ação ex
   await waitFor(() => expect(
     requestMock.mock.calls.filter(([path, init]) => path === `/exams/${failedId}` && !init?.method),
   ).toHaveLength(2));
-});
-
-test("solicitação converte categoria apresentável para o contrato BACK", async () => {
-  const user = userEvent.setup();
-  requestMock.mockImplementation((path: string, init?: RequestInit) => {
-    if (path === `/exams/patients/${patient.id}/requests` && init?.method === "POST") return Promise.resolve(rawDetail(summaries[1].id, { status: "Solicitado", document: null, draftRevision: null }));
-    return defaultRequest(path, init);
-  });
-  renderPage();
-  await user.click(await screen.findByRole("link", { name: "Solicitar exame" }));
-  const composer = screen.getByRole("region", { name: "Solicitar exame" });
-  await user.type(within(composer).getByLabelText("Nome do exame"), "Ultrassom");
-  await user.selectOptions(within(composer).getByLabelText("Categoria"), "Imagem");
-  await user.click(within(composer).getByRole("button", { name: "Criar solicitação" }));
-  await waitFor(() => expect(requestMock).toHaveBeenCalledWith(`/exams/patients/${patient.id}/requests`, expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Ultrassom", category: "Imagem", scheduledOn: null }) })));
 });
 
 test("classificação converte categoria e envia a versão atual ao endpoint versionado", async () => {

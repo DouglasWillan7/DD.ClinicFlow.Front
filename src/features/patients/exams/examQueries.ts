@@ -78,7 +78,6 @@ export type ExamAnalysisAvailabilityTransport = {
 };
 
 const statusApiValues: Record<ExamStatus, string> = {
-  Solicitado: "Solicitado",
   Pendente: "Pendente",
   Processando: "Processando",
   "Em revisão": "EmRevisao",
@@ -93,7 +92,6 @@ const statusApiValues: Record<ExamStatus, string> = {
  * exame nesse estado está salvo, e o rótulo precisa deixar isso claro.
  */
 export const examStatusLabels: Record<ExamStatus, string> = {
-  Solicitado: "Solicitado",
   Pendente: "Pendente",
   Processando: "Processando",
   "Em revisão": "Em revisão",
@@ -195,7 +193,6 @@ export function toExamOutcomeApi(outcome: ExamClinicalOutcome | null) {
 }
 
 const statusUiValues: Record<string, ExamStatus> = {
-  Solicitado: "Solicitado",
   Pendente: "Pendente",
   Processando: "Processando",
   EmRevisao: "Em revisão",

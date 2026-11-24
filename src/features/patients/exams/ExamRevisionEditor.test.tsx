@@ -28,9 +28,6 @@ const revision: PatientExamRevision = {
 };
 
 const capabilities: PatientExamDetail["capabilities"] = {
-  canEditRequest: false,
-  canCancelRequest: false,
-  canAttachDocument: false,
   canReprocess: false,
   canDiscardFailedExam: false,
   canDiscardExam: false,
@@ -46,10 +43,8 @@ function detail(overrides: Partial<PatientExamDetail> = {}): PatientExamDetail {
     id: "exam-1",
     patientId: "patient-1",
     doctorUserId: "doctor-1",
-    requestedByUserId: null,
     name: "Hemograma",
     category: "Laboratório",
-    scheduledOn: null,
     status: "Em revisão",
     version: 4,
     error: null,
