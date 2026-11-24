@@ -227,7 +227,7 @@ describe("HealthcarePlansSettingsPage", () => {
     const tabs = await screen.findByRole("navigation", { name: "Configuração da clínica" });
     expect(within(tabs).getByRole("link", { name: "Dados da clínica" })).toHaveAttribute(
       "href",
-      "/app/configuracoes/clinica",
+      "/app/configuracoes/clinica/dados",
     );
     expect(within(tabs).getByRole("link", { name: "Convênios" })).toHaveAttribute(
       "href",
@@ -619,8 +619,11 @@ describe("HealthcarePlansSettingsPage", () => {
   });
 
   test("falha ao carregar oferece tentar de novo", async () => {
-    requestMock.mockImplementationOnce(async () => {
-      throw new Error("offline");
+    // Por rota, e não "a primeira chamada": as abas também consultam a API ao montar.
+    const respond = requestMock.getMockImplementation()!;
+    requestMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path === "/healthcare-plans") throw new Error("offline");
+      return respond(path, init);
     });
     renderPage();
 

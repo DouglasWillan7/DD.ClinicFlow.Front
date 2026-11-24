@@ -402,12 +402,12 @@ async function mockClinicFlow(
       body = {
         completed: false,
         completedCount: hasDoctor ? 3 : 2,
-        totalCount: 5,
+        totalCount: 4,
         steps: [
           {
             code: "clinic",
             label: "Completar dados da clínica",
-            path: "/app/configuracoes/clinica",
+            path: "/app/configuracoes/clinica/dados",
             completed: true,
             blocked: false,
           },
@@ -419,23 +419,16 @@ async function mockClinicFlow(
             blocked: false,
           },
           {
-            code: "patient",
-            label: "Cadastrar o primeiro paciente",
-            path: "/app/pacientes/novo",
+            code: "schedule",
+            label: "Configurar horários de atendimento",
+            path: "/app/configuracoes/agenda",
             completed: false,
-            blocked: false,
-          },
-          {
-            code: "appointment",
-            label: "Agendar a primeira consulta",
-            path: "/app/agenda/nova",
-            completed: false,
-            blocked: true,
+            blocked: !hasDoctor,
           },
           {
             code: "whatsapp",
             label: "Conectar as confirmações por WhatsApp",
-            path: "/app/configuracoes/whatsapp",
+            path: "/app/configuracoes/clinica/whatsapp",
             completed: true,
             blocked: false,
           },
@@ -1169,19 +1162,21 @@ for (const viewport of [
   });
 }
 
-test("permite cadastrar paciente sem médico e mantém apenas a agenda dependente", async ({ page }) => {
+test("primeiros passos listam só configuração e não seguram o cadastro de paciente", async ({ page }) => {
   await mockClinicFlow(page, { hasDoctor: false });
   await page.setViewportSize({ width: 1100, height: 900 });
+  // O link antigo abre a entrada da configuração da clínica.
   await page.goto("/app/onboarding");
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica$/);
 
   await expect(
     page.getByRole("link", { name: "Adicionar o primeiro médico" }),
   ).toBeVisible();
-  await expect(page.getByText("Cadastrar o primeiro paciente")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Cadastrar o primeiro paciente" }),
-  ).toBeVisible();
+  // Sem médico, só os horários de atendimento ficam bloqueados.
+  await expect(page.getByText("Configurar horários de atendimento")).toBeVisible();
   await expect(page.getByLabel("Etapa bloqueada")).toHaveCount(1);
+  await expect(page.getByText("Cadastrar o primeiro paciente")).toHaveCount(0);
+  await expect(page.getByText("Agendar a primeira consulta")).toHaveCount(0);
 
   await page.screenshot({
     path: "/private/tmp/clinicflow-onboarding-doctor-required.png",

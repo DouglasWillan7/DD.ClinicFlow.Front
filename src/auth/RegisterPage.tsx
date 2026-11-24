@@ -224,7 +224,7 @@ export function RegisterPage() {
     setError("");
     try {
       await registerClinicOwner(request);
-      navigate("/app/onboarding", { replace: true });
+      navigate("/app/configuracoes/clinica", { replace: true });
     } catch (submitError) {
       setError(
         submitError instanceof ApiError

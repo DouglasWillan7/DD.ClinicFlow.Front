@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { Clinic } from "../../api/types";
+import type { Clinic, OnboardingStatus } from "../../api/types";
 import { ClinicSettingsPage } from "./ClinicSettingsPage";
 
 let requestMock = vi.fn();
@@ -25,6 +25,17 @@ const clinic: Clinic = {
 };
 
 let savedBody: Record<string, unknown> | undefined;
+let onboarding: OnboardingStatus;
+
+const pendingOnboarding: OnboardingStatus = {
+  completed: false,
+  completedCount: 1,
+  totalCount: 2,
+  steps: [
+    { code: "clinic", label: "Completar dados da clínica", path: "/app/configuracoes/clinica/dados", completed: true, blocked: false },
+    { code: "whatsapp", label: "Conectar as confirmações por WhatsApp", path: "/app/configuracoes/clinica/whatsapp", completed: false, blocked: false },
+  ],
+};
 
 function QueryHarness({ children }: PropsWithChildren) {
   const client = new QueryClient({
@@ -35,12 +46,14 @@ function QueryHarness({ children }: PropsWithChildren) {
 
 beforeEach(() => {
   savedBody = undefined;
+  onboarding = { ...pendingOnboarding, completed: true, completedCount: 2 };
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === "/clinics/current" && init?.method === "PUT") {
       savedBody = JSON.parse(String(init.body));
       return { ...clinic, ...savedBody };
     }
     if (path === "/clinics/current") return clinic;
+    if (path === "/onboarding/status") return onboarding;
     throw new Error(`Rota inesperada: ${path}`);
   });
 });
@@ -87,12 +100,42 @@ describe("ClinicSettingsPage", () => {
     );
     expect(within(tabs).getByRole("link", { name: "Dados da clínica" })).toHaveAttribute(
       "href",
-      "/app/configuracoes/clinica",
+      "/app/configuracoes/clinica/dados",
     );
     expect(within(tabs).getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
       "href",
       "/app/configuracoes/clinica/whatsapp",
     );
+  });
+
+  test("com tudo configurado, não oferece a aba de primeiros passos", async () => {
+    render(
+      <QueryHarness>
+        <ClinicSettingsPage />
+      </QueryHarness>,
+    );
+
+    await screen.findByLabelText("Telefone");
+    await waitFor(() =>
+      expect(requestMock).toHaveBeenCalledWith("/onboarding/status"),
+    );
+    const tabs = screen.getByRole("navigation", { name: "Configuração da clínica" });
+    expect(within(tabs).queryByRole("link", { name: "Primeiros passos" })).not.toBeInTheDocument();
+    expect(within(tabs).getAllByRole("link")[0]).toHaveTextContent("Dados da clínica");
+  });
+
+  test("com etapa pendente, primeiros passos é a primeira aba e abre o índice da configuração", async () => {
+    onboarding = pendingOnboarding;
+    render(
+      <QueryHarness>
+        <ClinicSettingsPage />
+      </QueryHarness>,
+    );
+
+    const tabs = await screen.findByRole("navigation", { name: "Configuração da clínica" });
+    const firstSteps = await within(tabs).findByRole("link", { name: "Primeiros passos" });
+    expect(firstSteps).toHaveAttribute("href", "/app/configuracoes/clinica");
+    expect(within(tabs).getAllByRole("link")[0]).toBe(firstSteps);
   });
 
   test("não envia um número impossível para o país selecionado", async () => {

@@ -211,7 +211,7 @@ test("rejeita confirmação de senha diferente antes de chamar a API", async () 
   expect(apiRequest).toHaveBeenCalledTimes(1);
 });
 
-test("aceita identidade nova, persiste a sessão escolhida e abre o onboarding", async () => {
+test("aceita identidade nova, persiste a sessão escolhida e segue para o início do app", async () => {
   apiRequest.mockImplementation((path: string) => {
     if (path.endsWith("/resolve")) return Promise.resolve(newIdentityView);
     if (path.endsWith("/accept-new")) return Promise.resolve(acceptance);
@@ -224,7 +224,7 @@ test("aceita identidade nova, persiste a sessão escolhida e abre o onboarding",
   await user.click(screen.getByRole("button", { name: "Ativar meu acesso" }));
 
   await waitFor(() => expect(navigate).toHaveBeenCalledWith(
-    "/app/onboarding",
+    "/app",
     { replace: true },
   ));
   expect(apiRequest).toHaveBeenCalledWith(
@@ -387,7 +387,7 @@ test("mantém o formulário disponível após falha recuperável", async () => {
   await user.click(submit);
 
   await waitFor(() => expect(navigate).toHaveBeenCalledWith(
-    "/app/onboarding",
+    "/app",
     { replace: true },
   ));
 });

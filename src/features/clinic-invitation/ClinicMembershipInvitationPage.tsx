@@ -136,7 +136,7 @@ export function ClinicMembershipInvitationPage({
         rememberConnection,
       );
       navigate(
-        resolution.kind === "authenticated" ? "/app/onboarding" : "/entrar",
+        resolution.kind === "authenticated" ? "/app" : "/entrar",
         { replace: true },
       );
     } catch (submissionError) {
@@ -225,7 +225,7 @@ export function ClinicMembershipInvitationPage({
           action={
             <Button
               type="button"
-              onClick={() => navigate(session ? "/app/onboarding" : "/entrar")}
+              onClick={() => navigate(session ? "/app" : "/entrar")}
             >
               {session ? "Continuar no ClinicFlow" : "Entrar no ClinicFlow"}
             </Button>

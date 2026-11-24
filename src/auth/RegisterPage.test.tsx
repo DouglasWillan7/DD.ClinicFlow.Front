@@ -103,7 +103,7 @@ describe("RegisterPage", () => {
       termsAccepted: true,
       termsVersion: "clinicflow-terms-v1",
     });
-    expect(navigateMock).toHaveBeenCalledWith("/app/onboarding", { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith("/app/configuracoes/clinica", { replace: true });
   });
 
   test("preserva o formulário e mostra conflito retornado pela API", async () => {

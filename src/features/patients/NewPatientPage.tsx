@@ -4,7 +4,6 @@ import type { Patient } from "../../api/types";
 import { useNavigate, useSearchParams } from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { ContextBar } from "../../components/ContextBar";
-import { onboardingKey } from "../onboarding/onboarding";
 import { PatientRegistrationForm } from "./PatientRegistrationForm";
 import {
   emptyPatientForm,
@@ -30,7 +29,6 @@ export function NewPatientPage() {
       }),
     onSuccess: (patient) => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
-      void queryClient.invalidateQueries({ queryKey: onboardingKey });
       if (returnTo === "/app/pacientes") {
         navigate(returnTo);
         return;

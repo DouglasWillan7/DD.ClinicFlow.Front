@@ -37,7 +37,53 @@ const clinic = {
   createdAtUtc: "2026-07-01T12:00:00Z",
 };
 
-async function mockClinicSettings(page: Page) {
+const pendingSteps = {
+  completed: false,
+  completedCount: 2,
+  totalCount: 4,
+  steps: [
+    {
+      code: "clinic",
+      label: "Completar dados da clínica",
+      path: "/app/configuracoes/clinica/dados",
+      completed: true,
+      blocked: false,
+    },
+    {
+      code: "doctor",
+      label: "Adicionar o primeiro médico",
+      path: "/app/equipe/novo",
+      completed: true,
+      blocked: false,
+    },
+    {
+      code: "schedule",
+      label: "Configurar horários de atendimento",
+      path: "/app/configuracoes/agenda",
+      completed: false,
+      blocked: false,
+    },
+    {
+      code: "whatsapp",
+      label: "Conectar as confirmações por WhatsApp",
+      path: "/app/configuracoes/clinica/whatsapp",
+      completed: false,
+      blocked: false,
+    },
+  ],
+};
+
+const completedSteps = {
+  ...pendingSteps,
+  completed: true,
+  completedCount: 4,
+  steps: pendingSteps.steps.map((step) => ({ ...step, completed: true })),
+};
+
+async function mockClinicSettings(
+  page: Page,
+  options: { pendingSteps?: boolean } = {},
+) {
   let currentClinic = clinic;
 
   await page.addInitScript((value) => {
@@ -53,6 +99,13 @@ async function mockClinicSettings(page: Page) {
         currentClinic = { ...currentClinic, ...request.postDataJSON() };
       }
       return route.fulfill({ status: 200, json: currentClinic });
+    }
+
+    if (url.pathname === "/onboarding/status") {
+      return route.fulfill({
+        status: 200,
+        json: options.pendingSteps ? pendingSteps : completedSteps,
+      });
     }
 
     if (url.pathname === "/clinics/whatsapp-config") {
@@ -83,7 +136,14 @@ test("telefone da clínica usa DDI, máscara e permanece responsivo", async ({
   page,
 }) => {
   await mockClinicSettings(page);
+  // Com tudo configurado, a entrada da configuração abre direto nos dados da clínica.
   await page.goto("/app/configuracoes/clinica");
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica\/dados$/);
+  await expect(
+    page
+      .getByRole("navigation", { name: "Configuração da clínica" })
+      .getByRole("link", { name: "Primeiros passos" }),
+  ).toHaveCount(0);
 
   const phone = page.getByRole("textbox", { name: "Telefone", exact: true });
   const country = page.getByLabel("País ou região do telefone");
@@ -159,7 +219,7 @@ test("WhatsApp é uma aba da configuração da clínica e o link antigo continua
   );
 
   await tabs.getByRole("link", { name: "Dados da clínica" }).click();
-  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica$/);
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica\/dados$/);
   await expect(page.getByRole("heading", { name: "Clínica", level: 1 })).toBeVisible();
 
   await page.goto("/app/configuracoes/clinica/whatsapp");
@@ -168,4 +228,60 @@ test("WhatsApp é uma aba da configuração da clínica e o link antigo continua
     path: "test-results/configuracoes-clinica-whatsapp-desktop.png",
     fullPage: true,
   });
+});
+
+test("primeiros passos são a entrada da configuração enquanto houver etapa pendente", async ({
+  page,
+}) => {
+  await mockClinicSettings(page, { pendingSteps: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/app/agenda");
+
+  // O menu lateral não tem mais o destino próprio: a lista mora dentro de "Clínica".
+  const rail = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(rail.getByRole("link", { name: "Primeiros passos" })).toHaveCount(0);
+  await rail.getByRole("link", { name: "Clínica" }).click();
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica$/);
+
+  const tabs = page.getByRole("navigation", { name: "Configuração da clínica" });
+  await expect(tabs.getByRole("link").first()).toHaveText("Primeiros passos");
+  await expect(tabs.getByRole("link", { name: "Primeiros passos" }))
+    .toHaveAttribute("aria-current", "page");
+  await expect(page.getByText("2 de 4 etapas concluídas")).toBeVisible();
+  await expect(page.getByText("Cadastrar o primeiro paciente")).toHaveCount(0);
+  await page.screenshot({
+    path: "test-results/configuracoes-clinica-primeiros-passos-desktop.png",
+    fullPage: true,
+  });
+
+  await page.getByRole("link", { name: "Conectar as confirmações por WhatsApp" }).click();
+  await expect(page).toHaveURL(/\/app\/configuracoes\/clinica\/whatsapp$/);
+  // A aba continua oferecida nas outras seções enquanto houver pendência.
+  await expect(tabs.getByRole("link", { name: "Primeiros passos" })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/app/configuracoes/clinica");
+  await expect(page.getByText("2 de 4 etapas concluídas")).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+  // Cinco abas não cabem em 390px: a barra rola e os rótulos não se sobrepõem.
+  const boxes = await tabs.getByRole("link").evaluateAll((links) =>
+    links.map((link) => {
+      const box = link.getBoundingClientRect();
+      return { left: box.left, right: box.right, clipped: link.scrollWidth > link.clientWidth };
+    }),
+  );
+  for (let index = 1; index < boxes.length; index += 1) {
+    expect(boxes[index].left).toBeGreaterThanOrEqual(boxes[index - 1].right);
+  }
+  expect(boxes.some((box) => box.clipped)).toBe(false);
+  await page.screenshot({
+    path: "test-results/configuracoes-clinica-primeiros-passos-mobile.png",
+    fullPage: true,
+  });
+
+  // A última aba abre visível, sem ficar escondida à direita.
+  await page.goto("/app/configuracoes/clinica/receituario");
+  await expect(tabs.getByRole("link", { name: "Receituário" })).toBeInViewport({ ratio: 1 });
 });

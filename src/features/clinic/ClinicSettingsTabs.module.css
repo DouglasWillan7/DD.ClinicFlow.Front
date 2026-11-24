@@ -70,6 +70,18 @@
     flex: 1 1 auto;
     padding-inline: var(--space-2);
   }
+
+  /* Com "Primeiros passos" são cinco abas e não cabem em 390px: em vez de espremer os
+     rótulos, cada aba mantém o próprio tamanho e a barra rola. */
+  .withFirstSteps {
+    width: max-content;
+  }
+
+  .withFirstSteps .tab {
+    min-width: auto;
+    flex: 1 0 auto;
+    padding-inline: var(--space-3);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -190,6 +190,8 @@ test("admin de secretaria administra a clínica sem receber navegação clínica
   expect(screen.getByRole("link", { name: "Equipe" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Clínica" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Disponibilidade" })).toBeVisible();
+  // Primeiros passos mora dentro de Clínica, não é destino próprio do menu.
+  expect(screen.queryByRole("link", { name: "Primeiros passos" })).not.toBeInTheDocument();
 });
 
 test("enfermagem herda operação sem receber prontuário ou administração", () => {
