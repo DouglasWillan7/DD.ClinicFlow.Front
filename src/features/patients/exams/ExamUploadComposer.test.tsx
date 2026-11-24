@@ -287,3 +287,92 @@ test("fechar durante o envio aborta a requisição", async () => {
   await user.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(capturedSignal!.aborted).toBe(true);
 });
+
+test("por padrão o envio pede a análise por IA", async () => {
+  const user = userEvent.setup();
+  const { onUpload } = await sendPdf(user);
+
+  await waitFor(() => expect(onUpload).toHaveBeenCalledOnce());
+  expect((onUpload.mock.calls[0][0] as FormData).get("analyze")).toBe("true");
+});
+
+test("desmarcar a análise só guarda o documento e confirma que ele foi salvo", async () => {
+  const user = userEvent.setup();
+  const onOpenExam = vi.fn();
+  const onUpload = vi.fn().mockResolvedValue({
+    id: "exam-new",
+    status: "Sem análise",
+    analysisHold: "NaoSolicitada",
+  } as PatientExamDetail);
+  render(<ExamUploadComposer {...baseProps} onUpload={onUpload} onOpenExam={onOpenExam} />);
+  await user.upload(screen.getByLabelText("Selecionar arquivo PDF"), pdf());
+
+  await user.click(screen.getByRole("checkbox", { name: "Analisar com IA" }));
+  await user.click(screen.getByRole("button", { name: "Guardar documento" }));
+
+  await waitFor(() => expect(onUpload).toHaveBeenCalledOnce());
+  expect((onUpload.mock.calls[0][0] as FormData).get("analyze")).toBe("false");
+  // Sem fila nem extração: o estado final aparece direto, sem a barra de processamento.
+  expect(await screen.findByRole("status")).toHaveTextContent("Documento salvo");
+  expect(screen.getByRole("status")).toHaveTextContent("Guardado sem análise por IA.");
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Abrir exame" }));
+  expect(onOpenExam).toHaveBeenCalledWith("exam-new");
+});
+
+test("com a IA indisponível a opção vem desmarcada, explica o motivo e o documento é guardado", async () => {
+  const user = userEvent.setup();
+  const onUpload = vi.fn().mockResolvedValue({
+    id: "exam-new",
+    status: "Sem análise",
+    analysisHold: "Indisponivel",
+  } as PatientExamDetail);
+  render(<ExamUploadComposer
+    {...baseProps}
+    onUpload={onUpload}
+    analysisAvailability={{ available: false, reason: "SemCreditos" }}
+  />);
+
+  const option = screen.getByRole("checkbox", { name: "Analisar com IA" });
+  expect(option).toBeDisabled();
+  expect(option).not.toBeChecked();
+  expect(option).toHaveAccessibleDescription(
+    "A análise por IA está sem créditos disponíveis no momento. O documento será guardado e a análise pode ser pedida depois.",
+  );
+
+  await user.upload(screen.getByLabelText("Selecionar arquivo PDF"), pdf());
+  await user.click(screen.getByRole("button", { name: "Guardar documento" }));
+
+  await waitFor(() => expect(onUpload).toHaveBeenCalledOnce());
+  expect((onUpload.mock.calls[0][0] as FormData).get("analyze")).toBe("false");
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "A análise por IA está sem créditos disponíveis no momento. O PDF está guardado no histórico",
+  );
+});
+
+test("falha da análise não se confunde com falha no envio", async () => {
+  const user = userEvent.setup();
+  const onTrackChange = vi.fn();
+  const { rerender } = await sendPdf(user, { onTrackChange });
+  await waitFor(() => expect(onTrackChange).toHaveBeenCalledWith("exam-new"));
+
+  rerender(<ExamUploadComposer
+    {...baseProps}
+    onTrackChange={onTrackChange}
+    trackedExam={tracked("Falhou", { error: "Não foi possível processar o laudo." })}
+  />);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Documento salvo, mas a análise por IA falhou");
+  expect(alert).toHaveTextContent("O PDF continua disponível no exame.");
+});
+
+test("falha no envio fica no formulário e não fala de análise", async () => {
+  const user = userEvent.setup();
+  const onUpload = vi.fn().mockRejectedValue(new ApiError("O PDF deve ter no máximo 10 MB.", 400));
+  await sendPdf(user, { onUpload });
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("O PDF deve ter no máximo 10 MB.");
+  expect(screen.getByRole("button", { name: "Enviar laudo" })).toBeInTheDocument();
+  expect(screen.queryByText(/Documento salvo/)).not.toBeInTheDocument();
+});

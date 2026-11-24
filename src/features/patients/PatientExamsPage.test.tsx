@@ -114,6 +114,7 @@ function pagePayload(overrides: Record<string, unknown> = {}) {
 function defaultRequest(path: string, init?: RequestInit) {
   if (path === `/patients/${patient.id}`) return Promise.resolve(patient);
   if (path.startsWith(`/exams/patients/${patient.id}`) && (!init || init.method === undefined)) return Promise.resolve(pagePayload());
+  if (path === "/exams/analysis-availability") return Promise.resolve({ available: true, reason: null });
   if (path.startsWith("/exams/") && (!init || init.method === undefined)) return Promise.resolve(rawDetail(path.split("/")[2]));
   return Promise.reject(new Error(`rota inesperada: ${path} ${init?.method ?? "GET"}`));
 }
@@ -416,7 +417,7 @@ test("carregar mais anexa sem duplicar e preserva filtros e grupos operacionais"
   ));
   expect(screen.getAllByRole("button", { name: /Exame repetido/ })).toHaveLength(1);
   expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
-    "Revisar", "Falhas", "Em andamento", "Histórico validado",
+    "Revisar", "Análise com falha", "Em andamento", "Histórico validado",
   ]);
   expect(screen.getByRole("button", { name: /Exame para revisar/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Exame com falha/ })).toBeInTheDocument();
@@ -579,15 +580,92 @@ test("falha do detalhe preserva lista e oferece retry regional", async () => {
 
 test("reprocessa falha pelo endpoint tipado e preserva seleção", async () => {
   const user = userEvent.setup();
+  let reprocessed = false;
   requestMock.mockImplementation((path: string, init?: RequestInit) => {
-    if (path === `/exams/${summaries[0].id}` && !init?.method) return Promise.resolve(rawDetail(summaries[0].id, { status: "Falhou", error: "Falha sanitizada", draftRevision: null, capabilities: { ...capabilities, canEditRevision: false, canValidate: false, canReprocess: true } }));
-    if (path === `/exams/${summaries[0].id}/reprocess` && init?.method === "POST") return Promise.resolve(rawDetail(summaries[0].id, { status: "Pendente", draftRevision: null }));
+    if (path === `/exams/${summaries[0].id}` && !init?.method) {
+      return Promise.resolve(reprocessed
+        ? rawDetail(summaries[0].id, { status: "Pendente", draftRevision: null, capabilities: { ...capabilities, canEditRevision: false, canValidate: false } })
+        : rawDetail(summaries[0].id, { status: "Falhou", error: "Falha sanitizada", draftRevision: null, capabilities: { ...capabilities, canEditRevision: false, canValidate: false, canReprocess: true } }));
+    }
+    if (path === `/exams/${summaries[0].id}/reprocess` && init?.method === "POST") {
+      reprocessed = true;
+      // Contrato real do endpoint: um resumo do reprocessamento, não o detalhe do exame.
+      return Promise.resolve({ examId: summaries[0].id, patientId: patient.id, status: "Pendente", version: 3, attemptsRemaining: 1, updatedAtUtc: "2026-08-09T12:00:00Z" });
+    }
     return defaultRequest(path, init);
   });
   renderPage(`/app/pacientes/${patient.id}/exames?exame=${summaries[0].id}`);
   await user.click(await screen.findByRole("button", { name: "Tentar processar novamente" }));
   await waitFor(() => expect(requestMock).toHaveBeenCalledWith(`/exams/${summaries[0].id}/reprocess`, { method: "POST" }));
   expect(window.location.search).toContain(summaries[0].id);
+  // O detalhe é recarregado em vez de montado a partir do resumo.
+  expect(await screen.findByText("Laudo recebido. Aguardando o início da extração.")).toBeInTheDocument();
+});
+
+test("abre o PDF pela lista sem trocar o exame selecionado", async () => {
+  const user = userEvent.setup();
+  const tab = { location: { href: "" }, opener: {} as unknown, close: vi.fn() };
+  const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:exam-list");
+  renderPage();
+
+  // Só o exame com laudo tem o que abrir; a solicitação não.
+  const documentButton = await screen.findByRole("button", { name: "Abrir PDF" });
+  expect(documentButton).toHaveAccessibleDescription("Perfil lipídico");
+  await user.click(documentButton);
+
+  await waitFor(() => expect(requestBlobMock).toHaveBeenCalledWith(`/exams/${summaries[0].id}/document`));
+  await waitFor(() => expect(tab.location.href).toBe("blob:exam-list"));
+  expect(window.location.search).not.toContain("exame=");
+  open.mockRestore();
+});
+
+test("com a IA indisponível o anexo guarda o documento e diz o motivo, sem falha", async () => {
+  const user = userEvent.setup();
+  let uploaded: FormData | undefined;
+  requestMock.mockImplementation((path: string, init?: RequestInit) => {
+    if (path === "/exams/analysis-availability") return Promise.resolve({ available: false, reason: "DesabilitadaPelaClinica" });
+    if (path === `/exams/patients/${patient.id}/documents` && init?.method === "POST") {
+      uploaded = init.body as FormData;
+      return Promise.resolve(rawDetail("33333333-3333-4333-8333-333333333333", { status: "Anexado", analysisHold: "Indisponivel", draftRevision: null, capabilities: { ...capabilities, canEditRevision: false, canValidate: false, canRequestAnalysis: true } }));
+    }
+    if (path === "/exams/33333333-3333-4333-8333-333333333333" && !init?.method) {
+      return Promise.resolve(rawDetail("33333333-3333-4333-8333-333333333333", { status: "Anexado", analysisHold: "Indisponivel", draftRevision: null, capabilities: { ...capabilities, canEditRevision: false, canValidate: false, canRequestAnalysis: true } }));
+    }
+    return defaultRequest(path, init);
+  });
+  renderPage(`/app/pacientes/${patient.id}/exames?acao=anexar`);
+
+  const dialog = await screen.findByRole("dialog", { name: "Anexar laudo" });
+  const option = await within(dialog).findByRole("checkbox", { name: "Analisar com IA" });
+  await waitFor(() => expect(option).toBeDisabled());
+  expect(option).toHaveAccessibleDescription(/desativada nas configurações da clínica/);
+
+  await user.upload(within(dialog).getByLabelText("Selecionar arquivo PDF"), new File(["%PDF-1.7\ncontent"], "laudo.pdf", { type: "application/pdf" }));
+  await user.click(within(dialog).getByRole("button", { name: "Guardar documento" }));
+
+  expect(await within(dialog).findByText("Documento salvo")).toBeInTheDocument();
+  expect(uploaded?.get("analyze")).toBe("false");
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("pede a análise de um documento guardado e mostra a recusa quando a IA não está disponível", async () => {
+  const user = userEvent.setup();
+  requestMock.mockImplementation((path: string, init?: RequestInit) => {
+    if (path === `/exams/${summaries[0].id}` && !init?.method) {
+      return Promise.resolve(rawDetail(summaries[0].id, { status: "Anexado", analysisHold: "NaoSolicitada", draftRevision: null, capabilities: { ...capabilities, canEditRevision: false, canValidate: false, canRequestAnalysis: true } }));
+    }
+    if (path === `/exams/${summaries[0].id}/reprocess` && init?.method === "POST") {
+      return Promise.reject(new ApiError("A análise por IA está sem créditos disponíveis. O documento continua salvo; tente novamente mais tarde.", 409));
+    }
+    return defaultRequest(path, init);
+  });
+  renderPage(`/app/pacientes/${patient.id}/exames?exame=${summaries[0].id}`);
+
+  await user.click(await screen.findByRole("button", { name: "Analisar com IA" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("sem créditos disponíveis");
+  expect(screen.getByRole("heading", { name: "Documento salvo, sem análise por IA" })).toBeInTheDocument();
 });
 
 test("troca entre falhas cacheadas exige nova confirmação para o exame selecionado", async () => {

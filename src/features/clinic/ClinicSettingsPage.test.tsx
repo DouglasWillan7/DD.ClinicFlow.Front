@@ -52,6 +52,10 @@ beforeEach(() => {
       savedBody = JSON.parse(String(init.body));
       return { ...clinic, ...savedBody };
     }
+    if (path === "/clinics/current/exam-analysis" && init?.method === "PUT") {
+      savedBody = JSON.parse(String(init.body));
+      return { ...clinic, aiExamAnalysisEnabled: savedBody?.enabled };
+    }
     if (path === "/clinics/current") return clinic;
     if (path === "/onboarding/status") return onboarding;
     throw new Error(`Rota inesperada: ${path}`);
@@ -106,6 +110,33 @@ describe("ClinicSettingsPage", () => {
       "href",
       "/app/configuracoes/clinica/whatsapp",
     );
+  });
+
+  test("desliga e religa a análise de laudos por IA salvando na hora", async () => {
+    const user = userEvent.setup();
+    render(
+      <QueryHarness>
+        <ClinicSettingsPage />
+      </QueryHarness>,
+    );
+
+    // Clínica anterior à opção não traz o campo: a análise nasce ligada.
+    const option = await screen.findByRole("checkbox", { name: /Permitir análise por IA/ });
+    expect(option).toBeChecked();
+
+    await user.click(option);
+
+    await waitFor(() => expect(savedBody).toEqual({ enabled: false }));
+    await waitFor(() => expect(option).not.toBeChecked());
+    expect(screen.getByText(/Os laudos são apenas guardados/)).toBeInTheDocument();
+    expect(requestMock).toHaveBeenCalledWith("/clinics/current/exam-analysis", {
+      method: "PUT",
+      body: JSON.stringify({ enabled: false }),
+    });
+
+    await user.click(option);
+    await waitFor(() => expect(savedBody).toEqual({ enabled: true }));
+    await waitFor(() => expect(option).toBeChecked());
   });
 
   test("com tudo configurado, não oferece a aba de primeiros passos", async () => {

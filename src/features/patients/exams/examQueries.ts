@@ -1,4 +1,7 @@
 import type {
+  ExamAnalysisAvailability,
+  ExamAnalysisHold,
+  ExamAnalysisUnavailableReason,
   ExamCategory,
   ExamSource,
   ExamClinicalOutcome,
@@ -51,17 +54,27 @@ export type PatientExamPageTransport = Omit<PatientExamPage, "items"> & {
 
 export type PatientExamDetailTransport = Omit<
   PatientExamDetail,
-  "category" | "status" | "document" | "activeRevision" | "draftRevision" | "capabilities"
+  "category" | "status" | "document" | "activeRevision" | "draftRevision" | "capabilities" | "analysisHold"
 > & {
   category: string;
   status: string;
   document: PatientExamDocumentTransport | null;
   activeRevision: PatientExamRevisionTransport | null;
   draftRevision: PatientExamRevisionTransport | null;
-  capabilities: Omit<PatientExamDetail["capabilities"], "canDiscardFailedExam" | "canDiscardExam"> & {
+  capabilities: Omit<
+    PatientExamDetail["capabilities"],
+    "canDiscardFailedExam" | "canDiscardExam" | "canRequestAnalysis"
+  > & {
     canDiscardFailedExam?: boolean;
     canDiscardExam?: boolean;
+    canRequestAnalysis?: boolean;
   };
+  analysisHold?: string | null;
+};
+
+export type ExamAnalysisAvailabilityTransport = {
+  available?: boolean;
+  reason?: string | null;
 };
 
 const statusApiValues: Record<ExamStatus, string> = {
@@ -72,6 +85,64 @@ const statusApiValues: Record<ExamStatus, string> = {
   Validado: "Validado",
   Falhou: "Falhou",
   Cancelado: "Cancelado",
+  "Sem análise": "Anexado",
+};
+
+/**
+ * Rótulo de cada estado na tela. "Falhou" diz respeito só à análise por IA: o documento de um
+ * exame nesse estado está salvo, e o rótulo precisa deixar isso claro.
+ */
+export const examStatusLabels: Record<ExamStatus, string> = {
+  Solicitado: "Solicitado",
+  Pendente: "Pendente",
+  Processando: "Processando",
+  "Em revisão": "Em revisão",
+  Validado: "Validado",
+  Falhou: "Análise falhou",
+  Cancelado: "Cancelado",
+  "Sem análise": "Sem análise",
+};
+
+const unavailableReasons: Record<string, ExamAnalysisUnavailableReason> = {
+  Desabilitada: "Desabilitada",
+  NaoConfigurada: "NaoConfigurada",
+  DesabilitadaPelaClinica: "DesabilitadaPelaClinica",
+  SemCreditos: "SemCreditos",
+  CredencialRecusada: "CredencialRecusada",
+};
+
+/** Por que a análise por IA não pode começar agora, em palavras de quem está anexando o laudo. */
+export const analysisUnavailableMessages: Record<ExamAnalysisUnavailableReason, string> = {
+  Desabilitada: "A análise por IA está desativada.",
+  NaoConfigurada: "A análise por IA não está configurada.",
+  DesabilitadaPelaClinica: "A análise por IA está desativada nas configurações da clínica.",
+  SemCreditos: "A análise por IA está sem créditos disponíveis no momento.",
+  CredencialRecusada: "A análise por IA está indisponível no momento.",
+};
+
+export function analysisUnavailableMessage(availability: ExamAnalysisAvailability | null | undefined) {
+  if (!availability || availability.available) return null;
+  return availability.reason
+    ? analysisUnavailableMessages[availability.reason]
+    : "A análise por IA está indisponível no momento.";
+}
+
+export function normalizeExamAnalysisAvailability(
+  payload: ExamAnalysisAvailabilityTransport,
+): ExamAnalysisAvailability {
+  // Só um "não" explícito bloqueia a opção: resposta incompleta não pode esconder a análise,
+  // porque o backend decide de novo no envio e guarda o documento de qualquer jeito.
+  const available = payload?.available !== false;
+  return {
+    available,
+    // Motivo desconhecido (backend mais novo) cai no texto genérico em vez de sumir.
+    reason: available ? null : unavailableReasons[payload.reason ?? ""] ?? null,
+  };
+}
+
+const analysisHoldValues: Record<string, ExamAnalysisHold> = {
+  NaoSolicitada: "NaoSolicitada",
+  Indisponivel: "Indisponivel",
 };
 
 const categoryApiValues: Record<ExamCategory, string> = {
@@ -94,6 +165,7 @@ export const examKeys = {
   list: (patientId: string, filters: ExamListFilters, cursor?: string | null) =>
     ["exams", "patient", patientId, "list", filters, cursor ?? null] as const,
   detail: (examId: string) => ["exams", "detail", examId] as const,
+  analysisAvailability: ["exams", "analysis-availability"] as const,
 };
 
 export function examListSearchParams(
@@ -131,6 +203,8 @@ const statusUiValues: Record<string, ExamStatus> = {
   Validado: "Validado",
   Falhou: "Falhou",
   Cancelado: "Cancelado",
+  Anexado: "Sem análise",
+  "Sem análise": "Sem análise",
 };
 
 // Espelha `ExamSource` do backend; valor desconhecido não vira "Paciente".
@@ -201,7 +275,9 @@ export function normalizePatientExamDetail(payload: PatientExamDetailTransport):
       ...payload.capabilities,
       canDiscardFailedExam: payload.capabilities.canDiscardFailedExam ?? false,
       canDiscardExam: payload.capabilities.canDiscardExam ?? false,
+      canRequestAnalysis: payload.capabilities.canRequestAnalysis ?? false,
     },
+    analysisHold: analysisHoldValues[payload.analysisHold ?? ""] ?? null,
     status: statusUiValues[payload.status] ?? "Falhou",
     category: categoryUiValues[payload.category] ?? "Não classificado",
     document: payload.document

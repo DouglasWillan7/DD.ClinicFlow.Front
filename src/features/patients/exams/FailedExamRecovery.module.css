@@ -22,6 +22,11 @@
   align-items: center;
 }
 
+.documentKept {
+  max-width: 70ch;
+  color: var(--color-text-body);
+}
+
 .actionItem {
   display: inline-flex;
 }

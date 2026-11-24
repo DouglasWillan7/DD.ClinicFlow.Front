@@ -16,6 +16,7 @@ const capabilities: PatientExamDetail["capabilities"] = {
   canEditRevision: false,
   canClassify: false,
   canValidate: false,
+  canRequestAnalysis: false,
 };
 
 const failedExam: PatientExamDetail = {
@@ -45,6 +46,7 @@ const failedExam: PatientExamDetail = {
   activeRevision: null,
   draftRevision: null,
   attemptsRemaining: 2,
+  analysisHold: null,
   capabilities,
 };
 

@@ -10,6 +10,7 @@ const requestedId = "70000000-0000-4000-8000-000000000002";
 const processingId = "70000000-0000-4000-8000-000000000003";
 const failedId = "70000000-0000-4000-8000-000000000004";
 const validatedId = "70000000-0000-4000-8000-000000000005";
+const storedId = "70000000-0000-4000-8000-000000000006";
 const newRequestId = "70000000-0000-4000-8000-000000000006";
 
 const patient = {
@@ -291,6 +292,10 @@ interface ExamOptions {
   duplicateUpload?: boolean;
   duplicateExamId?: string;
   staleRevisionOnce?: boolean;
+  /** Inclui um documento guardado sem análise por IA (`Anexado`). */
+  storedDocument?: boolean;
+  /** Motivo de a análise por IA estar indisponível; sem ele, está disponível. */
+  analysisUnavailableReason?: string;
 }
 
 interface MockState {
@@ -339,13 +344,15 @@ function detail(
     activeRevision: active,
     draftRevision: doctor ? draft : null,
     attemptsRemaining: hasDocument ? 2 : 0,
+    analysisHold: status === "Anexado" ? "NaoSolicitada" : null,
     capabilities: {
       canEditRequest: doctor && status === "Solicitado",
       canCancelRequest: doctor && status === "Solicitado",
       canAttachDocument: status === "Solicitado",
       canReprocess: status === "Falhou" || status === "Pendente" || status === "Processando",
       canDiscardFailedExam: status === "Falhou",
-      canDiscardExam: status === "Falhou" || doctor && status === "EmRevisao",
+      canDiscardExam: status === "Falhou" || status === "Anexado" || doctor && status === "EmRevisao",
+      canRequestAnalysis: status === "Anexado",
       canOpenCorrection: doctor && status === "Validado",
       canEditRevision: doctor && Boolean(draft),
       canClassify: false,
@@ -462,6 +469,9 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
     [failedId, detail(failedId, "Função tireoidiana", "Falhou", doctor)],
     [validatedId, detail(validatedId, "Painel laboratorial sintético", "Validado", doctor)],
   ]);
+  if (options.storedDocument) {
+    records.set(storedId, detail(storedId, "Ultrassom de tireoide", "Anexado", doctor));
+  }
   const state: MockState = {
     records,
     requests: [],
@@ -594,6 +604,15 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
       return route.fulfill({
         status: 200,
         json: { items, nextCursor: null, capabilities: { canRequest: doctor, canAttachDocument: true } },
+      });
+    }
+
+    if (url.pathname === "/exams/analysis-availability") {
+      return route.fulfill({
+        status: 200,
+        json: options.analysisUnavailableReason
+          ? { available: false, reason: options.analysisUnavailableReason }
+          : { available: true, reason: null },
       });
     }
 
@@ -1519,3 +1538,52 @@ for (const width of [390, 640, 960, 1280, 1440]) {
     }
   });
 }
+
+test("documento sem análise abre o PDF pela lista e aceita o pedido de análise", async ({ page }) => {
+  const state = await mockExams(page, { storedDocument: true });
+  await openExams(page);
+
+  await expect(page.getByRole("heading", { name: "Documentos sem análise" })).toBeVisible();
+  const stored = page.getByRole("button", { name: /Ultrassom de tireoide/ });
+  await expect(stored).toContainText("Sem análise");
+  await expect(page.getByRole("button", { name: /Função tireoidiana/ })).toContainText("Análise falhou");
+
+  // O PDF abre pela linha em qualquer estado da análise, sem selecionar o exame.
+  const pdfRequest = page.waitForRequest((request) => request.url().endsWith(`/exams/${storedId}/document`));
+  const popup = page.waitForEvent("popup");
+  const documentButton = page.getByRole("button", { name: "Abrir PDF" }).and(
+    page.locator(`[aria-describedby="exam-row-name-${storedId}"]`),
+  );
+  const box = await documentButton.boundingBox();
+  expect(box!.width).toBeGreaterThanOrEqual(44);
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  await documentButton.click();
+  expect((await pdfRequest).headers().authorization).toBe("Bearer exam-e2e-access-token");
+  await (await popup).close();
+  expect(new URL(page.url()).searchParams.get("exame")).toBeNull();
+
+  await stored.click();
+  await expect(page.getByRole("heading", { name: "Documento salvo, sem análise por IA" })).toBeVisible();
+  await page.getByRole("button", { name: "Analisar com IA" }).click();
+  await expect(page.getByText("Laudo recebido. Aguardando o início da extração.")).toBeVisible();
+  expect(state.requests.some((request) => request.path === `/exams/${storedId}/reprocess`)).toBe(true);
+});
+
+test("com a IA indisponível o anexo só guarda o documento e explica o motivo", async ({ page }) => {
+  const state = await mockExams(page, { analysisUnavailableReason: "SemCreditos" });
+  await openExams(page, "?acao=anexar");
+
+  const composer = page.getByRole("dialog", { name: "Anexar laudo" });
+  const option = composer.getByRole("checkbox", { name: "Analisar com IA" });
+  await expect(option).toBeDisabled();
+  await expect(option).not.toBeChecked();
+  await expect(composer).toContainText("A análise por IA está sem créditos disponíveis no momento.");
+  await composer.getByLabel("Selecionar arquivo PDF").setInputFiles({
+    name: "laudo-sintetico.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7\nfixture"),
+  });
+  await composer.getByRole("button", { name: "Guardar documento" }).click();
+
+  await expect.poll(() => state.uploadAttempts.at(-1)?.fields.analyze).toBe("false");
+});

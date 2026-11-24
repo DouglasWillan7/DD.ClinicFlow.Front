@@ -29,9 +29,12 @@ import { ExamDetailPanel } from "./exams/ExamDetailPanel";
 import { ExamListPanel } from "./exams/ExamListPanel";
 import { clinicalReportKeys, useClinicalExamReport } from "./exams/clinicalReportQueries";
 import { flattenExamPages } from "./exams/examList";
+import { openExamDocumentInNewTab } from "./exams/examDocument";
 import {
+  type ExamAnalysisAvailabilityTransport,
   examKeys,
   examListSearchParams,
+  normalizeExamAnalysisAvailability,
   normalizePatientExamDetail,
   normalizePatientExamPage,
   type PatientExamDetailTransport,
@@ -103,6 +106,20 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
     },
   });
 
+  // Perguntado antes de oferecer a análise, para o envio não prometer o que vai falhar. Se a
+  // consulta falhar, a opção segue liberada: o backend guarda o documento de qualquer jeito.
+  const analysisAvailability = useQuery({
+    queryKey: examKeys.analysisAvailability,
+    queryFn: async () => normalizeExamAnalysisAvailability(
+      await request<ExamAnalysisAvailabilityTransport>("/exams/analysis-availability"),
+    ),
+  });
+
+  const openListDocument = useCallback(
+    (examId: string) => openExamDocumentInNewTab(() => requestBlob(`/exams/${examId}/document`)),
+    [requestBlob],
+  );
+
   const loadSelectedDocument = useCallback(() => {
     if (!selectedExamId) return Promise.reject(new Error("Exame não selecionado."));
     return requestBlob(`/exams/${selectedExamId}/document`);
@@ -146,6 +163,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
 
   const invalidate = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: examKeys.patient(patientId) });
+    void queryClient.invalidateQueries({ queryKey: examKeys.analysisAvailability });
   }, [patientId, queryClient]);
 
   const complete = useCallback((exam: PatientExamDetail) => {
@@ -196,9 +214,19 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
     return normalizePatientExamDetail(await request<PatientExamDetailTransport>(`/exams/patients/${patientId}/documents`, { method: "POST", body, signal }));
   }
 
+  /** Reprocessa uma análise que falhou ou pede a análise de um documento só guardado. */
   async function reprocessExam() {
     if (!selectedExamId) return;
-    complete(normalizePatientExamDetail(await request<PatientExamDetailTransport>(`/exams/${selectedExamId}/reprocess`, { method: "POST" })));
+    const examId = selectedExamId;
+    try {
+      // A resposta é um resumo (`ReprocessExamResult`), não o detalhe: o detalhe é recarregado.
+      await request<unknown>(`/exams/${examId}/reprocess`, { method: "POST" });
+    } finally {
+      // Recusa por indisponibilidade da IA muda o que a tela deve oferecer em seguida.
+      void queryClient.invalidateQueries({ queryKey: examKeys.analysisAvailability });
+    }
+    await queryClient.invalidateQueries({ queryKey: examKeys.detail(examId) });
+    void queryClient.invalidateQueries({ queryKey: examKeys.patient(patientId) });
   }
 
   async function discardFailedExam() {
@@ -298,6 +326,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
           patientName={person.name}
           pendingRequests={visibleExams.filter((exam) => exam.status === "Solicitado" && !exam.hasDocument)}
           trackedExam={attached.data ?? null}
+          analysisAvailability={analysisAvailability.data ?? null}
           onUpload={uploadExam}
           onTrackChange={(examId) => {
             setAttachedExamId(examId);
@@ -325,7 +354,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
       ) : (
       <div className={`${styles.workspace} ${selectedExamId ? styles.hasSelection : ""}`}>
         <div className={styles.listColumn}>
-          <ExamListPanel timeZone={timeZone} pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onRequest={() => openEmptyAction("solicitar")} onAttach={() => openEmptyAction("anexar")} />
+          <ExamListPanel timeZone={timeZone} pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onRequest={() => openEmptyAction("solicitar")} onAttach={() => openEmptyAction("anexar")} onOpenDocument={openListDocument} />
         </div>
 
         <div className={styles.detailColumn}>
@@ -338,7 +367,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
             <section className={styles.detailFeedback}><ErrorBlock message="Não foi possível carregar este exame." retry={() => void detail.refetch()} /></section>
           ) : (
             <>
-              <ExamDetailPanel exam={selected} timeZone={timeZone} requesterLabel={selected.requestedByUserId === session?.userId ? session?.name : null} report={selected.status === "Validado" ? clinicalReport.data : undefined} loadDocument={loadSelectedDocument} onRetry={() => void reprocessExam()} onDiscard={discardFailedExam} onReload={() => void detail.refetch()} onOpenCorrection={() => setOpeningCorrection(true)} onEditRevision={() => document.getElementById("exam-revision-editor")?.focus()} onShowHistory={() => setHistoryOpen((value) => !value)} />
+              <ExamDetailPanel exam={selected} timeZone={timeZone} requesterLabel={selected.requestedByUserId === session?.userId ? session?.name : null} report={selected.status === "Validado" ? clinicalReport.data : undefined} loadDocument={loadSelectedDocument} analysisAvailability={analysisAvailability.data ?? null} onRetry={reprocessExam} onDiscard={discardFailedExam} onReload={() => void detail.refetch()} onOpenCorrection={() => setOpeningCorrection(true)} onEditRevision={() => document.getElementById("exam-revision-editor")?.focus()} onShowHistory={() => setHistoryOpen((value) => !value)} />
               {selected.status === "Validado" && clinicalReport.isLoading ? (
                 <section className={styles.detailFeedback}><LoadingBlock label="Carregando laudo validado…" /></section>
               ) : null}

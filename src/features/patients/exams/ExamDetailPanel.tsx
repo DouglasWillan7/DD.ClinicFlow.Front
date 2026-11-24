@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import type {
   ClinicalExamReport,
+  ExamAnalysisAvailability,
   PatientExamDetail,
   PatientExamRevision,
 } from "../../../api/types";
@@ -19,10 +20,13 @@ import {
   formatExamDate,
   formatExamResultValue,
 } from "./examDetail";
+import { examDocumentUnavailableMessage, openExamDocumentInNewTab } from "./examDocument";
 import styles from "./ExamDetailPanel.module.css";
+import { analysisUnavailableMessage } from "./examQueries";
 import { ExamStatusBadge } from "./ExamStatusBadge";
 import { FailedExamRecovery } from "./FailedExamRecovery";
 import { ReviewExamDiscard } from "./ReviewExamDiscard";
+import { StoredExamAnalysis } from "./StoredExamAnalysis";
 import { ValidatedExamReport } from "./ValidatedExamReport";
 
 interface ExamDetailPanelProps {
@@ -32,10 +36,13 @@ interface ExamDetailPanelProps {
   /** Fuso da clínica para as datas do laudo validado. */
   timeZone?: string;
   loadDocument?: () => Promise<Blob>;
+  /** Disponibilidade da análise por IA; sem resposta, os pedidos seguem liberados. */
+  analysisAvailability?: ExamAnalysisAvailability | null;
   onEditRequest?: () => void;
   onCancelRequest?: () => void;
   onAttachDocument?: () => void;
-  onRetry?: () => void;
+  /** Reprocessa uma análise que falhou ou pede a análise de um documento só guardado. */
+  onRetry?: () => Promise<void> | void;
   onDiscard?: () => Promise<void>;
   onReload?: () => void;
   onOpenCorrection?: () => void;
@@ -128,6 +135,7 @@ export function ExamDetailPanel({
   requesterLabel,
   timeZone,
   loadDocument,
+  analysisAvailability,
   onEditRequest,
   onCancelRequest,
   onAttachDocument,
@@ -144,27 +152,18 @@ export function ExamDetailPanel({
   const openDocument = async () => {
     setDocumentError(null);
     setOpeningDocument(true);
-    const tab = window.open("about:blank", "_blank");
-    if (!tab) {
-      setDocumentError("O laudo original está indisponível no momento.");
-      setOpeningDocument(false);
-      return;
-    }
-    tab.opener = null;
-
     try {
-      if (!loadDocument) throw new Error("Document loader unavailable");
-      const blob = await loadDocument();
-      const objectUrl = URL.createObjectURL(blob);
-      tab.location.href = objectUrl;
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      await openExamDocumentInNewTab(
+        loadDocument ?? (() => Promise.reject(new Error("Document loader unavailable"))),
+      );
     } catch {
-      tab.close();
-      setDocumentError("O laudo original está indisponível no momento.");
+      setDocumentError(examDocumentUnavailableMessage);
     } finally {
       setOpeningDocument(false);
     }
   };
+
+  const analysisUnavailable = analysisUnavailableMessage(analysisAvailability);
 
   const reviewRevision = exam.capabilities.canEditRevision ? exam.draftRevision : null;
 
@@ -245,10 +244,22 @@ export function ExamDetailPanel({
         </section>
       ) : null}
 
+      {exam.status === "Sem análise" ? (
+        <StoredExamAnalysis
+          key={exam.id}
+          exam={exam}
+          analysisUnavailable={analysisUnavailable}
+          onRequestAnalysis={onRetry}
+          onDiscard={onDiscard}
+          onReload={onReload}
+        />
+      ) : null}
+
       {exam.status === "Falhou" ? (
         <FailedExamRecovery
           key={exam.id}
           exam={exam}
+          analysisUnavailable={analysisUnavailable}
           onRetry={onRetry}
           onDiscard={onDiscard}
           onReload={onReload}

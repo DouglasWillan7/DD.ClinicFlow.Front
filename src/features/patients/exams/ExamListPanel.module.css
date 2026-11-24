@@ -116,12 +116,24 @@
   font-weight: 600;
 }
 
+/* A linha tem dois controles irmãos: selecionar o exame e abrir o PDF. */
+.examRowWrap {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-control);
+  transition: background var(--transition-fast);
+}
+
+/* O selo de estado fica abaixo do nome em qualquer largura: ao lado, na coluna estreita do
+   desktop, ele e o botão do PDF não deixavam espaço para o nome do exame. */
 .examRow {
   display: grid;
   min-height: 68px;
-  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
@@ -132,15 +144,53 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--transition-fast);
 }
 
-.examRow:hover,
+.examRow > :last-child {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.examRowWrap:hover,
 .examRowSelected {
   background: var(--color-primary-subtle);
 }
 
+.documentButton {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-inline-end: var(--space-2);
+  padding-inline: var(--space-2);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.documentButton:hover:not(:disabled) {
+  border-color: var(--color-primary-soft);
+}
+
+.documentButton:disabled {
+  color: var(--color-text-disabled);
+  cursor: wait;
+}
+
+.spinning {
+  animation: spin 0.9s linear infinite;
+}
+
 .examRow:focus-visible,
+.documentButton:focus-visible,
 .filters select:focus-visible,
 .loadMore:focus-visible,
 .error button:focus-visible {
@@ -249,13 +299,16 @@
   50% { opacity: 0.62; }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 639px) {
   .panel { padding: var(--space-4); }
-  .examRow { grid-template-columns: auto minmax(0, 1fr); }
-  .examRow > :last-child { grid-column: 2; justify-self: start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .examRow { transition: none; }
-  .skeleton { animation: none; }
+  .examRowWrap { transition: none; }
+  .skeleton,
+  .spinning { animation: none; }
 }
