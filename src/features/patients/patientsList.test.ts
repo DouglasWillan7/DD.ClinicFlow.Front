@@ -41,7 +41,7 @@ describe("matchesSearch", () => {
 describe("filterPatients", () => {
   const lista = [
     makePatient({ name: "Zilda Prado" }),
-    makePatient({ name: "Álvaro Souza", situation: "ExamePendente" }),
+    makePatient({ name: "Álvaro Souza", situation: "NovoPaciente" }),
     makePatient({ name: "Bruna Lima", situation: "Inativo", isActive: false }),
   ];
 
@@ -53,18 +53,17 @@ describe("filterPatients", () => {
       "Zilda Prado",
     ]);
 
-    const pendentes = filterPatients(lista, "ExamePendente", "");
-    expect(pendentes).toHaveLength(1);
-    expect(pendentes[0].name).toBe("Álvaro Souza");
+    const novos = filterPatients(lista, "NovoPaciente", "");
+    expect(novos).toHaveLength(1);
+    expect(novos[0].name).toBe("Álvaro Souza");
 
-    expect(filterPatients(lista, "ExamePendente", "zilda")).toHaveLength(0);
+    expect(filterPatients(lista, "NovoPaciente", "zilda")).toHaveLength(0);
   });
 
   test("conta pacientes por situação", () => {
     expect(countBySituation(lista)).toEqual({
       EmAcompanhamento: 1,
-      NovoPaciente: 0,
-      ExamePendente: 1,
+      NovoPaciente: 1,
       Inativo: 1,
     });
   });

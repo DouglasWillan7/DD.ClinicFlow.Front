@@ -61,7 +61,7 @@ function summaryTransport(overrides: Partial<PatientClinicalSummaryTransport> = 
     findings: [{ resultId: "result-1", name: "Hemoglobina", valueText: "10,2", unit: "g/dL", referenceText: "12–16", referenceState: "Low", deltaPercent: null }],
     trends: [{ catalogCode: "HB", name: "Hemoglobina", unit: "g/dL", referenceState: "unknown", points: undefined }],
     latestCollectionDate: "2026-08-09",
-    capabilities: { canRequest: true, canAttachDocument: true },
+    capabilities: { canAttachDocument: true },
     ...overrides,
   };
 }

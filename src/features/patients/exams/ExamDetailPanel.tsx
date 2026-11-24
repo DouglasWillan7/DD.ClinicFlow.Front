@@ -1,11 +1,9 @@
 import clsx from "clsx";
 import {
-  Clock3,
   ExternalLink,
   FileText,
   Pencil,
   RefreshCcw,
-  Upload,
 } from "lucide-react";
 import { useState } from "react";
 import type {
@@ -17,7 +15,6 @@ import type {
 import { Button } from "../../../components/Button";
 import {
   confidencePresentation,
-  formatExamDate,
   formatExamResultValue,
 } from "./examDetail";
 import { examDocumentUnavailableMessage, openExamDocumentInNewTab } from "./examDocument";
@@ -32,15 +29,11 @@ import { ValidatedExamReport } from "./ValidatedExamReport";
 interface ExamDetailPanelProps {
   exam: PatientExamDetail;
   report?: ClinicalExamReport;
-  requesterLabel?: string | null;
   /** Fuso da clínica para as datas do laudo validado. */
   timeZone?: string;
   loadDocument?: () => Promise<Blob>;
   /** Disponibilidade da análise por IA; sem resposta, os pedidos seguem liberados. */
   analysisAvailability?: ExamAnalysisAvailability | null;
-  onEditRequest?: () => void;
-  onCancelRequest?: () => void;
-  onAttachDocument?: () => void;
   /** Reprocessa uma análise que falhou ou pede a análise de um documento só guardado. */
   onRetry?: () => Promise<void> | void;
   onDiscard?: () => Promise<void>;
@@ -132,13 +125,9 @@ function RevisionContent({ revision }: { revision: PatientExamRevision }) {
 export function ExamDetailPanel({
   exam,
   report,
-  requesterLabel,
   timeZone,
   loadDocument,
   analysisAvailability,
-  onEditRequest,
-  onCancelRequest,
-  onAttachDocument,
   onRetry,
   onDiscard,
   onReload,
@@ -190,26 +179,6 @@ export function ExamDetailPanel({
         <ExamStatusBadge status={exam.status} />
       </header>
 
-      {exam.status === "Solicitado" ? (
-        <section className={styles.stateSection} aria-labelledby={`request-${exam.id}`}>
-          <div className={styles.sectionHeading}>
-            <Clock3 size={20} aria-hidden="true" />
-            <h3 id={`request-${exam.id}`}>Solicitação</h3>
-          </div>
-          <dl className={styles.metadata}>
-            <div><dt>Data prevista</dt><dd>{formatExamDate(exam.scheduledOn)}</dd></div>
-            {requesterLabel || !exam.requestedByUserId ? (
-              <div><dt>Solicitante</dt><dd>{requesterLabel || "Solicitante não informado"}</dd></div>
-            ) : null}
-          </dl>
-          <div className={styles.actions}>
-            {exam.capabilities.canEditRequest && onEditRequest ? <Button variant="secondary" onClick={onEditRequest}><Pencil size={16} aria-hidden="true" />Editar solicitação</Button> : null}
-            {exam.capabilities.canCancelRequest && onCancelRequest ? <Button variant="ghost" onClick={onCancelRequest}>Cancelar solicitação</Button> : null}
-            {exam.capabilities.canAttachDocument && onAttachDocument ? <Button onClick={onAttachDocument}><Upload size={16} aria-hidden="true" />Anexar laudo</Button> : null}
-          </div>
-        </section>
-      ) : null}
-
       {exam.document ? (
         <section className={styles.documentSection} aria-labelledby={`document-${exam.id}`}>
           <div className={styles.sectionHeading}>
@@ -227,7 +196,8 @@ export function ExamDetailPanel({
           </div>
           {documentError ? <p className={styles.regionalError} role="alert">{documentError}</p> : null}
         </section>
-      ) : exam.status !== "Solicitado" && exam.status !== "Cancelado" ? (
+      ) : exam.status !== "Cancelado" ? (
+        // Só um registro cancelado antigo, que nunca recebeu laudo, fica sem documento por desenho.
         <section className={styles.documentSection} role="region" aria-label="Documento original">
           <div className={styles.sectionHeading}><FileText size={20} aria-hidden="true" /><h3>Documento original</h3></div>
           <p className={styles.unavailable}>Original indisponível</p>

@@ -34,7 +34,7 @@ import type {
 import { Button } from "../../../components/Button";
 import { Field, SelectField } from "../../../components/Field";
 import { formatFileSize, LOW_CONFIDENCE_THRESHOLD } from "./examDetail";
-import { examRequestCategories } from "./examRequestForm";
+import { clinicalExamCategories } from "./examCategories";
 import {
   clinicalOutcomes,
   parseBrazilianNumber,
@@ -501,7 +501,7 @@ function AuthorizedRevisionEditor({ exam, revision, loadDocument, onClassify, on
               <div className={styles.classificationControls}>
                 <SelectField id="exam-editor-category" label="Categoria clínica do exame" value={classificationCategory} onChange={(event) => setClassificationCategory(event.target.value as ClassifyExamRequest["category"] | "")}>
                   <option value="">Selecione uma categoria</option>
-                  {examRequestCategories.map((category) => <option key={category}>{category}</option>)}
+                  {clinicalExamCategories.map((category) => <option key={category}>{category}</option>)}
                 </SelectField>
                 <Button type="button" variant="secondary" loading={saving} disabled={!classificationCategory} onClick={() => void classify()}>Classificar exame</Button>
               </div>

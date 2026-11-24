@@ -88,7 +88,7 @@ function clinicalSummary(
     findings,
     trends,
     latestCollectionDate: "2026-07-29",
-    capabilities: { canRequest: true, canAttachDocument: true },
+    capabilities: { canAttachDocument: true },
     ...overrides,
   };
 }

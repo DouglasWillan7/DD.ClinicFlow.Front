@@ -7,16 +7,13 @@ import { ArrowLeft, FileSearch } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { ApiError } from "../../api/client";
 import type {
-  CancelExamRequest,
   ClassifyExamRequest,
-  CreateExamRequest,
   DiscardFailedExamRequest,
   ExamListFilters,
   OpenExamRevisionRequest,
   PatientDemographic,
   PatientExamDetail,
   SaveExamRevisionRequest,
-  UpdateExamRequest,
   ValidateExamRevisionRequest,
 } from "../../api/types";
 import { useSearchParams } from "../../app/navigation";
@@ -43,7 +40,6 @@ import {
   toExamOutcomeApi,
 } from "./exams/examQueries";
 import { useExamRealtimeView } from "./exams/ExamRealtimeProvider";
-import { ExamRequestComposer } from "./exams/ExamRequestComposer";
 import { ExamRevisionEditor } from "./exams/ExamRevisionEditor";
 import { ExamUploadComposer } from "./exams/ExamUploadComposer";
 import { PatientHeader } from "./PatientHeader";
@@ -59,7 +55,7 @@ const initialFilters: ExamListFilters = {
 };
 
 export function PatientExamsPage({ patientId }: { patientId: string }) {
-  const { request, requestBlob, session } = useAuth();
+  const { request, requestBlob } = useAuth();
   const timeZone = useClinicTimeZone();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
@@ -133,7 +129,7 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
     selected?.status === "Validado" || selectedListStatus === "Validado",
   );
 
-  const pageCapabilities = pages[0]?.capabilities ?? { canRequest: false, canAttachDocument: false };
+  const pageCapabilities = pages[0]?.capabilities ?? { canAttachDocument: false };
 
   const selectExam = useCallback((examId: string | null) => {
     setParams((previous) => {
@@ -145,15 +141,15 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
     }, { replace: true });
   }, [setParams]);
 
-  const openEmptyAction = useCallback((action: "solicitar" | "anexar") => {
+  const openAttach = useCallback(() => {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
-      next.set("acao", action);
+      next.set("acao", "anexar");
       return next;
     }, { replace: true });
   }, [setParams]);
 
-  const closeEmptyAction = useCallback(() => {
+  const closeAttach = useCallback(() => {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       next.delete("acao");
@@ -188,27 +184,6 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
     onPoll: poll,
     onSelectExam: selectExam,
   });
-
-  async function createExam(value: CreateExamRequest) {
-    return normalizePatientExamDetail(await request<PatientExamDetailTransport>(`/exams/patients/${patientId}/requests`, {
-      method: "POST",
-      body: JSON.stringify({ ...value, category: toExamCategoryApi(value.category) }),
-    }));
-  }
-
-  async function updateExam(examId: string, value: UpdateExamRequest) {
-    return normalizePatientExamDetail(await request<PatientExamDetailTransport>(`/exams/${examId}/request`, {
-      method: "PUT",
-      body: JSON.stringify({ ...value, category: toExamCategoryApi(value.category) }),
-    }));
-  }
-
-  async function cancelExam(examId: string, value: CancelExamRequest) {
-    return normalizePatientExamDetail(await request<PatientExamDetailTransport>(`/exams/${examId}/request`, {
-      method: "DELETE",
-      body: JSON.stringify(value),
-    }));
-  }
 
   async function uploadExam(body: FormData, signal: AbortSignal) {
     return normalizePatientExamDetail(await request<PatientExamDetailTransport>(`/exams/patients/${patientId}/documents`, { method: "POST", body, signal }));
@@ -318,24 +293,20 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
         capabilities={pageCapabilities}
       />
 
-      <div className={styles.composers}>
-        <ExamRequestComposer canRequest={pageCapabilities.canRequest} openInitially={params.get("acao") === "solicitar"} showCreateTrigger={false} exam={null} onCreate={createExam} onUpdate={updateExam} onCancel={cancelExam} onCompleted={complete} onReload={() => void list.refetch()} onClose={closeEmptyAction} />
-        <ExamUploadComposer
-          canAttachDocument={pageCapabilities.canAttachDocument}
-          open={params.get("acao") === "anexar"}
-          patientName={person.name}
-          pendingRequests={visibleExams.filter((exam) => exam.status === "Solicitado" && !exam.hasDocument)}
-          trackedExam={attached.data ?? null}
-          analysisAvailability={analysisAvailability.data ?? null}
-          onUpload={uploadExam}
-          onTrackChange={(examId) => {
-            setAttachedExamId(examId);
-            if (examId) invalidate();
-          }}
-          onOpenExam={selectExam}
-          onClose={closeEmptyAction}
-        />
-      </div>
+      <ExamUploadComposer
+        canAttachDocument={pageCapabilities.canAttachDocument}
+        open={params.get("acao") === "anexar"}
+        patientName={person.name}
+        trackedExam={attached.data ?? null}
+        analysisAvailability={analysisAvailability.data ?? null}
+        onUpload={uploadExam}
+        onTrackChange={(examId) => {
+          setAttachedExamId(examId);
+          if (examId) invalidate();
+        }}
+        onOpenExam={selectExam}
+        onClose={closeAttach}
+      />
 
       {selected?.status === "Em revisão" && selected.draftRevision && selected.capabilities.canEditRevision ? (
         <div className={styles.reviewMode}>
@@ -354,20 +325,20 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
       ) : (
       <div className={`${styles.workspace} ${selectedExamId ? styles.hasSelection : ""}`}>
         <div className={styles.listColumn}>
-          <ExamListPanel timeZone={timeZone} pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onRequest={() => openEmptyAction("solicitar")} onAttach={() => openEmptyAction("anexar")} onOpenDocument={openListDocument} />
+          <ExamListPanel timeZone={timeZone} pages={pages} capabilities={pageCapabilities} filters={filters} selectedExamId={selectedExamId} isLoading={list.isLoading} error={list.error instanceof Error ? list.error : null} isFetchingNextPage={list.isFetchingNextPage} hasNextPage={list.hasNextPage} onFiltersChange={setFilters} onSelect={selectExam} onLoadMore={() => void list.fetchNextPage()} onRetry={() => void list.refetch()} onAttach={openAttach} onOpenDocument={openListDocument} />
         </div>
 
         <div className={styles.detailColumn}>
           {selectedExamId ? <Button className={styles.mobileBack} type="button" variant="ghost" onClick={() => selectExam(null)}><ArrowLeft size={16} aria-hidden="true" />Voltar aos exames</Button> : null}
           {!selectedExamId ? (
-            <section className={styles.detailEmpty}><FileSearch size={28} aria-hidden="true" /><h2>Selecione um exame</h2><p>Abra uma solicitação, processamento ou versão validada para ver os detalhes.</p></section>
+            <section className={styles.detailEmpty}><FileSearch size={28} aria-hidden="true" /><h2>Selecione um exame</h2><p>Abra um laudo em processamento, em revisão ou validado para ver os detalhes.</p></section>
           ) : detail.isLoading ? (
             <section className={styles.detailFeedback}><LoadingBlock label="Carregando o exame…" /></section>
           ) : detail.isError || !selected ? (
             <section className={styles.detailFeedback}><ErrorBlock message="Não foi possível carregar este exame." retry={() => void detail.refetch()} /></section>
           ) : (
             <>
-              <ExamDetailPanel exam={selected} timeZone={timeZone} requesterLabel={selected.requestedByUserId === session?.userId ? session?.name : null} report={selected.status === "Validado" ? clinicalReport.data : undefined} loadDocument={loadSelectedDocument} analysisAvailability={analysisAvailability.data ?? null} onRetry={reprocessExam} onDiscard={discardFailedExam} onReload={() => void detail.refetch()} onOpenCorrection={() => setOpeningCorrection(true)} onEditRevision={() => document.getElementById("exam-revision-editor")?.focus()} onShowHistory={() => setHistoryOpen((value) => !value)} />
+              <ExamDetailPanel exam={selected} timeZone={timeZone} report={selected.status === "Validado" ? clinicalReport.data : undefined} loadDocument={loadSelectedDocument} analysisAvailability={analysisAvailability.data ?? null} onRetry={reprocessExam} onDiscard={discardFailedExam} onReload={() => void detail.refetch()} onOpenCorrection={() => setOpeningCorrection(true)} onEditRevision={() => document.getElementById("exam-revision-editor")?.focus()} onShowHistory={() => setHistoryOpen((value) => !value)} />
               {selected.status === "Validado" && clinicalReport.isLoading ? (
                 <section className={styles.detailFeedback}><LoadingBlock label="Carregando laudo validado…" /></section>
               ) : null}
@@ -376,7 +347,6 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
               ) : null}
               {historyOpen ? <p className={styles.historyNote} role="status">Versões anteriores permanecem preservadas no prontuário.</p> : null}
               {openingCorrection ? <section className={styles.correctionComposer} role="region" aria-label="Iniciar correção"><Field id="exam-correction-reason" label="Motivo da correção" value={correctionReason} error={correctionError ?? undefined} onChange={(event) => setCorrectionReason(event.target.value)} /><div><Button type="button" variant="ghost" onClick={() => setOpeningCorrection(false)}>Fechar</Button><Button type="button" onClick={() => void openCorrection()}>Iniciar correção</Button></div></section> : null}
-              <ExamRequestComposer canRequest={false} openInitially={false} exam={selected} onCreate={createExam} onUpdate={updateExam} onCancel={cancelExam} onCompleted={complete} onReload={() => void detail.refetch()} />
             </>
           )}
         </div>

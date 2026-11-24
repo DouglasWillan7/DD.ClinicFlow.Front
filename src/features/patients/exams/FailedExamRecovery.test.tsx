@@ -6,9 +6,6 @@ import type { PatientExamDetail } from "../../../api/types";
 import { FailedExamRecovery } from "./FailedExamRecovery";
 
 const capabilities: PatientExamDetail["capabilities"] = {
-  canEditRequest: false,
-  canCancelRequest: false,
-  canAttachDocument: false,
   canReprocess: true,
   canDiscardFailedExam: true,
   canDiscardExam: true,
@@ -23,10 +20,8 @@ const failedExam: PatientExamDetail = {
   id: "failed-exam",
   patientId: "patient-1",
   doctorUserId: "doctor-1",
-  requestedByUserId: "doctor-1",
   name: "Hemograma completo",
   category: "Laboratório",
-  scheduledOn: null,
   status: "Falhou",
   version: 7,
   error: "O documento não pôde ser lido.",

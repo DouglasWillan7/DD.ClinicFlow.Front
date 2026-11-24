@@ -3,7 +3,6 @@ import { formatInTimeZone } from "date-fns-tz";
 import {
   ChevronRight,
   CircleOff,
-  FileClock,
   Plus,
   Search,
   Stethoscope,
@@ -33,14 +32,13 @@ import {
 } from "./patientsList";
 import styles from "./PatientsPage.module.css";
 
-// Estado sempre com rótulo, ícone e cor; o âmbar é "aguardando", nunca erro.
+// Estado sempre com rótulo, ícone e cor.
 const situationBadge: Record<
   PatientListItem["situation"],
   { tone: StatusTone; icon: LucideIcon }
 > = {
   EmAcompanhamento: { tone: "info", icon: Stethoscope },
   NovoPaciente: { tone: "success", icon: UserRoundPlus },
-  ExamePendente: { tone: "warning", icon: FileClock },
   Inativo: { tone: "neutral", icon: CircleOff },
 };
 

@@ -27,7 +27,7 @@ import { ExamStatusBadge } from "./ExamStatusBadge";
 import styles from "./ExamListPanel.module.css";
 
 const statusOptions: ExamStatus[] = [
-  "Solicitado", "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Sem análise", "Cancelado",
+  "Pendente", "Processando", "Em revisão", "Validado", "Falhou", "Sem análise", "Cancelado",
 ];
 const categoryOptions: ExamCategory[] = [
   "Não classificado", "Laboratório", "Imagem", "Endoscopia", "Cardiologia",
@@ -53,7 +53,6 @@ export interface ExamListPanelProps {
   onSelect(examId: string): void;
   onLoadMore(): void;
   onRetry(): void;
-  onRequest(): void;
   onAttach(): void;
   /**
    * Abre o PDF do exame direto da lista. O documento existe em qualquer estado, inclusive quando a
@@ -80,9 +79,7 @@ function ExamRow({
   onOpenDocument?(): void;
 }) {
   const CategoryIcon = categoryIcons[exam.category];
-  const date = exam.scheduledOn
-    ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${exam.scheduledOn}T00:00:00Z`))
-    : new Intl.DateTimeFormat("pt-BR", { timeZone }).format(new Date(exam.updatedAtUtc));
+  const date = new Intl.DateTimeFormat("pt-BR", { timeZone }).format(new Date(exam.updatedAtUtc));
   const nameId = `exam-row-name-${exam.id}`;
   const showDocument = exam.hasDocument && onOpenDocument;
   return (
@@ -157,7 +154,7 @@ export function ExamListPanel(props: ExamListPanelProps) {
       <header className={styles.header}>
         <div>
           <h2 id="exam-list-title">Exames</h2>
-          <p>Solicitações, laudos e revisões do paciente.</p>
+          <p>Laudos e revisões do paciente.</p>
         </div>
       </header>
 
@@ -230,17 +227,12 @@ export function ExamListPanel(props: ExamListPanelProps) {
             </button>
           ) : (
             <>
-              <p>{props.capabilities.canRequest && props.capabilities.canAttachDocument
-                ? "Comece solicitando um exame ou anexando um laudo já disponível."
-                : props.capabilities.canRequest
-                  ? "Comece solicitando o exame que fará parte do histórico deste paciente."
-                  : props.capabilities.canAttachDocument
-                    ? "Comece anexando um laudo em PDF ao histórico deste paciente."
-                    : "Os exames aparecerão aqui quando uma solicitação ou laudo for registrado."}</p>
-              {props.capabilities.canRequest || props.capabilities.canAttachDocument ? (
+              <p>{props.capabilities.canAttachDocument
+                ? "Comece anexando um laudo em PDF ao histórico deste paciente."
+                : "Os exames aparecerão aqui quando um laudo for anexado."}</p>
+              {props.capabilities.canAttachDocument ? (
                 <div className={styles.emptyActions}>
-                  {props.capabilities.canRequest ? <button type="button" onClick={props.onRequest}>Solicitar exame</button> : null}
-                  {props.capabilities.canAttachDocument ? <button type="button" onClick={props.onAttach}>Anexar laudo</button> : null}
+                  <button type="button" onClick={props.onAttach}>Anexar laudo</button>
                 </div>
               ) : null}
             </>

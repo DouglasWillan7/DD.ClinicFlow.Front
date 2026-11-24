@@ -15,14 +15,13 @@ import type {
   ExamAnalysisAvailability,
   ExamCategory,
   PatientExamDetail,
-  PatientExamSummary,
 } from "../../../api/types";
 import { Button } from "../../../components/Button";
 import { Field, SelectField } from "../../../components/Field";
 import { formatFileSize } from "./examDetail";
 import { analysisUnavailableMessage, toExamCategoryApi } from "./examQueries";
+import { clinicalExamCategories } from "./examCategories";
 import { MAX_EXAM_PDF_BYTES, validateExamPdf } from "./examFileValidation";
-import { examRequestCategories } from "./examRequestForm";
 import { summarizeExtraction } from "./extractionSummary";
 import styles from "./ExamUploadComposer.module.css";
 
@@ -30,7 +29,6 @@ interface ExamUploadComposerProps {
   canAttachDocument: boolean;
   open: boolean;
   patientName: string;
-  pendingRequests: PatientExamSummary[];
   /** Detalhe vivo do exame aceito nesta sessão do modal — alimenta as fases e o resumo. */
   trackedExam: PatientExamDetail | null;
   /**
@@ -54,14 +52,12 @@ const stages = [
   { id: "extract", label: "Extraindo analitos e conferindo as referências" },
 ] as const;
 
-const standaloneChoice = "standalone";
 const maxSizeLabel = `${Math.round(MAX_EXAM_PDF_BYTES / (1024 * 1024))} MB`;
 
 export function ExamUploadComposer({
   canAttachDocument,
   open,
   patientName,
-  pendingRequests,
   trackedExam,
   analysisAvailability,
   onUpload,
@@ -75,7 +71,6 @@ export function ExamUploadComposer({
   const abortRef = useRef<AbortController | null>(null);
   const wasOpenRef = useRef(false);
   const [file, setFile] = useState<File | null>(null);
-  const [linkChoice, setLinkChoice] = useState(standaloneChoice);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ExamCategory>("Laboratório");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -114,7 +109,6 @@ export function ExamUploadComposer({
   function resetForm() {
     resetFlight();
     setFile(null);
-    setLinkChoice(standaloneChoice);
     setName("");
     setCategory("Laboratório");
     setWantsAnalysis(true);
@@ -200,13 +194,9 @@ export function ExamUploadComposer({
 
     const body = new FormData();
     body.append("file", file!);
-    if (linkChoice === standaloneChoice) {
-      // O nome é opcional para o médico; sem ele o arquivo nomeia o exame, que o backend exige.
-      body.append("name", name.trim() || file!.name.replace(/\.pdf$/i, "").trim() || "Laudo anexado");
-      body.append("category", toExamCategoryApi(category));
-    } else {
-      body.append("requestExamId", linkChoice);
-    }
+    // O nome é opcional para o médico; sem ele o arquivo nomeia o exame, que o backend exige.
+    body.append("name", name.trim() || file!.name.replace(/\.pdf$/i, "").trim() || "Laudo anexado");
+    body.append("category", toExamCategoryApi(category));
     body.append("analyze", analyze ? "true" : "false");
 
     const controller = new AbortController();
@@ -320,40 +310,23 @@ export function ExamUploadComposer({
             </p>
             {errors.file ? <p className={styles.error} role="alert">{errors.file}</p> : null}
 
-            {pendingRequests.length ? (
+            <div className={styles.metadata}>
               <SelectField
-                id="exam-upload-link"
-                label="Vincular laudo"
-                hint="Solicitações abertas deste paciente."
-                value={linkChoice}
-                onChange={(event) => setLinkChoice(event.target.value)}
+                id="exam-upload-category"
+                label="Tipo de exame"
+                value={category}
+                onChange={(event) => setCategory(event.target.value as ExamCategory)}
               >
-                {pendingRequests.map((request) => (
-                  <option key={request.id} value={request.id}>{request.name}</option>
-                ))}
-                <option value={standaloneChoice}>Laudo sem solicitação</option>
+                {clinicalExamCategories.map((item) => <option key={item}>{item}</option>)}
               </SelectField>
-            ) : null}
-
-            {linkChoice === standaloneChoice ? (
-              <div className={styles.metadata}>
-                <SelectField
-                  id="exam-upload-category"
-                  label="Tipo de exame"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value as ExamCategory)}
-                >
-                  {examRequestCategories.map((item) => <option key={item}>{item}</option>)}
-                </SelectField>
-                <Field
-                  id="exam-upload-name"
-                  label="Nome do exame (opcional)"
-                  placeholder="ex.: Exames de rotina"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </div>
-            ) : null}
+              <Field
+                id="exam-upload-name"
+                label="Nome do exame (opcional)"
+                placeholder="ex.: Exames de rotina"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
 
             <label className={styles.analysisOption}>
               {/* O rótulo inteiro é clicável, mas o nome acessível é só a opção; a explicação é a descrição. */}

@@ -5,23 +5,8 @@ import { ApiError } from "../../../api/client";
 import type {
   PatientExamDetail,
   PatientExamRevision,
-  PatientExamSummary,
 } from "../../../api/types";
 import { ExamUploadComposer } from "./ExamUploadComposer";
-
-const requestExam: PatientExamSummary = {
-  id: "request-1",
-  patientId: "patient-1",
-  name: "Hemograma",
-  category: "Laboratório",
-  scheduledOn: "2026-08-15",
-  status: "Solicitado",
-  version: 1,
-  hasDocument: false,
-  averageConfidence: null,
-  createdAtUtc: "2026-08-01T10:00:00Z",
-  updatedAtUtc: "2026-08-01T10:00:00Z",
-};
 
 const acceptedExam = { id: "exam-new", status: "Pendente" } as PatientExamDetail;
 const pdf = () => new File(["%PDF-1.7\ncontent"], "laudo.pdf", { type: "application/pdf" });
@@ -41,7 +26,6 @@ const baseProps: React.ComponentProps<typeof ExamUploadComposer> = {
   canAttachDocument: true,
   open: true,
   patientName: "Douglas Willan",
-  pendingRequests: [requestExam],
   trackedExam: null,
   onUpload: vi.fn(),
   onTrackChange: vi.fn(),
@@ -106,13 +90,12 @@ test("sem arquivo o envio cobra a seleção", async () => {
   expect(onUpload).not.toHaveBeenCalled();
 });
 
-test("laudo avulso é o padrão e o nome vazio herda o nome do arquivo", async () => {
+test("o nome vazio herda o nome do arquivo e o tipo padrão é laboratório", async () => {
   const user = userEvent.setup();
   const { onUpload } = await sendPdf(user);
   await waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
   const body = onUpload.mock.calls[0][0] as FormData;
   expect([body.get("name"), body.get("category")]).toEqual(["laudo", "Laboratorio"]);
-  expect(body.get("requestExamId")).toBeNull();
 });
 
 test("nome informado e tipo escolhido vão no lugar do padrão", async () => {
@@ -126,26 +109,6 @@ test("nome informado e tipo escolhido vão no lugar do padrão", async () => {
   await waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
   const body = onUpload.mock.calls[0][0] as FormData;
   expect([body.get("name"), body.get("category")]).toEqual(["Ultrassom abdominal", "Imagem"]);
-});
-
-test("vincular a uma solicitação troca os metadados pelo id da solicitação", async () => {
-  const user = userEvent.setup();
-  const onUpload = vi.fn().mockResolvedValue(acceptedExam);
-  render(<ExamUploadComposer {...baseProps} onUpload={onUpload} />);
-  await user.upload(screen.getByLabelText("Selecionar arquivo PDF"), pdf());
-  await user.selectOptions(screen.getByLabelText("Vincular laudo"), "request-1");
-  expect(screen.queryByLabelText("Tipo de exame")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Enviar laudo" }));
-  await waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
-  const body = onUpload.mock.calls[0][0] as FormData;
-  expect(body.get("requestExamId")).toBe("request-1");
-  expect(body.get("name")).toBeNull();
-});
-
-test("sem solicitações abertas o vínculo some da tela", () => {
-  render(<ExamUploadComposer {...baseProps} pendingRequests={[]} />);
-  expect(screen.queryByLabelText("Vincular laudo")).not.toBeInTheDocument();
-  expect(screen.getByLabelText("Tipo de exame")).toBeInTheDocument();
 });
 
 test("aceite passa a acompanhar o exame e mostra as fases reais", async () => {

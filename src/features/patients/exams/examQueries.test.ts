@@ -56,20 +56,20 @@ describe("examListSearchParams", () => {
 describe("exam transport normalization", () => {
   test("traduz página do contrato BACK para rótulos apresentáveis", () => {
     const page = normalizePatientExamPage({
-      items: [{ id: "exam-1", patientId: "patient-1", name: "Hemograma", category: "Laboratorio", scheduledOn: null, status: "EmRevisao", version: 2, hasDocument: true, averageConfidence: 0.92, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z" }],
+      items: [{ id: "exam-1", patientId: "patient-1", name: "Hemograma", category: "Laboratorio", status: "EmRevisao", version: 2, hasDocument: true, averageConfidence: 0.92, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z" }],
       nextCursor: null,
-      capabilities: { canRequest: true, canAttachDocument: true },
+      capabilities: { canAttachDocument: true },
     });
     expect(page.items[0]).toEqual(expect.objectContaining({ category: "Laboratório", status: "Em revisão" }));
   });
 
   test("traduz detalhe, fonte e desfechos aninhados sem expor enum cru", () => {
     const detail = normalizePatientExamDetail({
-      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: "doctor-1", name: "Hemograma", category: "NaoClassificado", scheduledOn: null, status: "Falhou", version: 3, error: "Falha sanitizada", createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: "2026-08-09T11:00:00Z", cancelledByUserId: null, cancelledAtUtc: null,
+      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", name: "Hemograma", category: "NaoClassificado", status: "Falhou", version: 3, error: "Falha sanitizada", createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: "2026-08-09T11:00:00Z", cancelledByUserId: null, cancelledAtUtc: null,
       document: { fileName: "laudo.pdf", contentType: "application/pdf", sizeBytes: 50, source: "Clinica", createdAtUtc: "2026-08-09T10:00:00Z", processingAttempts: 1 },
       activeRevision: { id: "revision-1", number: 1, status: "Validada", aiSuggestedOutcome: "SemAlteracoes", clinicalOutcome: "SemAlteracoes", averageConfidence: 0.99, model: null, correctionReason: null, createdByUserId: "doctor-1", createdAtUtc: "2026-08-09T10:00:00Z", lastEditedByUserId: null, updatedAtUtc: null, validatedByUserId: "doctor-1", validatedAtUtc: "2026-08-09T11:00:00Z", structuredResults: [{ id: "result-1", order: 0, catalogCode: "HB", name: "Hemoglobina", numericValue: 10.2, textValue: null, unit: "g/dL", referenceText: "12–16", outOfRangeSuggestion: true, confidence: 0.99 }], narrativeSections: [], structuredFindings: [], extractionIssues: [{ id: "issue-1", structuredResultId: "result-1", page: 4, field: "referenceRange", reason: "REFERENCE_CONTEXT_MISSING" }] },
       draftRevision: null, attemptsRemaining: 2,
-      capabilities: { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canDiscardFailedExam: true, canDiscardExam: true, canOpenCorrection: true, canEditRevision: false, canClassify: false, canValidate: false },
+      capabilities: { canReprocess: false, canDiscardFailedExam: true, canDiscardExam: true, canOpenCorrection: true, canEditRevision: false, canClassify: false, canValidate: false },
     });
     expect(detail).toEqual(expect.objectContaining({ category: "Não classificado", document: expect.objectContaining({ source: "Clínica" }), activeRevision: expect.objectContaining({ aiSuggestedOutcome: "Sem alterações", clinicalOutcome: "Sem alterações", metadata: null, structuredResults: [expect.objectContaining({ referenceLowerBound: null, referenceUpperBound: null, referenceState: "indeterminado" })] }) }));
     expect(detail.activeRevision?.extractionIssues).toEqual([{ id: "issue-1", structuredResultId: "result-1", page: 4, field: "referenceRange", reason: "REFERENCE_CONTEXT_MISSING" }]);
@@ -85,19 +85,19 @@ describe("exam transport normalization", () => {
     ["ValorNovo", "Origem não informada"],
   ])("traduz a origem %s do documento sem colapsar em Paciente", (source, expected) => {
     const detail = normalizePatientExamDetail({
-      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: "doctor-1", name: "Hemograma", category: "Laboratorio", scheduledOn: null, status: "Pendente", version: 1, error: null, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: null, cancelledByUserId: null, cancelledAtUtc: null,
+      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", name: "Hemograma", category: "Laboratorio", status: "Pendente", version: 1, error: null, createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: null, cancelledByUserId: null, cancelledAtUtc: null,
       document: { fileName: "laudo.pdf", contentType: "application/pdf", sizeBytes: 50, source, createdAtUtc: "2026-08-09T10:00:00Z", processingAttempts: 1 },
       activeRevision: null, draftRevision: null, attemptsRemaining: 2,
-      capabilities: { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
+      capabilities: { canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
     });
     expect(detail.document?.source).toBe(expected);
   });
 
   test("normaliza capability de descarte ausente como falsa", () => {
     const detail = normalizePatientExamDetail({
-      id: "exam-failed", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: "doctor-1", name: "Hemograma", category: "Laboratorio", scheduledOn: null, status: "Falhou", version: 2, error: "Falha sanitizada", createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: null, cancelledByUserId: null, cancelledAtUtc: null,
+      id: "exam-failed", patientId: "patient-1", doctorUserId: "doctor-1", name: "Hemograma", category: "Laboratorio", status: "Falhou", version: 2, error: "Falha sanitizada", createdAtUtc: "2026-08-09T10:00:00Z", updatedAtUtc: "2026-08-09T11:00:00Z", processedAtUtc: null, cancelledByUserId: null, cancelledAtUtc: null,
       document: null, activeRevision: null, draftRevision: null, attemptsRemaining: 0,
-      capabilities: { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
+      capabilities: { canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
     });
 
     expect(detail.capabilities.canDiscardFailedExam).toBe(false);
@@ -108,9 +108,9 @@ describe("exam transport normalization", () => {
 describe("documento guardado sem análise por IA", () => {
   test("traduz Anexado para o estado apresentável nos dois sentidos", () => {
     const page = normalizePatientExamPage({
-      items: [{ id: "exam-1", patientId: "patient-1", name: "Ultrassom", category: "Imagem", scheduledOn: null, status: "Anexado", version: 1, hasDocument: true, averageConfidence: null, createdAtUtc: "2026-11-24T10:00:00Z", updatedAtUtc: "2026-11-24T10:00:00Z" }],
+      items: [{ id: "exam-1", patientId: "patient-1", name: "Ultrassom", category: "Imagem", status: "Anexado", version: 1, hasDocument: true, averageConfidence: null, createdAtUtc: "2026-11-24T10:00:00Z", updatedAtUtc: "2026-11-24T10:00:00Z" }],
       nextCursor: null,
-      capabilities: { canRequest: true, canAttachDocument: true },
+      capabilities: { canAttachDocument: true },
     });
 
     expect(page.items[0].status).toBe("Sem análise");
@@ -119,12 +119,12 @@ describe("documento guardado sem análise por IA", () => {
 
   test("resposta de backend anterior não inventa motivo nem pedido de análise", () => {
     const detail = normalizePatientExamDetail({
-      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1", requestedByUserId: null,
-      name: "Ultrassom", category: "Imagem", scheduledOn: null, status: "Falhou", version: 1, error: null,
+      id: "exam-1", patientId: "patient-1", doctorUserId: "doctor-1",
+      name: "Ultrassom", category: "Imagem", status: "Falhou", version: 1, error: null,
       createdAtUtc: "2026-11-24T10:00:00Z", updatedAtUtc: "2026-11-24T10:00:00Z", processedAtUtc: null,
       cancelledByUserId: null, cancelledAtUtc: null, document: null, activeRevision: null, draftRevision: null,
       attemptsRemaining: 0,
-      capabilities: { canEditRequest: false, canCancelRequest: false, canAttachDocument: false, canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
+      capabilities: { canReprocess: false, canOpenCorrection: false, canEditRevision: false, canClassify: false, canValidate: false },
     });
 
     expect(detail.analysisHold).toBeNull();

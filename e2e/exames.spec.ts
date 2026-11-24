@@ -6,12 +6,12 @@ type ClinicRole = "Doctor" | "Admin" | "Secretary";
 const patientId = "00000000-0000-4000-8000-000000000101";
 const doctorId = "30000000-0000-4000-8000-000000000001";
 const reviewId = "70000000-0000-4000-8000-000000000001";
-const requestedId = "70000000-0000-4000-8000-000000000002";
+/** Exame que o mock cria quando aceita um upload. */
+const uploadedId = "70000000-0000-4000-8000-000000000002";
 const processingId = "70000000-0000-4000-8000-000000000003";
 const failedId = "70000000-0000-4000-8000-000000000004";
 const validatedId = "70000000-0000-4000-8000-000000000005";
 const storedId = "70000000-0000-4000-8000-000000000006";
-const newRequestId = "70000000-0000-4000-8000-000000000006";
 
 const patient = {
   id: patientId,
@@ -230,7 +230,7 @@ function patientClinicalSummary() {
       },
     ],
     latestCollectionDate: "2026-08-08",
-    capabilities: { canRequest: true, canAttachDocument: true },
+    capabilities: { canAttachDocument: true },
   };
 }
 
@@ -321,34 +321,28 @@ function detail(
   status: string,
   doctor: boolean,
 ): Record<string, unknown> {
-  const hasDocument = status !== "Solicitado" && status !== "Cancelado";
   const draft = status === "EmRevisao" ? revision("Rascunho", null) : null;
   const active = status === "Validado" ? revision("Validada", "Alterado") : null;
   return {
     id,
     patientId,
     doctorUserId: doctorId,
-    requestedByUserId: doctorId,
     name,
     category: name.includes("Ultrassom") ? "Imagem" : "Laboratorio",
-    scheduledOn: status === "Solicitado" ? "2026-08-15" : null,
     status,
     version: 2,
     error: status === "Falhou" ? "O arquivo não pôde ser lido. O documento original foi preservado." : null,
     createdAtUtc: "2026-08-09T10:00:00Z",
     updatedAtUtc: "2026-08-09T11:00:00Z",
-    processedAtUtc: hasDocument ? "2026-08-09T11:00:00Z" : null,
+    processedAtUtc: "2026-08-09T11:00:00Z",
     cancelledByUserId: null,
     cancelledAtUtc: null,
-    document: hasDocument ? document : null,
+    document,
     activeRevision: active,
     draftRevision: doctor ? draft : null,
-    attemptsRemaining: hasDocument ? 2 : 0,
+    attemptsRemaining: 2,
     analysisHold: status === "Anexado" ? "NaoSolicitada" : null,
     capabilities: {
-      canEditRequest: doctor && status === "Solicitado",
-      canCancelRequest: doctor && status === "Solicitado",
-      canAttachDocument: status === "Solicitado",
       canReprocess: status === "Falhou" || status === "Pendente" || status === "Processando",
       canDiscardFailedExam: status === "Falhou",
       canDiscardExam: status === "Falhou" || status === "Anexado" || doctor && status === "EmRevisao",
@@ -367,7 +361,6 @@ function summary(value: Record<string, unknown>) {
     patientId,
     name: value.name,
     category: value.category,
-    scheduledOn: value.scheduledOn,
     status: value.status,
     version: value.version,
     hasDocument: Boolean(value.document),
@@ -464,7 +457,6 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
   const session = sessionFor(roles);
   const records = new Map([
     [reviewId, detail(reviewId, "Perfil lipídico", "EmRevisao", doctor)],
-    [requestedId, detail(requestedId, "Hemograma completo", "Solicitado", doctor)],
     [processingId, detail(processingId, "Ultrassom abdominal", "Processando", doctor)],
     [failedId, detail(failedId, "Função tireoidiana", "Falhou", doctor)],
     [validatedId, detail(validatedId, "Painel laboratorial sintético", "Validado", doctor)],
@@ -560,15 +552,6 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
     if (url.pathname === `/exams/patients/${patientId}/clinical-summary`) {
       return route.fulfill({ status: 200, json: patientClinicalSummary() });
     }
-    if (url.pathname === `/exams/patients/${patientId}/requests` && method === "POST") {
-      const body = jsonBody(request) as Record<string, unknown>;
-      const created = detail(newRequestId, String(body.name), "Solicitado", doctor);
-      created.category = body.category;
-      created.scheduledOn = body.scheduledOn;
-      records.set(newRequestId, created);
-      state.requests.push({ path: url.pathname, method, body });
-      return route.fulfill({ status: 201, json: created });
-    }
     if (url.pathname === `/exams/patients/${patientId}/documents` && method === "POST") {
       const upload = parseMultipartUpload(request);
       state.uploadAttempts.push(upload);
@@ -583,9 +566,10 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
           },
         });
       }
-      const attached = detail(requestedId, "Hemograma completo", "Pendente", doctor);
-      records.set(requestedId, attached);
-      state.acceptedUploadExamIds.push(requestedId);
+      const attached = detail(uploadedId, upload.fields.name, "Pendente", doctor);
+      attached.category = upload.fields.category;
+      records.set(uploadedId, attached);
+      state.acceptedUploadExamIds.push(uploadedId);
       return route.fulfill({ status: 201, json: attached });
     }
     if (url.pathname === `/exams/patients/${patientId}` && method === "GET") {
@@ -603,7 +587,7 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
       if (categories?.length) items = items.filter((item) => categories.includes(String(item.category)));
       return route.fulfill({
         status: 200,
-        json: { items, nextCursor: null, capabilities: { canRequest: doctor, canAttachDocument: true } },
+        json: { items, nextCursor: null, capabilities: { canAttachDocument: true } },
       });
     }
 
@@ -722,9 +706,6 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
             validatedAtUtc: "2026-08-09T12:00:00Z",
           },
           capabilities: {
-            canEditRequest: false,
-            canCancelRequest: false,
-            canAttachDocument: false,
             canReprocess: false,
             canOpenCorrection: doctor,
             canEditRevision: false,
@@ -761,7 +742,6 @@ async function attachPdf(page: Page) {
     mimeType: "application/pdf",
     buffer: Buffer.from("%PDF-1.7\nfixture"),
   });
-  await composer.getByLabel("Vincular laudo").selectOption(requestedId);
   await composer.getByRole("button", { name: "Enviar laudo" }).click();
 }
 
@@ -859,30 +839,12 @@ test("deep link seleciona detalhe, preserva query adjacente e abre PDF autentica
   expect(state.requests.some((request) => request.path.endsWith("/document"))).toBe(true);
 
   await page.getByRole("button", { name: "Voltar aos exames" }).click();
-  await page.getByRole("button", { name: /Hemograma completo/ }).click();
-  await expect(page).toHaveURL(new RegExp(`exame=${requestedId}`));
+  await page.getByRole("button", { name: /Função tireoidiana/ }).click();
+  await expect(page).toHaveURL(new RegExp(`exame=${failedId}`));
   expect(new URL(page.url()).searchParams.get("origem")).toBe("atalho");
 });
 
-test("Doctor cria solicitação com enum do contrato e seleção resultante", async ({ page }) => {
-  const state = await mockExams(page);
-  await openExams(page);
-  await page.getByRole("link", { name: "Solicitar exame" }).click();
-  const composer = page.getByRole("region", { name: "Solicitar exame" });
-  await composer.getByLabel("Nome do exame").fill("Ressonância de joelho");
-  await composer.getByLabel("Categoria").selectOption("Imagem");
-  await composer.getByRole("button", { name: "Criar solicitação" }).click();
-
-  await expect(page).toHaveURL(new RegExp(`exame=${newRequestId}`));
-  await expect(page.getByRole("heading", { name: "Ressonância de joelho" })).toBeVisible();
-  expect(state.requests.find((request) => request.path.endsWith("/requests"))?.body).toEqual({
-    name: "Ressonância de joelho",
-    category: "Imagem",
-    scheduledOn: null,
-  });
-});
-
-test("anexa PDF válido a uma solicitação explícita e inicia processamento", async ({ page }) => {
+test("anexa PDF válido com nome e tipo do exame e inicia processamento", async ({ page }) => {
   const state = await mockExams(page);
   await openExams(page, "?acao=anexar");
   await attachPdf(page);
@@ -891,6 +853,8 @@ test("anexa PDF válido a uma solicitação explícita e inicia processamento", 
     page.getByRole("progressbar", { name: "Extração do laudo em andamento" }),
   ).toBeVisible();
   expect(state.requests.some((request) => request.path.endsWith("/documents") && request.method === "POST")).toBe(true);
+  // Sem nome digitado o arquivo nomeia o exame; o tipo padrão é laboratório.
+  expect(state.uploadAttempts[0].fields).toMatchObject({ name: "laudo-sintetico", category: "Laboratorio" });
 });
 
 test("duplicidade 409 preserva upload e leva ao existingExamId", async ({ page }) => {
@@ -987,9 +951,9 @@ test("descarta laudo falho duplicado e reenvia o mesmo PDF", async ({ page }) =>
     expect(upload.sha256).toBe(
       "f581fc87f30296eff11777c3ce1b9a8b7077071ad8abedfcba317fef0c807224",
     );
-    expect(upload.fields.requestExamId).toBe(requestedId);
+    expect(upload.fields.name).toBe("laudo-sintetico");
   }
-  expect(state.acceptedUploadExamIds).toEqual([requestedId]);
+  expect(state.acceptedUploadExamIds).toEqual([uploadedId]);
   expect(state.acceptedUploadExamIds[0]).not.toBe(failedId);
 });
 
@@ -1391,7 +1355,6 @@ test("alvos operacionais medem 44x44 e o foco real permanece visível", async ({
 
   const targets = [
     ["voltar", page.getByRole("button", { name: "Voltar para a lista de pacientes" })],
-    ["solicitar", page.getByRole("link", { name: "Solicitar exame" })],
     ["anexar", page.getByRole("link", { name: "Anexar laudo" })],
     ["buscar", page.getByRole("searchbox", { name: "Buscar exames" })],
     ["status", page.getByRole("combobox", { name: "Status" })],
@@ -1423,9 +1386,8 @@ test("texto, status e ações atendem contraste renderizado AA", async ({ page }
   await openExams(page);
 
   const common = [
-    ["texto auxiliar", page.getByText("Solicitações, laudos e revisões do paciente.")],
+    ["texto auxiliar", page.getByText("Laudos e revisões do paciente.")],
     ["status em revisão", page.getByLabel("Status: Em revisão — revisão clínica necessária")],
-    ["ação solicitar", page.getByRole("link", { name: "Solicitar exame" })],
     ["ação anexar", page.getByRole("link", { name: "Anexar laudo" })],
   ] as const;
   for (const [name, target] of common) {
@@ -1489,7 +1451,6 @@ test("escala 200% via CDP reduz o viewport CSS e preserva reflow e ações", asy
     desktopMedia: window.matchMedia("(min-width: 960px)").matches,
   }));
   expect(metrics).toEqual({ width: 720, dpr: 2, desktopMedia: false });
-  await expect(page.getByRole("link", { name: "Solicitar exame" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Anexar laudo" })).toBeVisible();
   await page.getByRole("button", { name: /Perfil lipídico/ }).click();
   await expect(page.getByRole("button", { name: "Voltar aos exames" })).toBeVisible();

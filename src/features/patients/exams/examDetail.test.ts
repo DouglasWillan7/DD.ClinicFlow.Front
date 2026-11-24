@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
   confidencePresentation,
-  formatExamDate,
   formatExamResultValue,
   processingAttemptsLabel,
 } from "./examDetail";
@@ -26,12 +25,6 @@ describe("exam detail presentation", () => {
     expect(formatExamResultValue({ numericValue: 4.7, textValue: null, unit: "mg/dL" })).toBe("4,7 mg/dL");
     expect(formatExamResultValue({ numericValue: null, textValue: "Negativo", unit: null })).toBe("Negativo");
     expect(formatExamResultValue({ numericValue: null, textValue: null, unit: "mg/dL" })).toBe("Não informado");
-  });
-
-  test("formata datas clínicas e mantém fallback seguro", () => {
-    expect(formatExamDate("2026-08-15")).toBe("15/08/2026");
-    expect(formatExamDate("data-inválida")).toBe("Não informada");
-    expect(formatExamDate(null)).toBe("Não informada");
   });
 
   test("explica tentativas restantes no singular, plural e esgotamento", () => {

@@ -1,4 +1,4 @@
-import { CircleOff, FilePlus2, FileUp } from "lucide-react";
+import { CircleOff, FileUp } from "lucide-react";
 import type {
   PatientDemographic,
   PatientExamCapabilities,
@@ -70,23 +70,12 @@ export function PatientHeader({
             )}
           </div>
 
-          {capabilities?.canRequest || capabilities?.canAttachDocument ? (
+          {capabilities?.canAttachDocument ? (
             <div className={styles.actions} aria-label="Ações do paciente">
-              {capabilities.canRequest ? (
-                <ButtonLink
-                  variant="secondary"
-                  to={`/app/pacientes/${patient.id}/exames?acao=solicitar`}
-                >
-                  <FilePlus2 size={17} aria-hidden="true" />
-                  Solicitar exame
-                </ButtonLink>
-              ) : null}
-              {capabilities.canAttachDocument ? (
-                <ButtonLink to={`/app/pacientes/${patient.id}/exames?acao=anexar`}>
-                  <FileUp size={17} aria-hidden="true" />
-                  Anexar laudo
-                </ButtonLink>
-              ) : null}
+              <ButtonLink to={`/app/pacientes/${patient.id}/exames?acao=anexar`}>
+                <FileUp size={17} aria-hidden="true" />
+                Anexar laudo
+              </ButtonLink>
             </div>
           ) : null}
         </div>
