@@ -190,7 +190,36 @@ async function authenticate(page: Page) {
   await page.route("**/doctors/*/schedule", (route) =>
     route.fulfill({ status: 200, json: emptySchedule }),
   );
+  // E os convênios: catálogo, teto da clínica e a lista do médico.
+  await page.route("**/healthcare-plans", (route) =>
+    route.fulfill({ status: 200, json: planCatalog }),
+  );
+  await page.route("**/clinics/current/healthcare-plans", (route) =>
+    route.fulfill({ status: 200, json: clinicPlans }),
+  );
+  await page.route(`**/clinics/${clinicId}/members/*/healthcare-plans`, (route) =>
+    route.fulfill({ status: 200, json: doctorDefaultPlans }),
+  );
 }
+
+const planCatalog = [
+  { id: "plan-amil", name: "Amil" },
+  { id: "plan-bradesco", name: "Bradesco Saúde" },
+  { id: "plan-sulamerica", name: "SulAmérica" },
+  { id: "plan-unimed", name: "Unimed" },
+];
+
+/** A clínica aceita três convênios do catálogo; Amil e Unimed são o padrão. */
+const clinicPlans = {
+  healthcarePlanIds: ["plan-amil", "plan-bradesco", "plan-unimed"],
+  defaultHealthcarePlanIds: ["plan-amil", "plan-unimed"],
+};
+
+const doctorDefaultPlans = {
+  userClinicId: "doctor-membership",
+  mode: "ClinicDefault",
+  healthcarePlanIds: ["plan-amil", "plan-unimed"],
+};
 
 const emptySchedule = {
   doctorUserId: "doctor-user",
@@ -269,6 +298,86 @@ test("administração define a disponibilidade do médico dentro do vínculo", a
   ).toBe(true);
   await page.screenshot({
     path: "/private/tmp/clinicflow-team-availability-mobile.png",
+    fullPage: true,
+  });
+});
+
+test("administração define os convênios do médico dentro do vínculo", async ({ page }) => {
+  await authenticate(page);
+  const writes: string[] = [];
+  let plansPayload: Record<string, unknown> | undefined;
+  await page.route(`**/clinics/${clinicId}/members`, (route) =>
+    route.fulfill({ status: 200, json: [owner, doctor] }),
+  );
+  await page.route(`**/clinics/${clinicId}/members/${doctor.userClinicId}`, (route) => {
+    writes.push("vínculo");
+    return route.fulfill({ status: 200, json: doctor });
+  });
+  await page.route(
+    `**/clinics/${clinicId}/members/${doctor.userClinicId}/healthcare-plans`,
+    (route) => {
+      if (route.request().method() !== "PUT") {
+        return route.fulfill({ status: 200, json: doctorDefaultPlans });
+      }
+      writes.push("convênios");
+      plansPayload = route.request().postDataJSON();
+      return route.fulfill({
+        status: 200,
+        json: {
+          userClinicId: doctor.userClinicId,
+          mode: "Custom",
+          healthcarePlanIds: ["plan-amil", "plan-bradesco"],
+        },
+      });
+    },
+  );
+
+  await page.goto(`/app/equipe?vinculo=${doctor.userClinicId}`);
+  await expect(page.getByRole("heading", { name: "Convênios", exact: true })).toBeVisible();
+  // No padrão da clínica a lista aparece travada, só com os convênios aceitos.
+  const plans = page.getByRole("group", {
+    name: "Convênios atendidos por Dra. Helena Martins",
+  });
+  await expect(plans.getByRole("checkbox", { name: "Amil" })).toBeDisabled();
+  await expect(plans.getByRole("checkbox", { name: "Amil" })).toBeChecked();
+  await expect(plans.getByRole("checkbox", { name: "Bradesco Saúde" })).not.toBeChecked();
+  await expect(plans.getByRole("checkbox", { name: /SulAmérica/ })).toHaveCount(0);
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-team-plans-default-desktop.png",
+    fullPage: true,
+  });
+
+  await page.getByRole("radio", { name: /Personalizado/ }).check();
+  await plans.getByRole("checkbox", { name: "Bradesco Saúde" }).check();
+  await plans.getByRole("checkbox", { name: /Unimed/ }).uncheck();
+  await expect(page.getByText("Difere do padrão:")).toBeVisible();
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-team-plans-custom-desktop.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Salvar vínculo" }).click();
+
+  await expect(page.getByText("Vínculo atualizado.")).toBeVisible();
+  expect(writes).toEqual(["vínculo", "convênios"]);
+  expect(plansPayload).toEqual({
+    mode: "Custom",
+    healthcarePlanIds: ["plan-amil", "plan-bradesco"],
+  });
+  await expect(page.getByRole("radio", { name: /Personalizado/ })).toBeChecked();
+
+  // No celular as opções empilham, sem rolagem horizontal, e os alvos seguem com 44 px.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const option = page.locator("label", { hasText: "Bradesco Saúde" });
+  await option.scrollIntoViewIfNeeded();
+  const box = await option.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-team-plans-mobile.png",
     fullPage: true,
   });
 });

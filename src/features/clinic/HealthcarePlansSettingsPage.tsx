@@ -25,6 +25,13 @@ import {
   planCountLabel,
 } from "./healthcarePlanLabels";
 import {
+  clinicHealthcarePlansKey,
+  clinicMembersSummaryKey,
+  doctorHealthcarePlansKey,
+  doctorHealthcarePlansPrefix,
+  healthcarePlanCatalogKey,
+} from "./healthcarePlanQueries";
+import {
   CLINIC_ITEM,
   type ClinicDraft,
   clinicDraftFromSaved,
@@ -46,11 +53,10 @@ import {
 import { UnsavedChangesBar } from "./UnsavedChangesBar";
 import styles from "./HealthcarePlansSettingsPage.module.css";
 
-const catalogKey = ["healthcare-plans", "catalog"] as const;
-const clinicPlansKey = ["healthcare-plans", "clinic"] as const;
-const membersKey = ["clinic", "members"] as const;
-const doctorPlansKey = (userClinicId: string) =>
-  ["healthcare-plans", "doctor", userClinicId] as const;
+const catalogKey = healthcarePlanCatalogKey;
+const clinicPlansKey = clinicHealthcarePlansKey;
+const membersKey = clinicMembersSummaryKey;
+const doctorPlansKey = doctorHealthcarePlansKey;
 
 function errorMessage(error: unknown) {
   return error instanceof ApiError ? error.message : "Não foi possível salvar.";
@@ -141,7 +147,7 @@ export function HealthcarePlansSettingsPage() {
       );
       queryClient.setQueryData(clinicPlansKey, saved);
       // Aceitos e padrão mudam o que cada médico atende.
-      void queryClient.invalidateQueries({ queryKey: ["healthcare-plans", "doctor"] });
+      void queryClient.invalidateQueries({ queryKey: doctorHealthcarePlansPrefix });
       void queryClient.invalidateQueries({ queryKey: membersKey });
       void queryClient.invalidateQueries({ queryKey: ["new-appointment"] });
       return null;

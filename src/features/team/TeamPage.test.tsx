@@ -8,6 +8,7 @@ import type {
   ClinicMember,
   ClinicMembershipInvitationStatus,
   DoctorSchedule,
+  UserClinicHealthcarePlans,
 } from "../../api/types";
 import { ApiError } from "../../api/client";
 import { UnsavedChangesProvider } from "../../app/unsavedChanges";
@@ -579,15 +580,41 @@ const ownerSchedule: DoctorSchedule = {
   ],
 };
 
-/** API da equipe com a agenda da médica proprietária; guarda as gravações na ordem. */
+const planCatalog = [
+  { id: "plan-unimed", name: "Unimed" },
+  { id: "plan-amil", name: "Amil" },
+];
+const ownerPlans: UserClinicHealthcarePlans = {
+  userClinicId: "owner-membership",
+  mode: "ClinicDefault",
+  healthcarePlanIds: ["plan-unimed"],
+};
+
+/**
+ * API da equipe com a agenda e os convênios da médica proprietária; guarda as gravações
+ * na ordem. A clínica aceita Unimed e Amil, e só Unimed é padrão.
+ */
 function mockTeamWithSchedule(
-  options: { scheduleSave?: () => DoctorSchedule } = {},
+  options: {
+    scheduleSave?: () => DoctorSchedule;
+    plansSave?: () => UserClinicHealthcarePlans;
+  } = {},
 ) {
   const writes: Array<{ method: string; path: string; body: unknown }> = [];
   requestMock = vi.fn(async (path: string, init?: RequestInit) => {
     if (!init) {
       if (path === "/clinics/clinic-1/members") return members;
       if (path === "/doctors/owner-user/schedule") return ownerSchedule;
+      if (path === "/healthcare-plans") return planCatalog;
+      if (path === "/clinics/current/healthcare-plans") {
+        return {
+          healthcarePlanIds: ["plan-unimed", "plan-amil"],
+          defaultHealthcarePlanIds: ["plan-unimed"],
+        };
+      }
+      if (path === "/clinics/clinic-1/members/owner-membership/healthcare-plans") {
+        return ownerPlans;
+      }
       throw new Error(`Rota inesperada: ${path}`);
     }
     const body = init.body ? JSON.parse(String(init.body)) : undefined;
@@ -599,6 +626,15 @@ function mockTeamWithSchedule(
       return options.scheduleSave
         ? options.scheduleSave()
         : { ...ownerSchedule, intervals: [] };
+    }
+    if (path.endsWith("/healthcare-plans")) {
+      return options.plansSave
+        ? options.plansSave()
+        : {
+            userClinicId: path.split("/")[4],
+            mode: body.mode,
+            healthcarePlanIds: body.healthcarePlanIds,
+          };
     }
     return members[0];
   });
@@ -686,7 +722,7 @@ test("cadastra o médico e grava a disponibilidade no usuário recém-criado", a
   await user.click(screen.getByRole("radio", { name: /Médico/ }));
   await user.selectOptions(screen.getByLabelText("Duração padrão da consulta"), "40");
   expect(
-    screen.getByText(/passam a ser oferecidos na agenda quando o convite for aceito/i),
+    screen.getByText(/Os horários passam a ser oferecidos na agenda quando o convite for aceito/i),
   ).toBeVisible();
   await user.click(screen.getByRole("checkbox", { name: /Quarta-feira/ }));
   await user.click(screen.getByRole("button", { name: "Adicionar integrante" }));
@@ -700,4 +736,79 @@ test("cadastra o médico e grava a disponibilidade no usuário recém-criado", a
     defaultAppointmentDurationMinutes: 40,
     intervals: [{ dayOfWeek: "Wednesday", startLocal: "08:00", endLocal: "12:00" }],
   });
+});
+
+test("mostra os convênios do médico no vínculo e salva junto com o vínculo", async () => {
+  const user = userEvent.setup();
+  const writes = mockTeamWithSchedule();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Ana Martins" }));
+
+  expect(screen.getByRole("heading", { name: "Convênios" })).toBeVisible();
+  expect(await screen.findByRole("radio", { name: /Padrão da clínica/ })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Unimed" })).toBeChecked();
+
+  await user.click(screen.getByRole("radio", { name: /Personalizado/ }));
+  await user.click(screen.getByRole("checkbox", { name: "Amil" }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+
+  expect(await screen.findByText("Vínculo atualizado.")).toBeVisible();
+  expect(writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+    "PUT /clinics/clinic-1/members/owner-membership",
+    "PUT /clinics/clinic-1/members/owner-membership/healthcare-plans",
+  ]);
+  expect(writes[1].body).toEqual({
+    mode: "Custom",
+    healthcarePlanIds: ["plan-unimed", "plan-amil"],
+  });
+  // O formulário volta do servidor já com a lista própria salva.
+  expect(await screen.findByRole("radio", { name: /Personalizado/ })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Amil" })).toBeChecked();
+});
+
+test("avisa quando o vínculo é salvo mas os convênios falham e mantém a escolha", async () => {
+  const user = userEvent.setup();
+  mockTeamWithSchedule({
+    plansSave: () => {
+      throw new ApiError("Um ou mais planos de saúde não são aceitos pela clínica.", 400);
+    },
+  });
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Editar vínculo de Ana Martins" }));
+  await user.click(await screen.findByRole("radio", { name: /Personalizado/ }));
+  await user.click(screen.getByRole("checkbox", { name: "Amil" }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "O vínculo foi atualizado, mas os convênios não foram salvos. Um ou mais planos de saúde não são aceitos pela clínica. Revise os convênios e salve novamente.",
+  );
+  expect(screen.queryByText("Vínculo atualizado.")).not.toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: "Amil" })).toBeChecked();
+});
+
+test("cadastra o médico e grava os convênios no vínculo recém-criado", async () => {
+  const user = userEvent.setup();
+  const writes = mockTeamWithSchedule();
+  render(<Harness><TeamPage /></Harness>);
+  await user.click(await screen.findByRole("button", { name: "Novo integrante" }));
+
+  await user.type(screen.getByLabelText("Nome completo"), "Rui Antunes");
+  await user.type(screen.getByLabelText("Documento"), "12345678901");
+  await user.type(screen.getByLabelText("E-mail na clínica"), "rui@centro.test");
+  await user.type(screen.getByLabelText("Telefone"), "11999998888");
+  await user.click(screen.getByRole("radio", { name: /Médico/ }));
+  await user.selectOptions(screen.getByLabelText("Duração padrão da consulta"), "30");
+  await user.click(await screen.findByRole("radio", { name: /Personalizado/ }));
+  // Em personalizado o rótulo do convênio padrão ganha "(padrão da clínica)".
+  await user.click(screen.getByRole("checkbox", { name: /Unimed/ }));
+  await user.click(screen.getByRole("checkbox", { name: "Amil" }));
+  await user.click(screen.getByRole("button", { name: "Adicionar integrante" }));
+
+  expect(await screen.findByText(/convite foi enfileirado/i)).toBeVisible();
+  expect(writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+    "POST /clinics/clinic-1/members",
+    "PUT /clinics/clinic-1/members/new-membership/healthcare-plans",
+  ]);
+  // Personalizar parte do padrão (Unimed); a escolha final ficou só com Amil.
+  expect(writes[1].body).toEqual({ mode: "Custom", healthcarePlanIds: ["plan-amil"] });
 });

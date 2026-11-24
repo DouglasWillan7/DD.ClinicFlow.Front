@@ -157,3 +157,55 @@ test("em 390 px a lista vira seletor, sem rolagem horizontal e com alvos de 44 p
   const barBox = await bar.boundingBox();
   expect((barBox?.x ?? 0) + (barBox?.width ?? 0)).toBeLessThanOrEqual(390);
 });
+
+test("médico administrador escolhe os próprios convênios em Meu perfil", async ({ page }) => {
+  const { writes } = await mockHealthcarePlans(page, { admin: true });
+  await page.goto("/app/configuracoes/perfil");
+
+  await expect(page.getByRole("heading", { name: "Convênios", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Padrão da clínica/ })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Salvar convênios" })).toBeDisabled();
+
+  await page.getByRole("radio", { name: /Personalizado/ }).check();
+  await page.getByRole("checkbox", { name: "Bradesco Saúde" }).check();
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-profile-plans-admin-desktop.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Salvar convênios" }).click();
+
+  await expect(page.getByText("Convênios atualizados.")).toBeVisible();
+  expect(writes).toEqual([{
+    path: "/clinics/22222222-2222-2222-2222-222222222222/members/uc-ana/healthcare-plans",
+    body: {
+      mode: "Custom",
+      healthcarePlanIds: ["plan-amil", "plan-sulamerica", "plan-unimed", "plan-bradesco"],
+    },
+  }]);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
+test("médico sem administração só consulta os próprios convênios em Meu perfil", async ({
+  page,
+}) => {
+  const { writes } = await mockHealthcarePlans(page, { admin: false });
+  await page.goto("/app/configuracoes/perfil");
+
+  await expect(page.getByRole("heading", { name: "Convênios", exact: true })).toBeVisible();
+  const list = page.getByRole("list", { name: "Convênios que você atende" });
+  await expect(list.getByRole("listitem")).toHaveText(["Amil", "Bradesco Saúde", "SulAmérica"]);
+  await expect(page.getByText(/definidos pela administração da clínica/)).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Personalizado/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Salvar convênios" })).toHaveCount(0);
+  await page.screenshot({
+    path: "/private/tmp/clinicflow-profile-plans-readonly-desktop.png",
+    fullPage: true,
+  });
+  expect(writes).toEqual([]);
+});

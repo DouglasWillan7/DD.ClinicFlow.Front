@@ -2,7 +2,25 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import type { ClinicMember, DoctorSchedule } from "../../api/types";
-import { ClinicMemberForm } from "./ClinicMemberForm";
+import { ClinicMemberForm, type MemberPlansSource } from "./ClinicMemberForm";
+
+const planCatalog = [
+  { id: "plan-unimed", name: "Unimed" },
+  { id: "plan-amil", name: "Amil" },
+  { id: "plan-bradesco", name: "Bradesco Saúde" },
+];
+
+/** A clínica aceita Unimed e Amil; só Unimed é padrão. Bradesco fica fora do teto. */
+function plansSource(
+  saved?: Extract<MemberPlansSource, { status: "ready" }>["saved"],
+): MemberPlansSource {
+  return {
+    status: "ready",
+    catalog: planCatalog,
+    clinic: { accepted: ["plan-unimed", "plan-amil"], defaults: ["plan-unimed"] },
+    saved,
+  };
+}
 
 const doctor: ClinicMember = {
   userClinicId: "membership-doctor",
@@ -228,4 +246,122 @@ test("mantém selecionável uma duração gravada fora da lista padrão", () => 
   );
 
   expect(screen.getByLabelText("Duração padrão da consulta")).toHaveValue("25");
+});
+
+test("médico parte do padrão da clínica e só envia os convênios quando eles mudam", async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  render(
+    <ClinicMemberForm
+      mode="edit"
+      member={doctor}
+      plans={plansSource({
+        userClinicId: doctor.userClinicId,
+        mode: "ClinicDefault",
+        healthcarePlanIds: ["plan-unimed"],
+      })}
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={onSubmit}
+    />,
+  );
+
+  expect(screen.getByRole("heading", { name: "Convênios" })).toBeVisible();
+  expect(screen.getByRole("radio", { name: /Padrão da clínica/ })).toBeChecked();
+  const group = screen.getByRole("group", {
+    name: "Convênios atendidos por Dra. Helena Martins",
+  });
+  // No padrão a lista vem da clínica e fica travada; o que a clínica não aceita nem aparece.
+  expect(group).toBeDisabled();
+  expect(within(group).getByRole("checkbox", { name: "Unimed" })).toBeChecked();
+  expect(within(group).getByRole("checkbox", { name: "Amil" })).not.toBeChecked();
+  expect(within(group).queryByRole("checkbox", { name: "Bradesco Saúde" })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+  expect(onSubmit.mock.calls[0][2]).toBeUndefined();
+
+  await user.click(screen.getByRole("radio", { name: /Personalizado/ }));
+  await user.click(screen.getByRole("checkbox", { name: "Amil" }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  expect(onSubmit.mock.calls[1][2]).toEqual({
+    mode: "Custom",
+    planIds: ["plan-unimed", "plan-amil"],
+  });
+});
+
+test("voltar ao padrão da clínica envia o modo sem lista própria", async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  render(
+    <ClinicMemberForm
+      mode="edit"
+      member={doctor}
+      plans={plansSource({
+        userClinicId: doctor.userClinicId,
+        mode: "Custom",
+        healthcarePlanIds: ["plan-amil"],
+      })}
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={onSubmit}
+    />,
+  );
+
+  expect(screen.getByRole("radio", { name: /Personalizado/ })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Amil" })).toBeChecked();
+
+  await user.click(screen.getByRole("radio", { name: /Padrão da clínica/ }));
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+  expect(onSubmit.mock.calls[0][2]).toEqual({ mode: "ClinicDefault", planIds: [] });
+});
+
+test("convênios só aparecem para o papel de médico e o cadastro avisa quando passam a valer", async () => {
+  const user = userEvent.setup();
+  render(
+    <ClinicMemberForm
+      mode="create"
+      plans={plansSource()}
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={vi.fn()}
+    />,
+  );
+
+  expect(screen.queryByRole("heading", { name: "Convênios" })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("radio", { name: /Médico/ }));
+  expect(screen.getByRole("heading", { name: "Convênios" })).toBeVisible();
+  expect(screen.getByRole("radio", { name: /Padrão da clínica/ })).toBeChecked();
+  expect(
+    screen.getByText("Os convênios passam a ser oferecidos na agenda quando o convite for aceito."),
+  ).toBeVisible();
+});
+
+test("falha ao carregar os convênios não impede salvar o vínculo", async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  const retry = vi.fn();
+  render(
+    <ClinicMemberForm
+      mode="edit"
+      member={doctor}
+      plans={{ status: "error", retry }}
+      pending={false}
+      onCancel={vi.fn()}
+      onSubmit={onSubmit}
+    />,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    /Não foi possível carregar os convênios/,
+  );
+  await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+  expect(retry).toHaveBeenCalledOnce();
+
+  await user.click(screen.getByRole("button", { name: "Salvar vínculo" }));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+  expect(onSubmit.mock.calls[0][2]).toBeUndefined();
 });

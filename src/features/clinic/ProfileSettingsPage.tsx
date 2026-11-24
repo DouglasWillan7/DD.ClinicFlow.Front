@@ -18,6 +18,7 @@ import { Field } from "../../components/Field";
 import { PageHeader } from "../../components/PageHeader";
 import { onboardingKey } from "../onboarding/onboarding";
 import { timeZoneLabel, useClinicTimeZone } from "./clinicTimeZone";
+import { DoctorPlansPanel } from "./DoctorPlansPanel";
 import { DoctorSchedulePanel } from "./DoctorSchedulePanel";
 import styles from "./SettingsLayout.module.css";
 
@@ -168,11 +169,15 @@ export function ProfileSettingsPage() {
             {query.data.role === "Doctor" ? (
               // O médico cuida da própria agenda aqui, sem ir a outra área; tem salvar
               // próprio porque conta e horários são gravados por rotas diferentes.
-              <DoctorSchedulePanel
-                doctorId={query.data.userId}
-                title="Disponibilidade de atendimento"
-                description={`Sua semana padrão nesta clínica, no fuso de ${timeZoneLabel(timeZone)}. Ausências e férias continuam sendo bloqueadas diretamente na Agenda.`}
-              />
+              <>
+                <DoctorSchedulePanel
+                  doctorId={query.data.userId}
+                  title="Disponibilidade de atendimento"
+                  description={`Sua semana padrão nesta clínica, no fuso de ${timeZoneLabel(timeZone)}. Ausências e férias continuam sendo bloqueadas diretamente na Agenda.`}
+                />
+                {/* Convênios também são do vínculo: o médico os encontra junto da agenda. */}
+                <DoctorPlansPanel doctorName={query.data.name} />
+              </>
             ) : (
               <section className={styles.panel}>
                 <p className={styles.wide}>

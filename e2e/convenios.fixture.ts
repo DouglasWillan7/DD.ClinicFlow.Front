@@ -174,6 +174,29 @@ export async function mockHealthcarePlans(page: Page, { admin }: { admin: boolea
       });
     }
     if (pathname === "/patients") return json([]);
+    // Meu perfil mostra os convênios do médico da sessão junto da conta e da agenda.
+    if (pathname === "/users/me") {
+      const current = sessionFor(admin);
+      return json({
+        userId: current.userId,
+        email: current.email,
+        phone: current.phone,
+        name: current.name,
+        role: "Doctor",
+        isAdmin: admin,
+        medicalLicense: "12345",
+        medicalLicenseState: "SP",
+        specialty: "Gastroenterologia",
+      });
+    }
+    if (/^\/doctors\/[^/]+\/schedule$/.test(pathname)) {
+      return json({
+        doctorUserId: sessionFor(admin).userId,
+        slotDurationMinutes: 30,
+        intervals: [],
+        blocks: [],
+      });
+    }
     return route.fulfill({ status: 404, json: { title: "Not found" } });
   });
 
