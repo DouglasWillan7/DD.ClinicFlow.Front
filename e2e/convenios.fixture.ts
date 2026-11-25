@@ -174,7 +174,7 @@ export async function mockHealthcarePlans(page: Page, { admin }: { admin: boolea
       });
     }
     if (pathname === "/patients") return json([]);
-    // Meu perfil mostra os convênios do médico da sessão junto da conta e da agenda.
+    // Meu perfil mostra os convênios do médico da sessão numa aba própria, ao lado da conta e da agenda.
     if (pathname === "/users/me") {
       const current = sessionFor(admin);
       return json({

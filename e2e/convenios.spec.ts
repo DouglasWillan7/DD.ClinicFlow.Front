@@ -158,9 +158,9 @@ test("em 390 px a lista vira seletor, sem rolagem horizontal e com alvos de 44 p
   expect((barBox?.x ?? 0) + (barBox?.width ?? 0)).toBeLessThanOrEqual(390);
 });
 
-test("médico administrador escolhe os próprios convênios em Meu perfil", async ({ page }) => {
+test("médico administrador escolhe os próprios convênios na aba de Meu perfil", async ({ page }) => {
   const { writes } = await mockHealthcarePlans(page, { admin: true });
-  await page.goto("/app/configuracoes/perfil");
+  await page.goto("/app/configuracoes/perfil/convenios");
 
   await expect(page.getByRole("heading", { name: "Convênios", exact: true })).toBeVisible();
   await expect(page.getByRole("radio", { name: /Padrão da clínica/ })).toBeChecked();
@@ -191,11 +191,11 @@ test("médico administrador escolhe os próprios convênios em Meu perfil", asyn
   ).toBe(true);
 });
 
-test("médico sem administração só consulta os próprios convênios em Meu perfil", async ({
+test("médico sem administração só consulta os próprios convênios na aba de Meu perfil", async ({
   page,
 }) => {
   const { writes } = await mockHealthcarePlans(page, { admin: false });
-  await page.goto("/app/configuracoes/perfil");
+  await page.goto("/app/configuracoes/perfil/convenios");
 
   await expect(page.getByRole("heading", { name: "Convênios", exact: true })).toBeVisible();
   const list = page.getByRole("list", { name: "Convênios que você atende" });

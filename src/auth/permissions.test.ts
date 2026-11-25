@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { AuthResponse, ClinicRole } from "../api/types";
 import {
+  actsAsDoctor,
   can,
   doctorScheduleScope,
   canAccessAppPath,
@@ -151,4 +152,12 @@ test("protege rotas profundas com a capacidade equivalente da API", () => {
   expect(canAccessAppPath(session("Doctor", true), "/app/configuracoes/clinica/receituario")).toBe(true);
   expect(canAccessAppPath(session("Doctor"), "/app/configuracoes/clinica/receituario")).toBe(false);
   expect(canAccessAppPath(session("Nurse"), "/app/configuracoes/clinica/receituario")).toBe(false);
+});
+
+test("abas de médico em Meu perfil dependem do papel no vínculo, não da administração", () => {
+  expect(actsAsDoctor(session("Doctor"))).toBe(true);
+  expect(actsAsDoctor(session("Doctor", true))).toBe(true);
+  expect(actsAsDoctor(session("Secretary", true))).toBe(false);
+  expect(actsAsDoctor(session("Nurse"))).toBe(false);
+  expect(actsAsDoctor(null)).toBe(false);
 });

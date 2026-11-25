@@ -3,7 +3,12 @@ import { lazy, Suspense } from "react";
 import { Redirect, useLocation } from "wouter";
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import { LoadingBlock } from "../components/Feedback";
-import { canAccessAppPath, getAppStart } from "../auth/permissions";
+import { actsAsDoctor, canAccessAppPath, getAppStart } from "../auth/permissions";
+import {
+  profileAvailabilityPath,
+  profilePlansPath,
+  profileSettingsPath,
+} from "../features/clinic/profileSettingsPaths";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppShell } from "./AppShell";
 import { NotFoundPage } from "./NotFoundPage";
@@ -61,8 +66,18 @@ const OnboardingPage = lazy(() =>
   })),
 );
 const ProfileSettingsPage = lazy(() =>
-  import("../features/clinic/ProfileSettingsPage").then((module) => ({
+  import("../features/clinic/profileSettingsPages").then((module) => ({
     default: module.ProfileSettingsPage,
+  })),
+);
+const ProfileAvailabilityPage = lazy(() =>
+  import("../features/clinic/profileSettingsPages").then((module) => ({
+    default: module.ProfileAvailabilityPage,
+  })),
+);
+const ProfilePlansPage = lazy(() =>
+  import("../features/clinic/profileSettingsPages").then((module) => ({
+    default: module.ProfilePlansPage,
   })),
 );
 const HealthcarePlansSettingsPage = lazy(() =>
@@ -215,6 +230,15 @@ function AppRoutes() {
       );
     }
 
+    // Disponibilidade e Convênios de Meu perfil são do vínculo de médico; os demais
+    // papéis ficam na aba Conta, que é o perfil inteiro deles.
+    if (
+      (path === profileAvailabilityPath || path === profilePlansPath) &&
+      !actsAsDoctor(session)
+    ) {
+      return <Redirect to={profileSettingsPath} replace />;
+    }
+
     if (!canAccessAppPath(session, path)) {
       return <Redirect to={appStart} replace />;
     }
@@ -234,7 +258,9 @@ function AppRoutes() {
       "/app/pacientes": <PatientsPage />,
       "/app/pacientes/novo": <NewPatientPage />,
       "/app/equipe": <TeamPage />,
-      "/app/configuracoes/perfil": <ProfileSettingsPage />,
+      [profileSettingsPath]: <ProfileSettingsPage />,
+      [profileAvailabilityPath]: <ProfileAvailabilityPage />,
+      [profilePlansPath]: <ProfilePlansPage />,
       "/app/configuracoes/agenda": <ScheduleSettingsPage />,
     };
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { PropsWithChildren } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
@@ -8,7 +8,12 @@ import type {
   DoctorSchedule,
   UserClinicHealthcarePlans,
 } from "../../api/types";
-import { ProfileSettingsPage } from "./ProfileSettingsPage";
+import { UnsavedChangesProvider } from "../../app/unsavedChanges";
+import {
+  ProfileAvailabilityPage,
+  ProfilePlansPage,
+  ProfileSettingsPage,
+} from "./profileSettingsPages";
 
 const doctorId = "11111111-1111-1111-1111-111111111111";
 const ownPlansPath = "/clinics/clinic-1/members/membership-1/healthcare-plans";
@@ -44,10 +49,20 @@ function Harness({ children }: PropsWithChildren) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
+    </QueryClientProvider>
+  );
+}
+
+function requestedPaths() {
+  return requestMock.mock.calls.map(([path]) => String(path));
 }
 
 beforeEach(() => {
+  // As abas usam o roteador real: a aba atual sai do endereço.
+  window.history.replaceState({}, "", "/app/configuracoes/perfil");
   profile = {
     userId: doctorId,
     email: "marina@example.test",
@@ -94,9 +109,89 @@ beforeEach(() => {
   });
 });
 
-test("médico edita a própria disponibilidade em Meu perfil, com salvar separado da conta", async () => {
+test("médico navega por Conta, Disponibilidade e Convênios, com a conta como entrada", async () => {
+  render(<Harness><ProfileSettingsPage /></Harness>);
+
+  const tabs = within(screen.getByRole("navigation", { name: "Meu perfil" }));
+  expect(tabs.getByRole("link", { name: "Conta" })).toHaveAttribute("aria-current", "page");
+  expect(tabs.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
+    "href",
+    "/app/configuracoes/perfil/disponibilidade",
+  );
+  expect(tabs.getByRole("link", { name: "Convênios" })).toHaveAttribute(
+    "href",
+    "/app/configuracoes/perfil/convenios",
+  );
+
+  expect(await screen.findByLabelText("Registro profissional")).toHaveValue("12345");
+  // Cada aba carrega só o que mostra: a conta não busca agenda nem convênios.
+  expect(
+    screen.queryByRole("heading", { name: "Disponibilidade de atendimento" }),
+  ).not.toBeInTheDocument();
+  expect(
+    requestedPaths().some(
+      (path) => path.includes("/schedule") || path.includes("healthcare-plans"),
+    ),
+  ).toBe(false);
+});
+
+test("o cabeçalho é o mesmo nas três abas e a aba atual acompanha o endereço", async () => {
+  window.history.replaceState({}, "", "/app/configuracoes/perfil/convenios");
+  render(<Harness><ProfilePlansPage /></Harness>);
+
+  expect(screen.getByRole("heading", { level: 1, name: "Meu perfil" })).toBeVisible();
+  const tabs = within(screen.getByRole("navigation", { name: "Meu perfil" }));
+  expect(tabs.getByRole("link", { name: "Convênios" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect(tabs.getByRole("link", { name: "Conta" })).not.toHaveAttribute("aria-current");
+  expect(await screen.findByRole("heading", { name: "Convênios" })).toBeVisible();
+  expect(screen.queryByLabelText("Registro profissional")).not.toBeInTheDocument();
+});
+
+test("trocar de aba com a conta alterada pede confirmação antes de descartar", async () => {
   const user = userEvent.setup();
   render(<Harness><ProfileSettingsPage /></Harness>);
+
+  const name = await screen.findByLabelText("Nome");
+  await waitFor(() => expect(name).toHaveValue("Dra. Marina Lopes"));
+  await user.type(name, " Silva");
+  await user.click(screen.getByRole("link", { name: "Disponibilidade" }));
+
+  expect(await screen.findByText("Descartar alterações?")).toBeVisible();
+  expect(window.location.pathname).toBe("/app/configuracoes/perfil");
+
+  await user.click(screen.getByRole("button", { name: "Continuar editando" }));
+  expect(name).toHaveValue("Dra. Marina Lopes Silva");
+});
+
+test("salvar a conta libera a troca de aba sem aviso", async () => {
+  const user = userEvent.setup();
+  requestMock.mockImplementation(async (path: string, init?: RequestInit) => {
+    if (path === "/users/me" && init?.method === "PUT") {
+      return { ...profile, ...JSON.parse(String(init.body)) };
+    }
+    if (path === "/users/me") return profile;
+    throw new Error(`Rota inesperada: ${path}`);
+  });
+  render(<Harness><ProfileSettingsPage /></Harness>);
+
+  const name = await screen.findByLabelText("Nome");
+  await waitFor(() => expect(name).toHaveValue("Dra. Marina Lopes"));
+  await user.type(name, " Silva");
+  await user.click(screen.getByRole("button", { name: "Salvar conta" }));
+  expect(await screen.findByText("Perfil atualizado.")).toBeVisible();
+
+  await user.click(screen.getByRole("link", { name: "Disponibilidade" }));
+  expect(screen.queryByText("Descartar alterações?")).not.toBeInTheDocument();
+  expect(window.location.pathname).toBe("/app/configuracoes/perfil/disponibilidade");
+});
+
+test("médico edita a própria disponibilidade na aba Disponibilidade, com salvar separado da conta", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState({}, "", "/app/configuracoes/perfil/disponibilidade");
+  render(<Harness><ProfileAvailabilityPage /></Harness>);
 
   expect(
     await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
@@ -116,11 +211,25 @@ test("médico edita a própria disponibilidade em Meu perfil, com salvar separad
   });
 });
 
-test("quem não é médico não vê nem carrega disponibilidade", async () => {
+test("horário alterado e não salvo segura a troca de aba", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState({}, "", "/app/configuracoes/perfil/disponibilidade");
+  render(<Harness><ProfileAvailabilityPage /></Harness>);
+
+  await user.click(await screen.findByRole("checkbox", { name: /Segunda-feira/ }));
+  await user.click(screen.getByRole("link", { name: "Conta" }));
+
+  expect(await screen.findByText("Descartar alterações?")).toBeVisible();
+  expect(window.location.pathname).toBe("/app/configuracoes/perfil/disponibilidade");
+});
+
+test("quem não é médico só tem a conta: sem abas, sem disponibilidade e sem convênios", async () => {
   profile = { ...profile, role: "Secretary", medicalLicense: null, specialty: null };
   render(<Harness><ProfileSettingsPage /></Harness>);
 
   expect(await screen.findByText(/não possui atuação médica/i)).toBeVisible();
+  expect(screen.getByLabelText("Nome")).toBeVisible();
+  expect(screen.queryByRole("navigation", { name: "Meu perfil" })).not.toBeInTheDocument();
   expect(
     screen.queryByRole("heading", { name: "Disponibilidade de atendimento" }),
   ).not.toBeInTheDocument();
@@ -136,10 +245,10 @@ test("quem não é médico não vê nem carrega disponibilidade", async () => {
   ).toBe(false);
 });
 
-test("médico administrador escolhe os próprios convênios em Meu perfil", async () => {
+test("médico administrador escolhe os próprios convênios na aba Convênios", async () => {
   isAdmin = true;
   const user = userEvent.setup();
-  render(<Harness><ProfileSettingsPage /></Harness>);
+  render(<Harness><ProfilePlansPage /></Harness>);
 
   expect(
     await screen.findByRole("heading", { name: "Convênios" }),
@@ -165,7 +274,7 @@ test("médico administrador escolhe os próprios convênios em Meu perfil", asyn
 
 test("médico que não administra a clínica só consulta os próprios convênios", async () => {
   ownPlans = { ...ownPlans, mode: "Custom", healthcarePlanIds: ["plan-amil"] };
-  render(<Harness><ProfileSettingsPage /></Harness>);
+  render(<Harness><ProfilePlansPage /></Harness>);
 
   expect(
     await screen.findByRole("heading", { name: "Convênios" }),
@@ -183,7 +292,7 @@ test("médico que não administra a clínica só consulta os próprios convênio
 
 test("médico sem convênios vê que atende apenas particular", async () => {
   ownPlans = { ...ownPlans, mode: "Custom", healthcarePlanIds: [] };
-  render(<Harness><ProfileSettingsPage /></Harness>);
+  render(<Harness><ProfilePlansPage /></Harness>);
 
   expect(
     await screen.findByText("Você atende apenas consulta particular nesta clínica."),

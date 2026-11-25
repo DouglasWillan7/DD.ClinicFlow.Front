@@ -7,6 +7,7 @@ import type {
   HealthcarePlan,
   UserClinicHealthcarePlans,
 } from "../../api/types";
+import { useUnsavedChangesGuard } from "../../app/unsavedChanges";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
 import { Button } from "../../components/Button";
@@ -36,7 +37,7 @@ import plansStyles from "./HealthcarePlansSettingsPage.module.css";
 import styles from "./SettingsLayout.module.css";
 
 /**
- * Cartão "Convênios" de Meu perfil: os convênios do médico da sessão nesta
+ * Cartão da aba "Convênios" de Meu perfil: os convênios do médico da sessão nesta
  * clínica. Quem administra a clínica edita aqui mesmo, com salvar próprio; os demais
  * médicos só consultam, porque a API reserva a alteração ao administrador.
  */
@@ -131,6 +132,7 @@ function EditablePlans({
   const baseline = doctorDraftFromSaved(saved);
   const current = draft ?? baseline;
   const dirty = isDoctorDirty(current, baseline, clinic);
+  useUnsavedChangesGuard(dirty);
 
   const save = useMutation({
     mutationFn: () =>

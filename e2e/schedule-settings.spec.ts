@@ -119,7 +119,7 @@ test("médico configura a semana sem perder a edição em viewport mobile", asyn
   });
 });
 
-test("médico edita a própria disponibilidade em Meu perfil", async ({ page }) => {
+test("médico edita a própria disponibilidade na aba de Meu perfil", async ({ page }) => {
   let savedBody: Record<string, unknown> | undefined;
   await page.addInitScript((value) => {
     window.localStorage.setItem("clinicflow.session", JSON.stringify(value));
@@ -176,6 +176,15 @@ test("médico edita a própria disponibilidade em Meu perfil", async ({ page }) 
 
   await page.goto("/app/configuracoes/perfil");
 
+  await expect(page.getByRole("heading", { name: "Meu perfil" })).toBeVisible();
+  const tabs = page.getByRole("navigation", { name: "Meu perfil" });
+  await expect(tabs.getByRole("link", { name: "Conta" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await tabs.getByRole("link", { name: "Disponibilidade" }).click();
+  await expect(page).toHaveURL(/\/app\/configuracoes\/perfil\/disponibilidade$/);
+  // O cabeçalho da tela não muda ao trocar de aba.
   await expect(page.getByRole("heading", { name: "Meu perfil" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Disponibilidade de atendimento" }),

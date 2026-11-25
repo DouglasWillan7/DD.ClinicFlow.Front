@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { ApiError } from "../../api/client";
 import type { DoctorSchedule, ScheduleDay } from "../../api/types";
+import { useUnsavedChangesGuard } from "../../app/unsavedChanges";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
 import {
@@ -30,7 +31,7 @@ interface PanelCopy {
 
 /**
  * Cartão da disponibilidade semanal de um médico, com o próprio salvar. É o mesmo em
- * Configurações › Disponibilidade e em Meu perfil. Quem troca de médico remonta o
+ * Configurações › Disponibilidade e na aba Disponibilidade de Meu perfil. Quem troca de médico remonta o
  * cartão com `key`, para o rascunho de um não vazar para o outro.
  */
 export function DoctorSchedulePanel({
@@ -71,6 +72,9 @@ function ScheduleForm({
   const [draft, setDraft] = useState<ScheduleDraft>(() => scheduleToDraft(initial));
   const [validationError, setValidationError] = useState<string>();
   const [saved, setSaved] = useState(false);
+  // Trocar de aba ou sair pelo menu desmonta o cartão: o rascunho só some após confirmação.
+  const [dirty, setDirty] = useState(false);
+  useUnsavedChangesGuard(dirty);
 
   const save = useMutation({
     mutationFn: (payload: ReturnType<typeof buildScheduleRequest>["request"]) =>
@@ -86,6 +90,7 @@ function ScheduleForm({
       queryClient.setQueryData(["doctor-schedule", doctorId], value);
       setDuration(value.slotDurationMinutes);
       setDraft(scheduleToDraft(value));
+      setDirty(false);
       setSaved(true);
       void queryClient.invalidateQueries({ queryKey: onboardingKey });
       void queryClient.invalidateQueries({ queryKey: ["availability", doctorId] });
@@ -97,6 +102,7 @@ function ScheduleForm({
     transform: (intervals: ScheduleDraft[ScheduleDay]) => ScheduleDraft[ScheduleDay],
   ) {
     setDraft((current) => ({ ...current, [day]: transform(current[day]) }));
+    setDirty(true);
     setSaved(false);
     setValidationError(undefined);
   }
@@ -133,6 +139,7 @@ function ScheduleForm({
               value={duration}
               onChange={(event) => {
                 setDuration(event.target.valueAsNumber);
+                setDirty(true);
                 setSaved(false);
                 setValidationError(undefined);
               }}
