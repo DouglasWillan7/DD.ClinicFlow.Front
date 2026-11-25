@@ -264,7 +264,7 @@ test("administração define a disponibilidade do médico dentro do vínculo", a
     page.getByRole("heading", { name: "Disponibilidade de atendimento" }),
   ).toBeVisible();
   await page.getByRole("checkbox", { name: /Segunda-feira/ }).check();
-  await page.getByRole("button", { name: "Adicionar período" }).click();
+  await page.getByRole("button", { name: "Adicionar período em Segunda-feira" }).click();
   await page.getByLabel("Segunda-feira, período 2, início").fill("13:00");
   await page.getByLabel("Segunda-feira, período 2, fim").fill("17:00");
   await page.screenshot({

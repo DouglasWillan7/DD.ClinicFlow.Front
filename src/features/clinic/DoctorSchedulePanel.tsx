@@ -11,7 +11,6 @@ import {
   LoadingBlock,
   SuccessNote,
 } from "../../components/Feedback";
-import { Field } from "../../components/Field";
 import { onboardingKey } from "../onboarding/onboarding";
 import {
   buildScheduleRequest,
@@ -129,21 +128,29 @@ function ScheduleForm({
           </div>
           <div className={styles.headerFields}>
             {headerField}
-            <Field
-              id="schedule-duration"
-              label="Duração da consulta (minutos)"
-              type="number"
-              min={5}
-              max={480}
-              step={5}
-              value={duration}
-              onChange={(event) => {
-                setDuration(event.target.valueAsNumber);
-                setDirty(true);
-                setSaved(false);
-                setValidationError(undefined);
-              }}
-            />
+            {/* Um número de até três dígitos não pede um campo de largura inteira: rótulo
+                ao lado e a unidade dentro da caixa. O nome acessível mantém a unidade. */}
+            <div className={styles.duration}>
+              <label htmlFor="schedule-duration">Duração da consulta</label>
+              <span className={styles.durationControl}>
+                <input
+                  id="schedule-duration"
+                  aria-label="Duração da consulta (minutos)"
+                  type="number"
+                  min={5}
+                  max={480}
+                  step={5}
+                  value={duration}
+                  onChange={(event) => {
+                    setDuration(event.target.valueAsNumber);
+                    setDirty(true);
+                    setSaved(false);
+                    setValidationError(undefined);
+                  }}
+                />
+                <span aria-hidden="true">min</span>
+              </span>
+            </div>
           </div>
         </header>
 

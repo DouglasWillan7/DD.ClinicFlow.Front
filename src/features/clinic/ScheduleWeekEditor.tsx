@@ -1,4 +1,4 @@
-import { Clock3, Plus, Trash2 } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { ScheduleDay } from "../../api/types";
 import {
   scheduleDays,
@@ -8,9 +8,12 @@ import {
 import styles from "./ScheduleWeekEditor.module.css";
 
 /**
- * Semana padrão de atendimento: um dia por linha, cada um com N períodos. É o mesmo
- * editor em Configurações › Disponibilidade e no cadastro do médico em Equipe; quem o
- * usa guarda o rascunho e decide quando salvar.
+ * Semana padrão de atendimento: um dia por linha, com os períodos lado a lado na mesma
+ * linha. É o mesmo editor em Meu perfil, em Configurações › Disponibilidade e no
+ * cadastro do médico em Equipe; quem o usa guarda o rascunho e decide quando salvar.
+ *
+ * Os campos de hora não têm rótulo visível (o nome do dia e o "até" já dizem o que
+ * são): cada um leva o próprio `aria-label` com dia, período e início ou fim.
  */
 export function ScheduleWeekEditor({
   draft,
@@ -47,57 +50,46 @@ export function ScheduleWeekEditor({
                   )
                 }
               />
-              <span>
-                <strong>{day.label}</strong>
-                <small>
-                  {enabled
-                    ? `${intervals.length} período${intervals.length === 1 ? "" : "s"}`
-                    : "Sem atendimento"}
-                </small>
-              </span>
+              <strong>{day.label}</strong>
             </label>
 
             {enabled ? (
               <div className={styles.periods}>
                 {intervals.map((interval, index) => (
                   <div className={styles.period} key={interval.id}>
-                    <label>
-                      <span>Início</span>
-                      <input
-                        type="time"
-                        value={interval.startLocal}
-                        disabled={disabled}
-                        aria-label={`${day.label}, período ${index + 1}, início`}
-                        onChange={(event) =>
-                          onChange(day.value, (current) =>
-                            current.map((item) =>
-                              item.id === interval.id
-                                ? { ...item, startLocal: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                    </label>
-                    <span className={styles.periodSeparator}>até</span>
-                    <label>
-                      <span>Fim</span>
-                      <input
-                        type="time"
-                        value={interval.endLocal}
-                        disabled={disabled}
-                        aria-label={`${day.label}, período ${index + 1}, fim`}
-                        onChange={(event) =>
-                          onChange(day.value, (current) =>
-                            current.map((item) =>
-                              item.id === interval.id
-                                ? { ...item, endLocal: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                    </label>
+                    <input
+                      type="time"
+                      value={interval.startLocal}
+                      disabled={disabled}
+                      aria-label={`${day.label}, período ${index + 1}, início`}
+                      onChange={(event) =>
+                        onChange(day.value, (current) =>
+                          current.map((item) =>
+                            item.id === interval.id
+                              ? { ...item, startLocal: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <span className={styles.periodSeparator} aria-hidden="true">
+                      até
+                    </span>
+                    <input
+                      type="time"
+                      value={interval.endLocal}
+                      disabled={disabled}
+                      aria-label={`${day.label}, período ${index + 1}, fim`}
+                      onChange={(event) =>
+                        onChange(day.value, (current) =>
+                          current.map((item) =>
+                            item.id === interval.id
+                              ? { ...item, endLocal: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
                     <button
                       type="button"
                       className={styles.removePeriod}
@@ -109,7 +101,7 @@ export function ScheduleWeekEditor({
                         )
                       }
                     >
-                      <Trash2 size={16} aria-hidden="true" />
+                      <X size={16} aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -117,6 +109,8 @@ export function ScheduleWeekEditor({
                   type="button"
                   className={styles.addPeriod}
                   disabled={disabled}
+                  // Um botão por dia: o nome acessível diz de qual dia é.
+                  aria-label={`Adicionar período em ${day.label}`}
                   onClick={() =>
                     onChange(day.value, (current) => [
                       ...current,
@@ -125,14 +119,11 @@ export function ScheduleWeekEditor({
                   }
                 >
                   <Plus size={16} aria-hidden="true" />
-                  Adicionar período
+                  Período
                 </button>
               </div>
             ) : (
-              <p className={styles.closedDay}>
-                <Clock3 size={16} aria-hidden="true" />
-                Nenhum horário será oferecido neste dia.
-              </p>
+              <p className={styles.closedDay}>Sem atendimento</p>
             )}
           </section>
         );

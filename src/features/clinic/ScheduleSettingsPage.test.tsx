@@ -143,7 +143,7 @@ describe("ScheduleSettingsPage", () => {
     expect(await screen.findByText("Dra. Marina Lopes")).toBeVisible();
     await user.clear(screen.getByLabelText("Duração da consulta (minutos)"));
     await user.type(screen.getByLabelText("Duração da consulta (minutos)"), "45");
-    await user.click(screen.getByRole("button", { name: "Adicionar período" }));
+    await user.click(screen.getByRole("button", { name: "Adicionar período em Segunda-feira" }));
     await user.click(screen.getByLabelText(/Terça-feira/));
     await user.click(screen.getByRole("button", { name: "Salvar disponibilidade" }));
 
@@ -167,7 +167,7 @@ describe("ScheduleSettingsPage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Dra. Marina Lopes");
-    await user.click(screen.getByRole("button", { name: "Adicionar período" }));
+    await user.click(screen.getByRole("button", { name: "Adicionar período em Segunda-feira" }));
     const secondStart = screen.getByLabelText("Segunda-feira, período 2, início");
     await user.clear(secondStart);
     await user.type(secondStart, "11:30");

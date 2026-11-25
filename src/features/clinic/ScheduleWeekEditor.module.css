@@ -1,13 +1,16 @@
-/* Editor da semana padrão. O recuo lateral é de quem o hospeda (painel ou seção). */
+/* Editor da semana padrão, em linhas compactas: o dia à esquerda e os períodos lado a
+   lado na mesma linha. O recuo lateral é de quem o hospeda (painel ou seção). */
 .week {
   min-width: 0;
 }
 
 .dayRow {
-  display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: var(--space-6);
-  padding: 22px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  /* Com períodos em duas linhas o nome do dia fica no topo, junto do primeiro. */
+  align-items: flex-start;
+  padding: 6px 0;
   border-bottom: 1px solid var(--color-border-hairline);
 }
 
@@ -17,10 +20,10 @@
 
 .dayToggle {
   display: flex;
-  min-height: 44px;
+  min-height: 46px;
+  flex: 0 0 152px;
   gap: var(--space-3);
   align-items: center;
-  align-self: start;
   cursor: pointer;
 }
 
@@ -28,91 +31,80 @@
   width: 20px;
   height: 20px;
   flex: 0 0 auto;
+  margin: 0;
   accent-color: var(--color-primary);
-}
-
-.dayToggle strong,
-.dayToggle small {
-  display: block;
 }
 
 .dayToggle strong {
   color: var(--color-ink);
   font-size: 15px;
-}
-
-.dayToggle small {
-  margin-top: 2px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.periods {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.period {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-end;
-}
-
-.period label {
-  display: grid;
-  gap: 5px;
-}
-
-.period label span {
-  color: var(--color-text-body);
-  font-size: 13px;
   font-weight: 600;
 }
 
-.period input {
-  min-width: 132px;
-  min-height: 44px;
-  padding: 9px 12px;
-  color: var(--color-ink);
+/* Sem espaço na linha (celular), os períodos descem para baixo do dia. */
+.periods {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Um período é um controle só: início, fim e remover dentro da mesma caixa. */
+.period {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
   border: 1px solid var(--color-border-hairline);
   border-radius: var(--radius-control);
-  outline: none;
   background: var(--color-surface);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
 
-/* Mesmo foco do Field: borda em Azul de Ação e anel. */
-.period input:focus {
+/* Mesmo foco do Field: borda em Azul de Ação e anel, na caixa do período. */
+.period:has(input:focus) {
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
 }
 
-.removePeriod:focus-visible,
-.addPeriod:focus-visible,
-.dayToggle input:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+/* Corpo de 16px: abaixo disso o iOS amplia a página ao focar o campo. */
+.period input {
+  width: 60px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--color-ink);
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* O relógio do navegador dobraria a largura de cada período; a hora é digitada, e no
+   celular o toque continua abrindo o seletor nativo. */
+.period input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 
 .periodSeparator {
-  padding-bottom: 12px;
+  padding: 0 var(--space-1);
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .removePeriod,
 .addPeriod {
   display: inline-flex;
   min-height: 44px;
-  gap: 7px;
+  gap: 6px;
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: var(--radius-control);
   background: transparent;
   font: inherit;
   font-size: 13px;
@@ -124,27 +116,36 @@
 .removePeriod {
   width: 44px;
   flex: 0 0 44px;
-  color: var(--color-danger-text);
+  padding: 0;
+  color: var(--color-text-muted);
+  border-radius: 14px;
 }
 
 .removePeriod:hover {
+  color: var(--color-danger-text);
   background: var(--color-danger-tint);
 }
 
 .addPeriod {
-  width: fit-content;
   padding: 0 12px;
   color: var(--color-primary);
+  border-radius: var(--radius-control);
 }
 
 .addPeriod:hover {
   background: var(--color-primary-subtle);
 }
 
+.removePeriod:focus-visible,
+.addPeriod:focus-visible,
+.dayToggle input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .closedDay {
   display: flex;
-  min-height: 44px;
-  gap: var(--space-2);
+  min-height: 46px;
   align-items: center;
   margin: 0;
   color: var(--color-text-muted);
@@ -157,31 +158,8 @@
   opacity: 0.6;
 }
 
-@media (max-width: 959px) {
-  .dayRow {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
-}
-
-@media (max-width: 639px) {
-  .period {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 44px;
-    align-items: stretch;
-  }
-
-  .period input {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .periodSeparator {
-    align-self: end;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
+  .period,
   .removePeriod,
   .addPeriod {
     transition: none;
