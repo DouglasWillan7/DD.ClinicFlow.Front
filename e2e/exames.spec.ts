@@ -546,9 +546,6 @@ async function mockExams(page: Page, options: ExamOptions = {}): Promise<MockSta
     ) {
       return route.fulfill({ status: 200, json: [] });
     }
-    if (url.pathname === `/exams/patients/${patientId}/grid`) {
-      return route.fulfill({ status: 200, json: { dates: [], rows: [] } });
-    }
     if (url.pathname === `/exams/patients/${patientId}/clinical-summary`) {
       return route.fulfill({ status: 200, json: patientClinicalSummary() });
     }
@@ -912,10 +909,6 @@ test("descarta laudo falho duplicado e reenvia o mesmo PDF", async ({ page }) =>
   const confirmationBox = await confirmation.boundingBox();
   expect(confirmationBox).not.toBeNull();
   expect((confirmationBox?.x ?? 0) + (confirmationBox?.width ?? 0)).toBeLessThanOrEqual(375);
-  await page.screenshot({
-    path: ".superpowers/sdd/2026-08-10-discard-failed-exam/screenshots/failed-discard-375x812.png",
-    fullPage: true,
-  });
   await confirmation
     .getByRole("button", { name: "Descartar e enviar novamente" })
     .click();
@@ -1170,10 +1163,6 @@ test("navegação acompanha scroll natural e impressão revela nota recolhida", 
   await page.emulateMedia({ media: "print" });
   await expect(noteText).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Seções do laudo" })).toBeHidden();
-  await page.screenshot({
-    path: ".superpowers/sdd/2026-08-10-laudo-v2/screenshots/report-print.png",
-    fullPage: true,
-  });
 });
 
 test("erro ao abrir documento preserva o restante do laudo", async ({
@@ -1228,10 +1217,6 @@ for (const viewport of reportViewports) {
           ),
       ).toBeLessThanOrEqual(1);
     }
-    await page.screenshot({
-      path: `.superpowers/sdd/2026-08-10-laudo-v2/screenshots/overview-${viewport.name}.png`,
-      fullPage: true,
-    });
 
     await page.getByRole("link", { name: /CPK 562 U\/L, Elevado/i }).click();
     await expect(
@@ -1278,10 +1263,6 @@ for (const viewport of reportViewports) {
       .click();
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({
-      path: `.superpowers/sdd/2026-08-10-laudo-v2/screenshots/report-${viewport.name}.png`,
-      fullPage: true,
-    });
 
     expect(browserErrors).toEqual([]);
   });
@@ -1343,10 +1324,6 @@ test("laudo mantém fluxo por teclado com movimento reduzido", async ({
   expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   expect(browserErrors).toEqual([]);
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({
-    path: ".superpowers/sdd/2026-08-10-laudo-v2/screenshots/report-375x812-reduced-motion-keyboard.png",
-    fullPage: true,
-  });
 });
 
 test("alvos operacionais medem 44x44 e o foco real permanece visível", async ({ page }) => {
@@ -1490,13 +1467,6 @@ for (const width of [390, 640, 960, 1280, 1440]) {
     await expect(list).toBeHidden();
     await expect(page.getByRole("button", { name: "Voltar aos exames" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-
-    if (width === 390 || width === 960 || width === 1440) {
-      await page.screenshot({
-        path: `.specs/features/patient-exams/screenshots/exames-${width}.png`,
-        fullPage: true,
-      });
-    }
   });
 }
 

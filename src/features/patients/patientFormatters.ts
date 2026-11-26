@@ -1,28 +1,9 @@
 import type { BloodType } from "../../api/types";
 import { bloodTypeLabels } from "../appointments/appointmentLabels";
 
-export { bloodTypeLabels } from "../appointments/appointmentLabels";
-
 export const bloodTypeOptions = Object.entries(bloodTypeLabels) as Array<
   [BloodType, string]
 >;
-
-export function formatPatientDocument(
-  countryCode: string,
-  documentType: string,
-  value: string,
-) {
-  if (countryCode !== "BR" || documentType !== "CPF") return value;
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  return digits
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-}
-
-export function formatBloodType(value: BloodType) {
-  return bloodTypeLabels[value];
-}
 
 export function formatMedicalRecord(value: number) {
   return new Intl.NumberFormat("pt-BR").format(value);

@@ -1,20 +1,10 @@
 import clsx from "clsx";
 import styles from "./BrandMark.module.css";
 
-export function BrandMark({
-  compact = false,
-  inverse = false,
-}: {
-  compact?: boolean;
-  inverse?: boolean;
-}) {
+export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <span
-      className={clsx(
-        styles.brand,
-        compact ? styles.compact : styles.full,
-        inverse && styles.inverse,
-      )}
+      className={clsx(styles.brand, compact ? styles.compact : styles.full)}
       role="img"
       aria-label="ClinicFlow"
     >

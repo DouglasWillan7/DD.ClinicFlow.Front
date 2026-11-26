@@ -355,5 +355,3 @@ export function PatientExamsPage({ patientId }: { patientId: string }) {
     </div>
   );
 }
-
-export default PatientExamsPage;

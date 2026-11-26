@@ -117,7 +117,6 @@ test("substitui a anatomia antiga por cabeçalho compartilhado e resumo clínico
   });
   const requestedPaths = requestMock.mock.calls.map(([path]) => path);
   expect(requestedPaths).not.toContain(`/assessments/patients/${patient.id}`);
-  expect(requestedPaths).not.toContain(`/exams/patients/${patient.id}/grid`);
   expect(requestedPaths).not.toContain("/clinics/members");
 });
 
