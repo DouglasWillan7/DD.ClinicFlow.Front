@@ -106,10 +106,6 @@ p {
   min-height: 100vh;
 }
 
-.tabularNums {
-  font-variant-numeric: tabular-nums;
-}
-
 .srOnly {
   position: absolute;
   width: 1px;

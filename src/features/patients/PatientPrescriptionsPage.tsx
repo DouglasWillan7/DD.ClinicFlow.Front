@@ -301,5 +301,3 @@ export function PatientPrescriptionsPage({ patientId }: { patientId: string }) {
     </div>
   );
 }
-
-export default PatientPrescriptionsPage;

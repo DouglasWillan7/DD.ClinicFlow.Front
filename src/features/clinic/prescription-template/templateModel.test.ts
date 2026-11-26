@@ -12,7 +12,6 @@ import {
   inputNumber,
   layoutFromTemplate,
   lowestBottomMm,
-  mmToPx,
   parseDecimal,
   pxPerMm,
   pxToMm,
@@ -69,7 +68,6 @@ describe("medidas", () => {
   test("converte entre px e mm pela largura da folha", () => {
     const scale = pxPerMm(630);
     expect(scale).toBe(3);
-    expect(mmToPx(20, scale)).toBe(60);
     expect(pxToMm(45, scale)).toBe(15);
     // Folha sem largura (oculta) não divide por zero.
     expect(pxPerMm(0)).toBe(1);

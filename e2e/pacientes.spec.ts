@@ -256,8 +256,6 @@ async function mockPacientes(page: Page) {
     ) {
       const patientId = url.pathname.split("/").at(-2) ?? "";
       body = clinicalSummary(patientId);
-    } else if (url.pathname.endsWith("/grid")) {
-      body = { dates: [], rows: [] };
     } else if (
       url.pathname.startsWith("/assessments/") ||
       url.pathname.startsWith("/exams/") ||

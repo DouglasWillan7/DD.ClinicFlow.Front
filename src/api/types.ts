@@ -156,20 +156,6 @@ export interface ClinicMembershipInvitationPublicView {
   mode: ClinicMembershipInvitationMode;
 }
 
-export interface ResolveClinicMembershipInvitationRequest {
-  reference: string;
-}
-
-export interface AcceptNewClinicMembershipInvitationRequest
-  extends ResolveClinicMembershipInvitationRequest {
-  password: string;
-}
-
-export interface AcceptExistingClinicMembershipInvitationRequest
-  extends ResolveClinicMembershipInvitationRequest {
-  currentPassword: string | null;
-}
-
 export interface ClinicMembershipInvitationAcceptance {
   outcome: ClinicMembershipInvitationAcceptanceOutcome;
   session: AuthV2Authenticated | null;
@@ -614,43 +600,6 @@ export interface PrescriptionTemplateImageUpload {
   sizeBytes: number;
 }
 
-export type ExamUploadStatus =
-  | "Pendente"
-  | "Processando"
-  | "EmRevisao"
-  | "Confirmado"
-  | "Falhou";
-
-export interface ExamUpload {
-  id: string;
-  patientId: string;
-  patientName: string;
-  fileName: string;
-  source: "Paciente" | "Clinica";
-  status: ExamUploadStatus;
-  error: string | null;
-  createdAtUtc: string;
-}
-
-export interface ExamGridCell {
-  value: number | null;
-  valueText: string;
-  outOfRange: boolean;
-}
-
-/** Cells alinhadas 1:1 com `dates`; null onde não houve coleta. */
-export interface ExamGridRow {
-  catalogCode: string | null;
-  name: string;
-  unit: string | null;
-  cells: Array<ExamGridCell | null>;
-}
-
-export interface ExamGrid {
-  dates: string[];
-  rows: ExamGridRow[];
-}
-
 export type ExamStatus =
   | "Pendente"
   | "Processando"
@@ -978,11 +927,6 @@ export interface ValidateExamRevisionRequest {
   revisionId: string;
   clinicalOutcome: ExamClinicalOutcome;
   expectedVersion: number;
-}
-
-export interface ExamConflictDetails {
-  existingExamId?: string;
-  currentVersion?: number;
 }
 
 export interface DoctorScheduleInterval {

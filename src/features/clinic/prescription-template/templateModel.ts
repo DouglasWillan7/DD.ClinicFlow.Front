@@ -279,10 +279,6 @@ export function pxToMm(px: number, scale: number) {
   return px / scale;
 }
 
-export function mmToPx(mm: number, scale: number) {
-  return mm * scale;
-}
-
 /** Medida em centímetros para leitura: 36,5 mm → "3,65". */
 export function formatCm(mm: number) {
   return (mm / 10).toLocaleString("pt-BR", {
