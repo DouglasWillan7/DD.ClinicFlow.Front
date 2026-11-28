@@ -68,4 +68,39 @@ describe("PatientRegistrationForm", () => {
     expect(screen.getByRole("heading", { name: "Identifique o paciente" })).toBeVisible();
     expect(await screen.findByText("Informe o nome completo.")).toBeVisible();
   });
+
+  test("com o documento travado mostra o valor consultado e permite voltar à consulta", async () => {
+    const user = userEvent.setup();
+    const onChangeDocument = vi.fn();
+    const onSubmit = vi.fn();
+    render(
+      <PatientRegistrationForm
+        initialValue={{ ...emptyPatientForm, document: "52998224725" }}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+        pending={false}
+        serverError={null}
+        documentLocked
+        onChangeDocument={onChangeDocument}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Documento")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("País do documento")).not.toBeInTheDocument();
+    expect(screen.getByText("CPF 529.982.247-25")).toBeVisible();
+
+    await user.type(screen.getByLabelText("Nome completo"), "Marina Oliveira");
+    await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await user.click(screen.getByRole("button", { name: "Salvar paciente" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      ...emptyPatientForm,
+      name: "Marina Oliveira",
+      phone: "+5511999990000",
+      document: "52998224725",
+    });
+    expect(onChangeDocument).not.toHaveBeenCalled();
+  });
 });

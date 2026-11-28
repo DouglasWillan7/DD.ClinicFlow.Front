@@ -2,6 +2,33 @@ import { z } from "zod";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 import type { BloodType, SexForClinicalUse } from "../../api/types";
 
+function isIncompleteCpf(value: {
+  documentCountryCode: string;
+  documentType: string;
+  document: string;
+}) {
+  return (
+    value.documentCountryCode === "BR" &&
+    value.documentType === "CPF" &&
+    value.document.replace(/\D/g, "").length !== 11
+  );
+}
+
+/** Primeira etapa do cadastro: só o documento, para consultar se a pessoa já existe. */
+export const patientDocumentSchema = z.object({
+  documentCountryCode: z.string().length(2, "Selecione o país do documento."),
+  documentType: z.string().trim().min(2, "Selecione o tipo de documento."),
+  document: z.string().trim().min(3, "Informe o documento.").max(80),
+}).superRefine((value, context) => {
+  if (isIncompleteCpf(value)) {
+    context.addIssue({
+      code: "custom",
+      path: ["document"],
+      message: "Informe um CPF com 11 dígitos.",
+    });
+  }
+});
+
 export const patientSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome completo.").max(120),
   phone: z
@@ -31,11 +58,7 @@ export const patientSchema = z.object({
   birthDate: z.string(),
   notes: z.string().max(2000),
 }).superRefine((value, context) => {
-  if (
-    value.documentCountryCode === "BR" &&
-    value.documentType === "CPF" &&
-    value.document.replace(/\D/g, "").length !== 11
-  ) {
+  if (isIncompleteCpf(value)) {
     context.addIssue({
       code: "custom",
       path: ["document"],
@@ -69,6 +92,26 @@ export const emptyPatientForm: PatientFormValue = {
   birthDate: "",
   notes: "",
 };
+
+export type PatientDocumentValue = Pick<
+  PatientFormValue,
+  "documentCountryCode" | "documentType" | "document"
+>;
+
+export const emptyPatientDocument: PatientDocumentValue = {
+  documentCountryCode: emptyPatientForm.documentCountryCode,
+  documentType: emptyPatientForm.documentType,
+  document: "",
+};
+
+/** Corpo de POST /patients/lookup e /patients/clinic-link: o documento nunca vai na URL. */
+export function toPatientDocumentPayload(value: PatientDocumentValue) {
+  return {
+    documentCountryCode: value.documentCountryCode,
+    documentType: value.documentType,
+    document: value.document.trim(),
+  };
+}
 
 export function toPatientPayload(value: PatientFormValue) {
   return {

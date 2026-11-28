@@ -106,6 +106,61 @@
   grid-template-columns: minmax(0, 1fr) 180px;
 }
 
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+/* Cadastro existente em somente leitura: rótulo discreto acima do valor. */
+.summary {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.summaryWide {
+  grid-column: 1 / -1;
+}
+
+.summary dt,
+.lockedDocument dt {
+  margin-bottom: 2px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.summary dd,
+.lockedDocument dd {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.lockedDocument {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.lockedDocument dl {
+  margin: 0;
+}
+
 .actions {
   display: flex;
   gap: 10px;
@@ -143,6 +198,10 @@
   .splitFields {
     grid-template-columns: minmax(0, 1fr) 132px;
     gap: 10px;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
   }
 }
 

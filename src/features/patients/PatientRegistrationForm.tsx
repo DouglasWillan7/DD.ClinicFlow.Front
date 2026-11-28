@@ -11,7 +11,7 @@ import {
 import { Button } from "../../components/Button";
 import { InlineError } from "../../components/Feedback";
 import { Field, SelectField, TextAreaField } from "../../components/Field";
-import { bloodTypeOptions } from "./patientFormatters";
+import { bloodTypeOptions, formatPatientDocument } from "./patientFormatters";
 import { patientSchema, type PatientFormValue } from "./patientForm";
 import { PatientPhoneField } from "./PatientPhoneField";
 import styles from "./PatientRegistrationForm.module.css";
@@ -23,6 +23,12 @@ interface PatientRegistrationFormProps {
   onResetServerError?: () => void;
   pending: boolean;
   serverError: string | null;
+  /**
+   * O documento já foi consultado na etapa anterior e não pode mudar aqui: outro
+   * documento precisa de outra consulta, que pode encontrar um cadastro existente.
+   */
+  documentLocked?: boolean;
+  onChangeDocument?: () => void;
 }
 
 const steps = [
@@ -52,6 +58,8 @@ export function PatientRegistrationForm({
   onResetServerError,
   pending,
   serverError,
+  documentLocked = false,
+  onChangeDocument,
 }: PatientRegistrationFormProps) {
   const [step, setStep] = useState<RegistrationStep>(1);
   const {
@@ -151,27 +159,52 @@ export function PatientRegistrationForm({
                 />
               )}
             />
-            <div className={styles.splitFields}>
-              <SelectField label="País do documento" {...register("documentCountryCode")}>
-                {documentCountries.map((country) => (
-                  <option key={country.code} value={country.code}>{country.label}</option>
-                ))}
-              </SelectField>
-              <SelectField label="Tipo de documento" {...register("documentType")}>
-                {documentTypesFor(documentCountryCode).map((type) => (
-                  <option key={type.code} value={type.code}>{type.label}</option>
-                ))}
-              </SelectField>
-            </div>
-            <Field
-              label="Documento"
-              inputMode={documentCountryCode === "BR" && documentType === "CPF" ? "numeric" : "text"}
-              autoComplete="off"
-              placeholder={documentPlaceholder(documentCountryCode, documentType)}
-              maxLength={80}
-              error={errors.document?.message}
-              {...register("document")}
-            />
+            {documentLocked ? (
+              <div className={styles.lockedDocument}>
+                <dl>
+                  <dt>Documento</dt>
+                  <dd>
+                    {documentTypesFor(documentCountryCode).find(
+                      (type) => type.code === documentType,
+                    )?.label ?? documentType}{" "}
+                    {formatPatientDocument(
+                      documentCountryCode,
+                      documentType,
+                      initialValue.document,
+                    )}
+                  </dd>
+                </dl>
+                {onChangeDocument ? (
+                  <Button type="button" variant="ghost" onClick={onChangeDocument}>
+                    Alterar documento
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <>
+                <div className={styles.splitFields}>
+                  <SelectField label="País do documento" {...register("documentCountryCode")}>
+                    {documentCountries.map((country) => (
+                      <option key={country.code} value={country.code}>{country.label}</option>
+                    ))}
+                  </SelectField>
+                  <SelectField label="Tipo de documento" {...register("documentType")}>
+                    {documentTypesFor(documentCountryCode).map((type) => (
+                      <option key={type.code} value={type.code}>{type.label}</option>
+                    ))}
+                  </SelectField>
+                </div>
+                <Field
+                  label="Documento"
+                  inputMode={documentCountryCode === "BR" && documentType === "CPF" ? "numeric" : "text"}
+                  autoComplete="off"
+                  placeholder={documentPlaceholder(documentCountryCode, documentType)}
+                  maxLength={80}
+                  error={errors.document?.message}
+                  {...register("document")}
+                />
+              </>
+            )}
             <Field
               label="E-mail"
               type="email"
