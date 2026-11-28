@@ -9,11 +9,9 @@ import {
 import type {
   ClinicMember,
   ClinicRole,
-  DoctorSchedule,
   HealthcarePlan,
   ScheduleDay,
   UpdateDoctorScheduleRequest,
-  UserClinicHealthcarePlans,
 } from "../../api/types";
 import {
   documentCountries,
@@ -29,14 +27,12 @@ import { DoctorPlansEditor } from "../clinic/DoctorPlansEditor";
 import {
   type ClinicDraft,
   type DoctorDraft,
-  doctorDraftFromSaved,
   doctorSelectedIds,
   isDoctorDirty,
 } from "../clinic/healthcarePlansDraft";
 import {
   buildScheduleRequest,
   emptyScheduleDraft,
-  scheduleToDraft,
   type ScheduleDraft,
 } from "../clinic/scheduleForm";
 import { ScheduleWeekEditor } from "../clinic/ScheduleWeekEditor";
@@ -52,18 +48,9 @@ import {
 import styles from "./ClinicMemberForm.module.css";
 
 /**
- * Agenda semanal de quem já é médico na clínica. Sem esta prop (cadastro novo ou
- * integrante que ainda não é médico) o formulário parte de uma semana vazia.
- */
-export type MemberScheduleSource =
-  | { status: "loading" }
-  | { status: "error"; retry(): void }
-  | { status: "ready"; data?: DoctorSchedule };
-
-/**
- * Convênios do vínculo. `saved` só existe para quem já é médico na clínica; cadastro novo
- * e integrante que ainda não é médico partem do padrão da clínica. Sem esta prop a seção
- * de convênios não aparece.
+ * Convênios oferecidos no cadastro de um médico, que parte do padrão da clínica. Sem esta
+ * prop a seção de convênios não aparece. Depois do cadastro eles têm aba própria no
+ * perfil do médico.
  */
 export type MemberPlansSource =
   | { status: "loading" }
@@ -73,7 +60,6 @@ export type MemberPlansSource =
       catalog: HealthcarePlan[];
       /** Convênios aceitos e padrão salvos na clínica: o teto da lista do médico. */
       clinic: ClinicDraft;
-      saved?: UserClinicHealthcarePlans;
     };
 
 const clinicDefaultPlans: DoctorDraft = { mode: "ClinicDefault", planIds: [] };
@@ -106,7 +92,6 @@ export function ClinicMemberForm({
   mode,
   member,
   initialRole,
-  schedule,
   plans,
   timeZone,
   pending,
@@ -117,7 +102,6 @@ export function ClinicMemberForm({
   mode: "create" | "edit";
   member?: ClinicMember;
   initialRole?: ClinicRole;
-  schedule?: MemberScheduleSource;
   plans?: MemberPlansSource;
   /** Fuso da clínica, só para dizer em que horário a semana é interpretada. */
   timeZone?: string;
@@ -125,8 +109,8 @@ export function ClinicMemberForm({
   serverError?: string;
   onCancel(): void;
   /**
-   * `schedule` e `plans` só vêm quando foram alterados; sem eles os horários e os
-   * convênios ficam como estão.
+   * `schedule` e `plans` só existem no cadastro e só vêm quando foram alterados; na
+   * edição a disponibilidade e os convênios são abas do perfil, com salvar próprio.
    */
   onSubmit(
     payload: ClinicMemberPayload,
@@ -135,29 +119,25 @@ export function ClinicMemberForm({
   ): void;
 }) {
   const [pendingRole, setPendingRole] = useState<Exclude<ClinicRole, "Doctor">>();
-  const loadedSchedule = schedule?.status === "ready" ? schedule.data : undefined;
-  const [syncedSchedule, setSyncedSchedule] = useState(loadedSchedule);
-  const [draft, setDraft] = useState<ScheduleDraft>(() =>
-    loadedSchedule ? scheduleToDraft(loadedSchedule) : emptyScheduleDraft(),
-  );
+  // A semana e os convênios só entram no cadastro: no perfil do médico são abas.
+  const withScheduling = mode === "create";
+  const [draft, setDraft] = useState<ScheduleDraft>(emptyScheduleDraft);
   const [scheduleDirty, setScheduleDirty] = useState(false);
   const [scheduleError, setScheduleError] = useState<string>();
-  // A agenda chega depois do formulário; quem já mexeu na semana não perde o rascunho.
-  if (loadedSchedule !== syncedSchedule) {
-    setSyncedSchedule(loadedSchedule);
-    if (loadedSchedule && !scheduleDirty) setDraft(scheduleToDraft(loadedSchedule));
-  }
-  const scheduleReady = !schedule || schedule.status === "ready";
-  // Sem rascunho a seção mostra o que está salvo; ele só nasce quando alguém mexe.
+  // Sem rascunho a seção mostra o padrão da clínica; ele só nasce quando alguém mexe.
   const [plansDraft, setPlansDraft] = useState<DoctorDraft | null>(null);
-  const readyPlans = plans?.status === "ready" ? plans : undefined;
-  const savedPlans = readyPlans?.saved
-    ? doctorDraftFromSaved(readyPlans.saved)
-    : clinicDefaultPlans;
-  const currentPlans = plansDraft ?? savedPlans;
+  const readyPlans = withScheduling && plans?.status === "ready" ? plans : undefined;
+  const currentPlans = plansDraft ?? clinicDefaultPlans;
   const plansDirty = Boolean(
-    readyPlans && isDoctorDirty(currentPlans, savedPlans, readyPlans.clinic),
+    readyPlans && isDoctorDirty(currentPlans, clinicDefaultPlans, readyPlans.clinic),
   );
+  // Na edição a duração mora na aba Disponibilidade e segue gravada no vínculo. Aqui ela
+  // só aparece quando falta para o vínculo ser de médico: promoção a médico ou dados
+  // médicos removidos neste formulário.
+  const [doctorDataCleared, setDoctorDataCleared] = useState(false);
+  const durationInProfile =
+    mode === "edit" &&
+    (!member?.doctorProfile?.defaultAppointmentDurationMinutes || doctorDataCleared);
   const {
     control,
     register,
@@ -185,12 +165,6 @@ export function ClinicMemberForm({
       "defaultAppointmentDurationMinutes",
     ],
   });
-  // Duração gravada fora da lista (definida em Configurações) continua selecionável.
-  const savedDuration = member?.doctorProfile?.defaultAppointmentDurationMinutes;
-  const durations =
-    savedDuration && !durationOptions.includes(savedDuration)
-      ? [...durationOptions, savedDuration].sort((left, right) => left - right)
-      : durationOptions;
 
   function changeDraft(
     day: ScheduleDay,
@@ -203,9 +177,13 @@ export function ClinicMemberForm({
 
   function submit(value: ClinicMemberFormValue) {
     const payload = toClinicMemberPayload(value, mode);
+    if (!withScheduling || value.role !== "Doctor") {
+      onSubmit(payload);
+      return;
+    }
     // Convênios só vão junto quando mudaram, já limitados ao que a clínica aceita.
     const plansRequest: DoctorDraft | undefined =
-      value.role === "Doctor" && readyPlans && plansDirty
+      readyPlans && plansDirty
         ? {
             mode: currentPlans.mode,
             planIds:
@@ -220,10 +198,6 @@ export function ClinicMemberForm({
         : scheduleRequest
           ? onSubmit(payload, scheduleRequest)
           : onSubmit(payload);
-    if (value.role !== "Doctor" || !scheduleReady) {
-      send();
-      return;
-    }
     // Valida mesmo sem mudança na semana: uma duração maior pode deixar um período curto.
     const result = buildScheduleRequest(
       draft,
@@ -253,6 +227,7 @@ export function ClinicMemberForm({
   function confirmRoleChange() {
     if (!pendingRole) return;
     reset(clearDoctorData(getValues(), pendingRole), { keepDirty: true });
+    setDoctorDataCleared(true);
     setPendingRole(undefined);
   }
 
@@ -274,14 +249,14 @@ export function ClinicMemberForm({
     >
       <header className={styles.heading}>
         <div>
-          {/* No cadastro a linha de contexto já diz "Novo integrante". */}
-          {mode === "edit" ? (
-            <span className={styles.eyebrow}>Vínculo com a clínica</span>
-          ) : null}
           <h2>{mode === "create" ? "Adicionar integrante" : "Editar vínculo"}</h2>
           <p>
             O papel define a hierarquia operacional. A administração é uma
             permissão independente.
+            {/* Na edição a identidade está no cabeçalho do perfil, logo acima. */}
+            {mode === "edit"
+              ? " A identidade e o documento não mudam neste vínculo."
+              : null}
           </p>
         </div>
       </header>
@@ -323,17 +298,7 @@ export function ClinicMemberForm({
             />
           </div>
         </section>
-      ) : (
-        <section className={styles.identitySummary} aria-label="Identificação">
-          <span className={styles.avatar} aria-hidden="true">
-            {(member?.displayName ?? member?.email ?? "?").slice(0, 1).toUpperCase()}
-          </span>
-          <div>
-            <strong>{member?.displayName ?? "Nome não informado"}</strong>
-            <small>A identidade e o documento não mudam neste vínculo.</small>
-          </div>
-        </section>
-      )}
+      ) : null}
 
       <section className={styles.section} aria-labelledby="member-context-heading">
         <div className={styles.sectionHeading}>
@@ -446,11 +411,24 @@ export function ClinicMemberForm({
               maxLength={600}
               {...register("bio")}
             />
+            {durationInProfile ? (
+              <SelectField
+                label="Duração padrão da consulta"
+                hint="Os horários de atendimento ficam na aba Disponibilidade, depois de salvar."
+                error={errors.defaultAppointmentDurationMinutes?.message}
+                {...register("defaultAppointmentDurationMinutes")}
+              >
+                <option value="">Selecionar</option>
+                {durationOptions.map((minutes) => (
+                  <option key={minutes} value={minutes}>{minutes} minutos</option>
+                ))}
+              </SelectField>
+            ) : null}
           </div>
         </section>
       ) : null}
 
-      {role === "Doctor" ? (
+      {withScheduling && role === "Doctor" ? (
         <section className={styles.section} aria-labelledby="member-availability-heading">
           <div className={styles.sectionHeading}>
             <span className={styles.doctorIcon} aria-hidden="true"><CalendarClock /></span>
@@ -472,48 +450,25 @@ export function ClinicMemberForm({
               })}
             >
               <option value="">Selecionar</option>
-              {durations.map((minutes) => (
+              {durationOptions.map((minutes) => (
                 <option key={minutes} value={minutes}>{minutes} minutos</option>
               ))}
             </SelectField>
           </div>
-          {schedule?.status === "loading" ? (
-            <LoadingBlock label="Carregando os horários de atendimento…" />
-          ) : schedule?.status === "error" ? (
-            <div className={styles.scheduleUnavailable}>
-              <InlineError>
-                Não foi possível carregar os horários. O restante do vínculo pode ser
-                salvo normalmente.
-              </InlineError>
-              <Button type="button" variant="secondary" onClick={schedule.retry}>
-                <RotateCcw size={16} aria-hidden="true" />
-                Tentar novamente
-              </Button>
-            </div>
-          ) : (
-            <>
-              <ScheduleWeekEditor
-                draft={draft}
-                duration={Number(durationValue) || 30}
-                disabled={pending}
-                onChange={changeDraft}
-              />
-              {mode === "create" || member?.status === "Pending" ? (
-                <p className={styles.scheduleNote}>
-                  Os horários passam a ser oferecidos na agenda quando o convite for aceito.
-                </p>
-              ) : member?.status !== "Active" ? (
-                <p className={styles.scheduleNote}>
-                  Os horários voltam a ser oferecidos na agenda quando o vínculo for reativado.
-                </p>
-              ) : null}
-            </>
-          )}
+          <ScheduleWeekEditor
+            draft={draft}
+            duration={Number(durationValue) || 30}
+            disabled={pending}
+            onChange={changeDraft}
+          />
+          <p className={styles.scheduleNote}>
+            Os horários passam a ser oferecidos na agenda quando o convite for aceito.
+          </p>
           {scheduleError ? <InlineError>{scheduleError}</InlineError> : null}
         </section>
       ) : null}
 
-      {role === "Doctor" && plans ? (
+      {withScheduling && role === "Doctor" && plans ? (
         <section className={styles.section} aria-labelledby="member-plans-heading">
           <div className={styles.sectionHeading}>
             <span className={styles.doctorIcon} aria-hidden="true"><IdCard /></span>
@@ -541,26 +496,18 @@ export function ClinicMemberForm({
           ) : (
             <>
               <DoctorPlansEditor
-                doctorName={member?.displayName ?? "este médico"}
+                doctorName="este médico"
                 plans={plans.catalog}
                 clinic={plans.clinic}
                 draft={currentPlans}
-                savedCustomPlanIds={
-                  plans.saved?.mode === "Custom" ? plans.saved.healthcarePlanIds : null
-                }
+                savedCustomPlanIds={null}
                 disabled={pending}
                 listHeadingAs="h4"
                 onChange={setPlansDraft}
               />
-              {mode === "create" || member?.status === "Pending" ? (
-                <p className={styles.scheduleNote}>
-                  Os convênios passam a ser oferecidos na agenda quando o convite for aceito.
-                </p>
-              ) : member?.status !== "Active" ? (
-                <p className={styles.scheduleNote}>
-                  Os convênios voltam a ser oferecidos na agenda quando o vínculo for reativado.
-                </p>
-              ) : null}
+              <p className={styles.scheduleNote}>
+                Os convênios passam a ser oferecidos na agenda quando o convite for aceito.
+              </p>
             </>
           )}
         </section>

@@ -9,6 +9,7 @@ import {
   profilePlansPath,
   profileSettingsPath,
 } from "../features/clinic/profileSettingsPaths";
+import { parseMemberProfilePath } from "../features/team/memberProfilePaths";
 import { AppErrorBoundary } from "./AppErrorBoundary";
 import { AppShell } from "./AppShell";
 import { NotFoundPage } from "./NotFoundPage";
@@ -85,9 +86,9 @@ const HealthcarePlansSettingsPage = lazy(() =>
     default: module.HealthcarePlansSettingsPage,
   })),
 );
-const ScheduleSettingsPage = lazy(() =>
-  import("../features/clinic/ScheduleSettingsPage").then((module) => ({
-    default: module.ScheduleSettingsPage,
+const DoctorAvailabilityRedirect = lazy(() =>
+  import("../features/team/DoctorAvailabilityRedirect").then((module) => ({
+    default: module.DoctorAvailabilityRedirect,
   })),
 );
 const NewPatientPage = lazy(() =>
@@ -243,6 +244,19 @@ function AppRoutes() {
       return <Redirect to={appStart} replace />;
     }
 
+    // A disponibilidade virou aba do perfil do médico. O link antigo, que "Primeiros
+    // passos" ainda recebe da API, leva o médico à própria aba em Meu perfil e a
+    // administração ao perfil de um médico em Equipe.
+    if (path === "/app/configuracoes/agenda") {
+      return actsAsDoctor(session) ? (
+        <Redirect to={profileAvailabilityPath} replace />
+      ) : (
+        <AppShell>
+          <DoctorAvailabilityRedirect />
+        </AppShell>
+      );
+    }
+
     const adminRoutes: Record<string, React.ReactNode> = {
       "/app/equipe/novo": <TeamPage initialMode="create" initialRole="Doctor" />,
       "/app/configuracoes/clinica": <OnboardingPage />,
@@ -261,10 +275,18 @@ function AppRoutes() {
       [profileSettingsPath]: <ProfileSettingsPage />,
       [profileAvailabilityPath]: <ProfileAvailabilityPage />,
       [profilePlansPath]: <ProfilePlansPage />,
-      "/app/configuracoes/agenda": <ScheduleSettingsPage />,
     };
 
-    // Só hexadecimal, então /equipe/novo nunca cai aqui.
+    // Perfil de um integrante em Equipe, uma rota por aba. A TeamPage lê o caminho e
+    // continua montada ao ir da lista ao perfil, com os avisos de salvar.
+    if (parseMemberProfilePath(path)) {
+      return (
+        <AppShell>
+          <TeamPage />
+        </AppShell>
+      );
+    }
+
     const editPatientMatch = path.match(/^\/app\/pacientes\/([0-9a-f-]+)\/editar$/i);
     if (editPatientMatch) {
       return (

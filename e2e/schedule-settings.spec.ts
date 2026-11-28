@@ -27,7 +27,7 @@ const session = {
   },
 };
 
-test("médico configura a semana sem perder a edição em viewport mobile", async ({ page }) => {
+test("o link antigo de disponibilidade leva o médico à aba de Meu perfil, também no celular", async ({ page }) => {
   let savedBody: Record<string, unknown> | undefined;
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript((value) => {
@@ -36,6 +36,22 @@ test("médico configura a semana sem perder a edição em viewport mobile", asyn
   await page.route("http://localhost:5094/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    if (path === "/users/me") {
+      await route.fulfill({
+        json: {
+          userId: doctorId,
+          email: session.email,
+          phone: session.phone,
+          name: session.name,
+          role: "Doctor",
+          isAdmin: false,
+          medicalLicense: "12345",
+          medicalLicenseState: "SP",
+          specialty: "Gastroenterologia",
+        },
+      });
+      return;
+    }
     if (path === "/clinics/current") {
       await route.fulfill({
         json: {
@@ -90,10 +106,11 @@ test("médico configura a semana sem perder a edição em viewport mobile", asyn
     await route.fulfill({ status: 404, json: { title: `Rota não simulada: ${path}` } });
   });
 
+  // "Primeiros passos" ainda recebe este caminho da API.
   await page.goto("/app/configuracoes/agenda");
 
+  await expect(page).toHaveURL(/\/app\/configuracoes\/perfil\/disponibilidade$/);
   await expect(page.getByRole("heading", { name: "Disponibilidade de atendimento" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Dra. Helena Costa" })).toBeVisible();
   await expect(page.getByLabel("Segunda-feira, período 1, início")).toHaveValue("08:00");
   await page.getByLabel("Terça-feira").check();
   await page.getByRole("button", { name: "Salvar disponibilidade" }).click();
@@ -114,7 +131,7 @@ test("médico configura a semana sem perder a edição em viewport mobile", asyn
   await page.setViewportSize({ width: 1440, height: 900 });
   const rail = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(rail).toBeVisible();
-  // A página continua no ar, mas sem item próprio no menu lateral.
+  // A disponibilidade não tem item próprio no menu lateral.
   await expect(rail.getByRole("link", { name: "Disponibilidade" })).toHaveCount(0);
   await page.screenshot({
     path: "/private/tmp/clinicflow-schedule-settings-desktop.png",

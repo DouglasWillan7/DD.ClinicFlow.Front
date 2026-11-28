@@ -1,11 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
-  CircleOff,
-  CirclePause,
   Clock3,
-  Headset,
-  HeartPulse,
   KeyRound,
   Mail,
   MailCheck,
@@ -15,11 +11,9 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Stethoscope,
   TriangleAlert,
   UsersRound,
   XCircle,
-  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../../api/client";
@@ -35,7 +29,12 @@ import type {
   UserClinicHealthcarePlans,
   UserClinicStatus,
 } from "../../api/types";
-import { useNavigate, useSearchParams } from "../../app/navigation";
+import {
+  Redirect,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "../../app/navigation";
 import { useAuth } from "../../auth/AuthProvider";
 import { can } from "../../auth/permissions";
 import { roleLabels } from "../../auth/roles";
@@ -49,15 +48,32 @@ import {
   SuccessNote,
 } from "../../components/Feedback";
 import { FilterChips } from "../../components/FilterChips";
-import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
-import {
-  ClinicMemberForm,
-  type MemberPlansSource,
-  type MemberScheduleSource,
-} from "./ClinicMemberForm";
+import { StatusBadge } from "../../components/StatusBadge";
+import { ClinicMemberForm, type MemberPlansSource } from "./ClinicMemberForm";
 import type { ClinicMemberPayload } from "./memberFormModel";
+import { MemberProfileHeader } from "./MemberProfileHeader";
+import {
+  hasDoctorSections,
+  memberProfilePath,
+  parseMemberProfilePath,
+  teamPath,
+  type MemberProfileSection,
+} from "./memberProfilePaths";
+import {
+  memberInitials,
+  memberName,
+  roleIcons,
+  statusBadges,
+  statusLabels,
+} from "./teamLabels";
 import { onboardingKey } from "../onboarding/onboarding";
-import { formatDateTimeInZone, useClinicTimeZone } from "../clinic/clinicTimeZone";
+import {
+  formatDateTimeInZone,
+  timeZoneLabel,
+  useClinicTimeZone,
+} from "../clinic/clinicTimeZone";
+import { DoctorPlansPanel } from "../clinic/DoctorPlansPanel";
+import { DoctorSchedulePanel } from "../clinic/DoctorSchedulePanel";
 import {
   clinicHealthcarePlansKey,
   clinicMembersSummaryKey,
@@ -69,27 +85,6 @@ import {
   type DoctorDraft,
 } from "../clinic/healthcarePlansDraft";
 import styles from "./TeamPage.module.css";
-
-const statusLabels: Record<UserClinicStatus, string> = {
-  Pending: "Pendente",
-  Active: "Ativo",
-  Suspended: "Suspenso",
-  Inactive: "Inativo",
-};
-
-// Cada estado tem ícone próprio: pendente, suspenso e inativo não se distinguem só pela cor.
-const statusBadges: Record<UserClinicStatus, { tone: StatusTone; icon: LucideIcon }> = {
-  Pending: { tone: "warning", icon: Clock3 },
-  Active: { tone: "success", icon: CheckCircle2 },
-  Suspended: { tone: "danger", icon: CirclePause },
-  Inactive: { tone: "neutral", icon: CircleOff },
-};
-
-const roleIcons: Record<ClinicRole, LucideIcon> = {
-  Doctor: Stethoscope,
-  Nurse: HeartPulse,
-  Secretary: Headset,
-};
 
 const roleFilterOptions: { value: ClinicRole | "All"; label: string }[] = [
   { value: "All", label: "Todos" },
@@ -162,27 +157,30 @@ function clinicMembersKey(clinicId: string) {
   return ["clinic", clinicId, "memberships"] as const;
 }
 
-// Mesma chave de Configurações › Disponibilidade: as duas telas editam a mesma agenda.
-function doctorScheduleKey(doctorUserId: string | undefined) {
+// Mesma chave do cartão de disponibilidade (DoctorSchedulePanel), que edita a mesma agenda.
+function doctorScheduleKey(doctorUserId: string) {
   return ["doctor-schedule", doctorUserId] as const;
 }
 
 type EditorState =
   | { mode: "create" }
-  | { mode: "edit"; member: ClinicMember };
+  | { mode: "edit"; member: ClinicMember; section: MemberProfileSection };
 
-const TEAM_PATH = "/app/equipe";
-// O editor mora na URL: assim "Equipe" no menu e o Voltar do navegador devolvem a listagem.
+// O cadastro mora na URL (`?vinculo=novo`) e o perfil tem rota própria por aba: assim
+// "Equipe" no menu e o Voltar do navegador devolvem a listagem. Um `?vinculo=<id>`
+// antigo é levado ao perfil.
 const EDITOR_PARAM = "vinculo";
 const NEW_MEMBER = "novo";
 
-function memberName(member: ClinicMember) {
-  return member.displayName?.trim() || member.email || "Integrante sem nome";
-}
-
-function initials(member: ClinicMember) {
-  const words = memberName(member).split(/\s+/).filter(Boolean);
-  return `${words[0]?.[0] ?? "?"}${words[1]?.[0] ?? ""}`.toUpperCase();
+/** Situação do vínculo que adia a oferta dos horários e convênios na agenda. */
+function schedulingNote(member: ClinicMember, subject: "Os horários" | "Os convênios") {
+  if (member.status === "Pending") {
+    return `${subject} passam a ser oferecidos na agenda quando o convite for aceito.`;
+  }
+  if (member.status !== "Active") {
+    return `${subject} voltam a ser oferecidos na agenda quando o vínculo for reativado.`;
+  }
+  return undefined;
 }
 
 /** Parte do vínculo gravada depois dele, por rota própria, e que pode falhar sozinha. */
@@ -199,11 +197,8 @@ function hasFailure(failures: SecondarySaveFailures) {
   return Boolean(failures.schedule || failures.plans);
 }
 
-/** Vínculo salvo, horários ou convênios não: diz o que ficou de fora e como retomar. */
-function partialSaveWarning(
-  outcome: "created" | "updated",
-  failures: SecondarySaveFailures,
-) {
+/** Integrante criado, horários ou convênios não: diz o que ficou de fora e onde retomar. */
+function partialSaveWarning(failures: SecondarySaveFailures) {
   const missing =
     failures.schedule && failures.plans
       ? "os horários e os convênios"
@@ -218,13 +213,9 @@ function partialSaveWarning(
         : "os convênios";
   const reasons = [...new Set([failures.schedule?.reason, failures.plans?.reason])];
   return [
-    outcome === "created"
-      ? `Integrante adicionado e convite enfileirado, mas ${missing} não foram salvos.`
-      : `O vínculo foi atualizado, mas ${missing} não foram salvos.`,
+    `Integrante adicionado e convite enfileirado, mas ${missing} não foram salvos.`,
     ...reasons,
-    outcome === "created"
-      ? `Defina ${target} no vínculo e salve novamente.`
-      : `Revise ${target} e salve novamente.`,
+    `Defina ${target} nas abas do perfil e salve novamente.`,
   ]
     .filter(Boolean)
     .join(" ");
@@ -245,15 +236,17 @@ export function TeamPage({
   const timeZone = useClinicTimeZone();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [params] = useSearchParams();
   const editorParam = initialMode === "create" ? NEW_MEMBER : params.get(EDITOR_PARAM);
+  const profileRoute = parseMemberProfilePath(pathname);
   const clinicId = session?.clinicId ?? "";
   // Remonta o formulário depois de salvar, para ele voltar a ficar "sem alterações".
   const [formRevision, setFormRevision] = useState(0);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ClinicRole | "All">("All");
   const [feedback, setFeedback] = useState<string>();
-  // Vínculo salvo, horários ou convênios não: é aviso, não sucesso, e fica até a
+  // Integrante criado, horários ou convênios não: é aviso, não sucesso, e fica até a
   // próxima tentativa.
   const [partialWarning, setPartialWarning] = useState<string>();
   const [cancelCandidate, setCancelCandidate] = useState<string>();
@@ -280,80 +273,59 @@ export function TeamPage({
   });
 
   const members = useMemo(() => query.data ?? [], [query.data]);
-  const editor = useMemo<EditorState | undefined>(() => {
-    if (!editorParam) return undefined;
-    if (editorParam === NEW_MEMBER) return { mode: "create" };
-    const member = members.find((item) => item.userClinicId === editorParam);
-    return member ? { mode: "edit", member } : undefined;
-  }, [editorParam, members]);
+  const profileMember = profileRoute
+    ? members.find((item) => item.userClinicId === profileRoute.userClinicId)
+    : undefined;
+  const editor: EditorState | undefined =
+    editorParam === NEW_MEMBER
+      ? { mode: "create" }
+      : profileRoute && profileMember
+        ? { mode: "edit", member: profileMember, section: profileRoute.section }
+        : undefined;
 
-  // Só quem já é médico tem agenda para carregar; o restante parte de uma semana vazia.
-  const editedDoctorId =
-    editor?.mode === "edit" && editor.member.role === "Doctor"
-      ? editor.member.userId
-      : undefined;
-  const schedule = useQuery({
-    queryKey: doctorScheduleKey(editedDoctorId),
-    queryFn: () => request<DoctorSchedule>(`/doctors/${editedDoctorId}/schedule`),
-    enabled: Boolean(editedDoctorId),
-  });
-  const scheduleSource: MemberScheduleSource | undefined = !editedDoctorId
-    ? undefined
-    : schedule.isLoading
-      ? { status: "loading" }
-      : schedule.isError
-        ? { status: "error", retry: () => void schedule.refetch() }
-        : { status: "ready", data: schedule.data };
+  // Trocar de aba no mesmo perfil leva junto o aviso da aba anterior; chegar ao perfil
+  // vindo do cadastro mantém o aviso de horários ou convênios que ficaram de fora.
+  const profileKey = profileRoute
+    ? `${profileRoute.userClinicId}:${profileRoute.section}`
+    : undefined;
+  const [shownProfileKey, setShownProfileKey] = useState(profileKey);
+  if (profileKey !== shownProfileKey) {
+    setShownProfileKey(profileKey);
+    if (profileKey && shownProfileKey) {
+      setFeedback(undefined);
+      setPartialWarning(undefined);
+    }
+  }
 
-  // Convênios do vínculo: o catálogo e o teto da clínica valem para qualquer médico;
-  // a lista própria só existe para quem já é médico na clínica.
-  const editedDoctorMembershipId =
-    editor?.mode === "edit" && editor.member.role === "Doctor"
-      ? editor.member.userClinicId
-      : undefined;
+  // Só o cadastro escolhe convênios junto com o vínculo; no perfil eles têm aba própria.
+  const creating = editor?.mode === "create";
   const planCatalog = useQuery({
     queryKey: healthcarePlanCatalogKey,
     queryFn: () => request<HealthcarePlan[]>("/healthcare-plans"),
-    enabled: Boolean(editor),
+    enabled: creating,
   });
   const clinicPlans = useQuery({
     queryKey: clinicHealthcarePlansKey,
     queryFn: () =>
       request<ClinicHealthcarePlans>("/clinics/current/healthcare-plans"),
-    enabled: Boolean(editor),
+    enabled: creating,
   });
-  const doctorPlans = useQuery({
-    queryKey: doctorHealthcarePlansKey(editedDoctorMembershipId ?? ""),
-    queryFn: () =>
-      request<UserClinicHealthcarePlans>(
-        `/clinics/${clinicId}/members/${editedDoctorMembershipId}/healthcare-plans`,
-      ),
-    enabled: Boolean(editedDoctorMembershipId),
-  });
-  const plansLoading =
-    planCatalog.isLoading ||
-    clinicPlans.isLoading ||
-    (Boolean(editedDoctorMembershipId) && doctorPlans.isLoading);
-  const plansSource: MemberPlansSource | undefined = !editor
+  const plansSource: MemberPlansSource | undefined = !creating
     ? undefined
-    : plansLoading
+    : planCatalog.isLoading || clinicPlans.isLoading
       ? { status: "loading" }
-      : !planCatalog.data ||
-          !clinicPlans.data ||
-          (editedDoctorMembershipId && !doctorPlans.data)
+      : !planCatalog.data || !clinicPlans.data
         ? {
             status: "error",
             retry: () => {
               void planCatalog.refetch();
               void clinicPlans.refetch();
-              if (editedDoctorMembershipId) void doctorPlans.refetch();
             },
           }
         : {
             status: "ready",
             catalog: planCatalog.data,
             clinic: clinicDraftFromSaved(clinicPlans.data),
-            saved: editedDoctorMembershipId ? doctorPlans.data : undefined,
           };
 
   // A resposta da API entra na lista em cache na hora; o editor lê o vínculo dali.
@@ -411,18 +383,46 @@ export function TeamPage({
     }
   }
 
+  /**
+   * A semana salva na aba Disponibilidade grava também a duração do vínculo; a cópia em
+   * cache acompanha, para a aba Vínculo não regravar a duração antiga ao salvar.
+   */
+  function storeScheduleDuration(member: ClinicMember, saved: DoctorSchedule) {
+    queryClient.setQueryData<ClinicMember[]>(
+      clinicMembersKey(clinicId),
+      (current) =>
+        current?.map((item) =>
+          item.userClinicId === member.userClinicId && item.doctorProfile
+            ? {
+                ...item,
+                doctorProfile: {
+                  ...item.doctorProfile,
+                  defaultAppointmentDurationMinutes: saved.slotDurationMinutes,
+                },
+              }
+            : item,
+        ),
+    );
+    void queryClient.invalidateQueries({ queryKey: clinicMembersSummaryKey });
+    setPartialWarning(undefined);
+  }
+
   function openEditor(target: string) {
     setFeedback(undefined);
     setPartialWarning(undefined);
     save.reset();
     changeStatus.reset();
-    navigate(`${TEAM_PATH}?${EDITOR_PARAM}=${encodeURIComponent(target)}`);
+    navigate(
+      target === NEW_MEMBER
+        ? `${teamPath}?${EDITOR_PARAM}=${NEW_MEMBER}`
+        : memberProfilePath(target),
+    );
   }
 
   const save = useMutation({
-    // O vínculo é gravado primeiro: a agenda e os convênios pertencem a ele e, no
-    // cadastro, só existem depois dele. Falha nos horários ou nos convênios não desfaz o
-    // vínculo; vira aviso em `onSuccess`.
+    // No cadastro o vínculo é gravado primeiro: a agenda e os convênios pertencem a ele e
+    // só existem depois dele. Falha nos horários ou nos convênios não desfaz o vínculo;
+    // vira aviso em `onSuccess`. Na edição eles são abas do perfil, com salvar próprio.
     mutationFn: async ({
       payload,
       schedule: schedulePayload,
@@ -455,11 +455,12 @@ export function TeamPage({
         };
         return { kind: "created" as const, created, failures };
       }
+      const previousRole = editor.member.role;
       const member = await request<ClinicMember>(
         `/clinics/${clinicId}/members/${editor.member.userClinicId}`,
         { method: "PUT", body: JSON.stringify(payload) },
       );
-      // Mudar o próprio vínculo pode invalidar o token; renova antes de gravar a agenda.
+      // Mudar o próprio vínculo pode invalidar o token.
       let sessionRefreshFailed = false;
       if (member.userClinicId === session?.userClinicId) {
         try {
@@ -468,15 +469,7 @@ export function TeamPage({
           sessionRefreshFailed = true;
         }
       }
-      const failures: SecondarySaveFailures = {
-        schedule: schedulePayload
-          ? await saveSchedule(member.userId, schedulePayload)
-          : undefined,
-        plans: plansPayload
-          ? await savePlans(member.userClinicId, plansPayload)
-          : undefined,
-      };
-      return { kind: "updated" as const, member, failures, sessionRefreshFailed };
+      return { kind: "updated" as const, member, previousRole, sessionRefreshFailed };
     },
     onMutate: () => setPartialWarning(undefined),
     onSuccess: async (result) => {
@@ -485,38 +478,46 @@ export function TeamPage({
         if (hasFailure(result.failures)) {
           // Reenviar o cadastro criaria o integrante de novo: a correção continua na edição.
           setFeedback(undefined);
-          setPartialWarning(partialSaveWarning("created", result.failures));
+          setPartialWarning(partialSaveWarning(result.failures));
           await queryClient.invalidateQueries({
             queryKey: clinicMembersKey(clinicId),
           });
+          // Abre a aba do que ficou de fora; os horários primeiro, quando os dois faltam.
           navigate(
             result.created?.userClinicId
-              ? `${TEAM_PATH}?${EDITOR_PARAM}=${encodeURIComponent(result.created.userClinicId)}`
-              : TEAM_PATH,
+              ? memberProfilePath(
+                  result.created.userClinicId,
+                  result.failures.schedule ? "availability" : "plans",
+                )
+              : teamPath,
           );
         } else {
           setFeedback(
             "Integrante adicionado. O convite foi enfileirado para envio por e-mail.",
           );
-          navigate(TEAM_PATH);
+          navigate(teamPath);
         }
       } else {
         storeMember(result.member);
-        if (hasFailure(result.failures)) {
-          // O formulário não é remontado: o que foi digitado fica na tela para nova tentativa.
-          setFeedback(undefined);
-          setPartialWarning(partialSaveWarning("updated", result.failures));
-        } else {
-          setFeedback(
-            result.sessionRefreshFailed
-              ? "Vínculo atualizado. Entre novamente para aplicar as permissões na sessão atual."
+        // A duração do vínculo é a mesma da semana: a agenda em cache pode ter mudado.
+        void queryClient.invalidateQueries({
+          queryKey: doctorScheduleKey(result.member.userId),
+        });
+        const becameDoctor =
+          result.previousRole !== "Doctor" && result.member.role === "Doctor";
+        setFeedback(
+          result.sessionRefreshFailed
+            ? "Vínculo atualizado. Entre novamente para aplicar as permissões na sessão atual."
+            : becameDoctor
+              ? "Vínculo atualizado. Defina a disponibilidade e os convênios nas abas do perfil."
               : "Vínculo atualizado.",
-          );
-          setFormRevision((revision) => revision + 1);
-        }
+        );
+        setFormRevision((revision) => revision + 1);
       }
-      // A etapa "médico" dos primeiros passos depende dos vínculos da clínica.
+      // A etapa "médico" dos primeiros passos depende dos vínculos da clínica, e o resumo
+      // (agenda, busca, convênios) traz nome, papel e duração de cada um.
       void queryClient.invalidateQueries({ queryKey: onboardingKey });
+      void queryClient.invalidateQueries({ queryKey: clinicMembersSummaryKey });
       await queryClient.invalidateQueries({
         queryKey: clinicMembersKey(clinicId),
       });
@@ -607,6 +608,11 @@ export function TeamPage({
     });
   }, [members, roleFilter, search]);
 
+  // Link antigo do editor (`?vinculo=<id>`): o perfil agora tem rota própria.
+  if (editorParam && editorParam !== NEW_MEMBER) {
+    return <Redirect to={memberProfilePath(editorParam)} replace />;
+  }
+
   if (query.isLoading) {
     return (
       <div className={styles.content}>
@@ -624,6 +630,19 @@ export function TeamPage({
         />
       </div>
     );
+  }
+
+  // Vínculo que não existe nesta clínica volta à listagem; disponibilidade e convênios
+  // de quem não é médico voltam à aba Vínculo.
+  if (profileRoute && !profileMember) {
+    return <Redirect to={teamPath} replace />;
+  }
+  if (
+    editor?.mode === "edit" &&
+    editor.section !== "membership" &&
+    !hasDoctorSections(editor.member)
+  ) {
+    return <Redirect to={memberProfilePath(editor.member.userClinicId)} replace />;
   }
 
   const activeCount = members.filter(
@@ -644,69 +663,111 @@ export function TeamPage({
     session && can(session, "ManageClinicMemberships"),
   );
 
-  // Cadastro e edição ocupam a tela sozinhos: sem listagem, resumo nem "Novo integrante".
-  if (editor) {
-    const editorTitle =
-      editor.mode === "create" ? "Novo integrante" : memberName(editor.member);
+  const memberForm = editor ? (
+    <ClinicMemberForm
+      key={
+        editor.mode === "edit"
+          ? `${editor.member.userClinicId}:${formRevision}`
+          : "new-member"
+      }
+      mode={editor.mode}
+      member={selectedMember}
+      initialRole={editor.mode === "create" ? initialRole : undefined}
+      plans={plansSource}
+      timeZone={timeZone}
+      pending={save.isPending}
+      serverError={
+        save.isError
+          ? safeError(
+              save.error,
+              "Não foi possível salvar o vínculo.",
+            )
+          : undefined
+      }
+      onCancel={() => {
+        save.reset();
+        setFeedback(undefined);
+        setPartialWarning(undefined);
+        navigate(teamPath);
+      }}
+      onSubmit={(payload, schedulePayload, plansPayload) =>
+        save.mutate({ payload, schedule: schedulePayload, plans: plansPayload })
+      }
+    />
+  ) : null;
+
+  // O cadastro ocupa a tela sozinho: sem listagem, resumo nem "Novo integrante".
+  if (editor?.mode === "create") {
     return (
       <div className={styles.content}>
         {/* O voltar é um link: passa pelo aviso de alterações não salvas. */}
         <ContextBar
           currentAs="h1"
-          back={{ label: "Voltar para a equipe", to: TEAM_PATH }}
-          crumbs={[{ label: "Equipe", to: TEAM_PATH }, { label: editorTitle }]}
+          back={{ label: "Voltar para a equipe", to: teamPath }}
+          crumbs={[{ label: "Equipe", to: teamPath }, { label: "Novo integrante" }]}
         />
 
         {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
         {partialWarning ? <InlineError>{partialWarning}</InlineError> : null}
 
-        <section className={styles.editorPanel} aria-label="Editor de vínculo">
-          {selectedMember?.status === "Pending" ? (
-            <aside className={styles.invitationEditNote}>
-              <Mail aria-hidden="true" />
-              <div>
-                <strong>O convite acompanha o e-mail deste vínculo</strong>
-                <p>
-                  Se o e-mail for alterado, o convite atual será invalidado.
-                  Depois de salvar, use Reenviar convite na lista para enviar um
-                  novo link.
-                </p>
-              </div>
-            </aside>
-          ) : null}
-          <ClinicMemberForm
-            key={
-              editor.mode === "edit"
-                ? `${editor.member.userClinicId}:${formRevision}`
-                : "new-member"
-            }
-            mode={editor.mode}
-            member={selectedMember}
-            initialRole={editor.mode === "create" ? initialRole : undefined}
-            schedule={scheduleSource}
-            plans={plansSource}
-            timeZone={timeZone}
-            pending={save.isPending}
-            serverError={
-              save.isError
-                ? safeError(
-                    save.error,
-                    "Não foi possível salvar o vínculo.",
-                  )
-                : undefined
-            }
-            onCancel={() => {
-              save.reset();
-              setFeedback(undefined);
-              setPartialWarning(undefined);
-              navigate(TEAM_PATH);
-            }}
-            onSubmit={(payload, schedulePayload, plansPayload) =>
-              save.mutate({ payload, schedule: schedulePayload, plans: plansPayload })
-            }
-          />
+        <section className={styles.editorPanel} aria-label="Cadastro de integrante">
+          {memberForm}
+        </section>
+      </div>
+    );
+  }
 
-          {selectedMember ? (
+  // Perfil do integrante, como o do paciente: cabeçalho com a identidade e, para médico,
+  // as abas Vínculo, Disponibilidade e Convênios, cada uma com o próprio salvar.
+  if (editor?.mode === "edit" && selectedMember) {
+    const { section } = editor;
+    return (
+      <div className={styles.content}>
+        <MemberProfileHeader member={selectedMember} section={section} />
+
+        {feedback ? <SuccessNote>{feedback}</SuccessNote> : null}
+        {partialWarning ? <InlineError>{partialWarning}</InlineError> : null}
+
+        {section === "availability" ? (
+          // A chave remonta o cartão ao trocar de médico: o rascunho de um não vaza para o outro.
+          <DoctorSchedulePanel
+            key={selectedMember.userId}
+            doctorId={selectedMember.userId}
+            title="Disponibilidade de atendimento"
+            description={[
+              `Semana padrão do médico nesta clínica, no fuso de ${timeZoneLabel(timeZone)}.`,
+              "Ausências e férias continuam sendo bloqueadas diretamente na Agenda.",
+              schedulingNote(selectedMember, "Os horários"),
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onSaved={(saved) => storeScheduleDuration(selectedMember, saved)}
+          />
+        ) : section === "plans" ? (
+          <DoctorPlansPanel
+            key={selectedMember.userClinicId}
+            doctorName={memberName(selectedMember)}
+            userClinicId={selectedMember.userClinicId}
+            note={schedulingNote(selectedMember, "Os convênios")}
+            onSaved={() => setPartialWarning(undefined)}
+          />
+        ) : (
+          <section className={styles.editorPanel} aria-label="Editor de vínculo">
+            {selectedMember.status === "Pending" ? (
+              <aside className={styles.invitationEditNote}>
+                <Mail aria-hidden="true" />
+                <div>
+                  <strong>O convite acompanha o e-mail deste vínculo</strong>
+                  <p>
+                    Se o e-mail for alterado, o convite atual será invalidado.
+                    Depois de salvar, use Reenviar convite na lista para enviar um
+                    novo link.
+                  </p>
+                </div>
+              </aside>
+            ) : null}
+            {memberForm}
+
             <section
               className={styles.lifecycle}
               aria-labelledby="membership-lifecycle-title"
@@ -771,8 +832,8 @@ export function TeamPage({
                 </div>
               ) : null}
             </section>
-          ) : null}
-        </section>
+          </section>
+        )}
       </div>
     );
   }
@@ -881,7 +942,7 @@ export function TeamPage({
               return (
                 <li key={member.userClinicId} aria-label={name}>
                   <span className={styles.memberAvatar} aria-hidden="true">
-                    {initials(member)}
+                    {memberInitials(member)}
                   </span>
                   <span className={styles.memberIdentity}>
                     <strong>{name}</strong>

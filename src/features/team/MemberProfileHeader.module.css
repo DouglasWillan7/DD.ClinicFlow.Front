@@ -1,0 +1,86 @@
+/* Mesmo cartão de identidade do cabeçalho do paciente (PatientHeader). */
+.header {
+  min-width: 0;
+}
+
+.memberCard {
+  min-width: 0;
+  padding: 20px var(--space-6) 0;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* Sem abas o cartão termina na identidade e precisa do respiro inferior. */
+.withoutTabs {
+  padding-bottom: 20px;
+}
+
+.identityRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.identityCopy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.identityCopy h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.identityCopy p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.navigation {
+  min-width: 0;
+  margin-top: var(--space-4);
+}
+
+.navigation > nav {
+  margin-bottom: 0;
+}
+
+@media (max-width: 639px) {
+  .memberCard {
+    padding-inline: var(--space-4);
+  }
+
+  .identityRow {
+    align-items: flex-start;
+  }
+}

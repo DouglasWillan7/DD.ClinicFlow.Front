@@ -951,7 +951,12 @@ test("administrador abre o perfil médico contextual pela equipe", async ({
   await doctorRow.click();
   await expect(page.getByRole("heading", { name: "Editar vínculo" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Perfil médico nesta clínica" })).toBeVisible();
-  await expect(page.getByLabel("Duração padrão da consulta")).toHaveValue("30");
+  // A duração da consulta mora na aba Disponibilidade, junto com a semana.
+  await page
+    .getByRole("navigation", { name: "Seções do perfil" })
+    .getByRole("link", { name: "Disponibilidade" })
+    .click();
+  await expect(page.getByLabel("Duração da consulta (minutos)")).toHaveValue("30");
 });
 
 test("secretária não configura agenda, mas pode agendar", async ({ page }) => {

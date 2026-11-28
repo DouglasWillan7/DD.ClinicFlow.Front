@@ -37,23 +37,11 @@
   font-size: 14px;
 }
 
-.eyebrow {
-  color: var(--color-primary);
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .headerFields {
   display: flex;
   flex: 0 1 auto;
   gap: var(--space-4);
   align-items: flex-end;
-}
-
-/* Campo extra de quem hospeda o cartão (o seletor de médico da administração). */
-.headerFields > :not(.duration) {
-  min-width: 200px;
-  flex: 1 1 200px;
 }
 
 .duration {
@@ -64,14 +52,6 @@
   color: var(--color-text-body);
   font-size: 14px;
   font-weight: 600;
-}
-
-/* Ao lado de outro campo (o seletor de médico), o rótulo sobe para cima da caixa, como
-   no Field vizinho. */
-.headerFields:has(> :nth-child(2)) .duration {
-  flex-direction: column;
-  gap: 7px;
-  align-items: stretch;
 }
 
 .durationControl {
@@ -158,18 +138,8 @@
     flex-direction: column;
   }
 
-  .headerFields > :not(.duration) {
-    width: 100%;
-    min-width: 0;
-    flex: 0 0 auto;
-  }
-
   .duration {
     justify-content: space-between;
-  }
-
-  .headerFields:has(> :nth-child(2)) .durationControl input {
-    flex: 1;
   }
 
   .actions button {
