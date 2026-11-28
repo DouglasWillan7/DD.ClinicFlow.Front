@@ -208,10 +208,8 @@ test("médico usa o Início pessoal e mantém o acesso a Agendas", () => {
     "href",
     "/app/agenda",
   );
-  expect(screen.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
-    "href",
-    "/app/configuracoes/agenda",
-  );
+  // A própria disponibilidade fica na aba de Meu perfil, não no menu lateral.
+  expect(screen.queryByRole("link", { name: "Disponibilidade" })).not.toBeInTheDocument();
 });
 
 test("médico administrador mantém Início e também recebe Agendas", () => {
@@ -238,9 +236,15 @@ test("admin de secretaria administra a clínica sem receber navegação clínica
   expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Agendas" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Equipe" })).toBeVisible();
-  expect(screen.getByRole("link", { name: "Clínica" })).toBeVisible();
-  expect(screen.getByRole("link", { name: "Disponibilidade" })).toBeVisible();
-  // Primeiros passos mora dentro de Clínica, não é destino próprio do menu.
+  expect(screen.getByRole("link", { name: "Configuração" })).toHaveAttribute(
+    "href",
+    "/app/configuracoes/clinica",
+  );
+  // "Configuração" é só o destino, sem título de grupo acima dele.
+  expect(screen.getAllByText("Configuração")).toHaveLength(1);
+  expect(screen.queryByRole("link", { name: "Clínica" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Disponibilidade" })).not.toBeInTheDocument();
+  // Primeiros passos mora dentro de Configuração, não é destino próprio do menu.
   expect(screen.queryByRole("link", { name: "Primeiros passos" })).not.toBeInTheDocument();
 });
 
@@ -255,7 +259,7 @@ test("enfermagem herda operação sem receber prontuário ou administração", (
   expect(screen.queryByRole("link", { name: "Início" })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Equipe" })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Disponibilidade" })).not.toBeInTheDocument();
-  expect(screen.queryByText("Configuração")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Configuração" })).not.toBeInTheDocument();
 });
 
 // A busca em si é coberta em features/search/GlobalSearch.test.tsx; aqui só

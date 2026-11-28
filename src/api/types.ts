@@ -458,6 +458,27 @@ export interface Patient extends PatientDemographic {
   createdAtUtc: string;
 }
 
+/**
+ * Resultado de POST /patients/lookup, a primeira etapa do cadastro.
+ * `NotFound`: ninguém tem o documento. `AlreadyLinked`: já é paciente desta clínica.
+ * `Found`: existe no cadastro global e ainda não tem vínculo com esta clínica.
+ */
+export type PatientDocumentLookupStatus = "NotFound" | "AlreadyLinked" | "Found";
+
+/** Cadastro existente exibido para a recepção confirmar antes de vincular. */
+export interface ExistingPatientPreview extends PatientDemographic {
+  email: string | null;
+  bloodType: BloodType | null;
+  sexForClinicalUse: SexForClinicalUse | null;
+  notes: string | null;
+}
+
+export interface PatientDocumentLookup {
+  status: PatientDocumentLookupStatus;
+  patientId: string | null;
+  patient: ExistingPatientPreview | null;
+}
+
 export type PatientSituation =
   | "EmAcompanhamento"
   | "NovoPaciente"

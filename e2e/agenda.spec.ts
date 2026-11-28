@@ -1185,7 +1185,7 @@ test("primeiros passos listam só configuração e não seguram o cadastro de pa
 
   await page.goto("/app/pacientes/novo");
   await expect(
-    page.getByRole("heading", { name: "Identifique o paciente" }),
+    page.getByRole("heading", { name: "Comece pelo documento" }),
   ).toBeVisible();
 });
 

@@ -229,6 +229,9 @@ async function mockPacientes(page: Page) {
         maxDoctors: null,
         createdAtUtc: "2026-07-01T12:00:00Z",
       };
+    } else if (url.pathname === "/patients/lookup") {
+      // O cadastro começa pelo documento; aqui ninguém tem o documento consultado.
+      body = { status: "NotFound", patientId: null, patient: null };
     } else if (url.pathname === "/patients" && route.request().method() === "POST") {
       body = { ...patients[0], id: "created-patient" };
     } else if (url.pathname === "/patients") {
@@ -423,6 +426,13 @@ test("busca global sem resultado leva ao cadastro com o nome preenchido", async 
     .click();
 
   await expect(page).toHaveURL(/\/app\/pacientes\/novo/);
+  // O cadastro começa pelo documento: o nome sugerido só aparece depois da consulta.
+  await expect(
+    page.getByRole("heading", { name: "Comece pelo documento" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Nome completo")).toHaveCount(0);
+  await page.getByLabel("Documento", { exact: true }).fill("52998224725");
+  await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByLabel("Nome completo")).toHaveValue(
     "Beatriz Nogueira",
   );
@@ -459,6 +469,11 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   await mockPacientes(page);
 
   await page.goto("/app/pacientes/novo");
+  await expect(
+    page.getByRole("heading", { name: "Comece pelo documento" }),
+  ).toBeVisible();
+  await page.getByLabel("Documento", { exact: true }).fill("52998224725");
+  await page.getByRole("button", { name: "Continuar" }).click();
   const stepper = page.getByRole("list", {
     name: "Etapas do cadastro do paciente",
   });
@@ -492,7 +507,6 @@ test("cadastro em etapas e edição enviam o sexo para referência laboratorial"
   });
   await phoneField.fill("912345678");
   await expect(phoneField).toHaveValue("912 345 678");
-  await page.getByLabel("Documento", { exact: true }).fill("52998224725");
   await page.getByLabel("E-mail").fill("marina@example.test");
   await page.screenshot({
     path: "test-results/pacientes-09-cadastro-identificacao.png",
@@ -595,6 +609,11 @@ test.describe("mobile", () => {
   test("cadastro em etapas permanece íntegro no mobile", async ({ page }) => {
     await mockPacientes(page);
     await page.goto("/app/pacientes/novo");
+    await expect(
+      page.getByRole("heading", { name: "Comece pelo documento" }),
+    ).toBeVisible();
+    await page.getByLabel("Documento", { exact: true }).fill("52998224725");
+    await page.getByRole("button", { name: "Continuar" }).click();
 
     const stepper = page.getByRole("list", {
       name: "Etapas do cadastro do paciente",
@@ -625,7 +644,6 @@ test.describe("mobile", () => {
     });
     await phoneField.fill("11999990000");
     await expect(phoneField).toHaveValue("(11) 99999-0000");
-    await page.getByLabel("Documento", { exact: true }).fill("52998224725");
     await page.getByLabel("E-mail").fill("marina@example.test");
     await page.screenshot({
       path: "test-results/pacientes-12-telefone-mobile.png",

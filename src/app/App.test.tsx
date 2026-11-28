@@ -302,7 +302,6 @@ describe("App routing", () => {
     expect(
       await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
     ).toBeVisible();
-    // O menu lateral também tem "Disponibilidade", que é a agenda da clínica.
     const tabs = within(screen.getByRole("navigation", { name: "Meu perfil" }));
     expect(tabs.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
       "aria-current",
