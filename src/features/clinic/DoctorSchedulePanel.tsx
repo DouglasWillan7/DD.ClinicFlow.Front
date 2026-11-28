@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { ApiError } from "../../api/client";
 import type { DoctorSchedule, ScheduleDay } from "../../api/types";
 import { useUnsavedChangesGuard } from "../../app/unsavedChanges";
@@ -20,23 +20,25 @@ import {
 import { ScheduleWeekEditor } from "./ScheduleWeekEditor";
 import styles from "./DoctorSchedulePanel.module.css";
 
-interface PanelCopy {
-  eyebrow?: string;
+interface PanelProps {
   title: string;
   description: string;
-  /** Campo extra ao lado da duração, como o seletor de médico da administração. */
-  headerField?: ReactNode;
+  /**
+   * Avisa quem hospeda o cartão depois de salvar. A duração gravada aqui é a do vínculo,
+   * então a Equipe atualiza a cópia do vínculo que tem em cache.
+   */
+  onSaved?(schedule: DoctorSchedule): void;
 }
 
 /**
- * Cartão da disponibilidade semanal de um médico, com o próprio salvar. É o mesmo em
- * Configurações › Disponibilidade e na aba Disponibilidade de Meu perfil. Quem troca de médico remonta o
- * cartão com `key`, para o rascunho de um não vazar para o outro.
+ * Cartão da disponibilidade semanal de um médico, com o próprio salvar. É o mesmo na
+ * aba Disponibilidade de Meu perfil e na do perfil do médico em Equipe. Quem troca de
+ * médico remonta o cartão com `key`, para o rascunho de um não vazar para o outro.
  */
 export function DoctorSchedulePanel({
   doctorId,
-  ...copy
-}: PanelCopy & { doctorId: string }) {
+  ...props
+}: PanelProps & { doctorId: string }) {
   const { request } = useAuth();
   const schedule = useQuery({
     queryKey: ["doctor-schedule", doctorId],
@@ -54,17 +56,16 @@ export function DoctorSchedulePanel({
       />
     );
   }
-  return <ScheduleForm doctorId={doctorId} initial={schedule.data} {...copy} />;
+  return <ScheduleForm doctorId={doctorId} initial={schedule.data} {...props} />;
 }
 
 function ScheduleForm({
   doctorId,
   initial,
-  eyebrow,
   title,
   description,
-  headerField,
-}: PanelCopy & { doctorId: string; initial: DoctorSchedule }) {
+  onSaved,
+}: PanelProps & { doctorId: string; initial: DoctorSchedule }) {
   const { request } = useAuth();
   const queryClient = useQueryClient();
   const [duration, setDuration] = useState(initial.slotDurationMinutes);
@@ -93,6 +94,7 @@ function ScheduleForm({
       setSaved(true);
       void queryClient.invalidateQueries({ queryKey: onboardingKey });
       void queryClient.invalidateQueries({ queryKey: ["availability", doctorId] });
+      onSaved?.(value);
     },
   });
 
@@ -122,12 +124,10 @@ function ScheduleForm({
       <section className={styles.panel}>
         <header className={styles.header}>
           <div>
-            {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
             <h2>{title}</h2>
             <p>{description}</p>
           </div>
           <div className={styles.headerFields}>
-            {headerField}
             {/* Um número de até três dígitos não pede um campo de largura inteira: rótulo
                 ao lado e a unidade dentro da caixa. O nome acessível mantém a unidade. */}
             <div className={styles.duration}>

@@ -37,14 +37,27 @@ import plansStyles from "./HealthcarePlansSettingsPage.module.css";
 import styles from "./SettingsLayout.module.css";
 
 /**
- * Cartão da aba "Convênios" de Meu perfil: os convênios do médico da sessão nesta
- * clínica. Quem administra a clínica edita aqui mesmo, com salvar próprio; os demais
- * médicos só consultam, porque a API reserva a alteração ao administrador.
+ * Cartão da aba "Convênios": os convênios de um médico nesta clínica, com salvar
+ * próprio. Sem `userClinicId` é o médico da sessão (Meu perfil); com ele, o vínculo
+ * aberto no perfil do médico em Equipe. Quem administra a clínica edita; os demais
+ * médicos só consultam os próprios, porque a API reserva a alteração ao administrador.
  */
-export function DoctorPlansPanel({ doctorName }: { doctorName: string }) {
+export function DoctorPlansPanel({
+  doctorName,
+  userClinicId: memberUserClinicId,
+  note,
+  onSaved,
+}: {
+  doctorName: string;
+  userClinicId?: string;
+  /** Frase extra da descrição, como quando os convênios passam a valer. */
+  note?: string;
+  onSaved?(): void;
+}) {
   const { request, session } = useAuth();
   const clinicId = session?.clinicId;
-  const userClinicId = session?.userClinicId ?? "";
+  const ownProfile = memberUserClinicId === undefined;
+  const userClinicId = memberUserClinicId ?? session?.userClinicId ?? "";
   const canEdit = Boolean(session && can(session, "ManageHealthcarePlans"));
   const enabled = Boolean(clinicId && userClinicId);
 
@@ -59,7 +72,7 @@ export function DoctorPlansPanel({ doctorName }: { doctorName: string }) {
     queryFn: () =>
       request<ClinicHealthcarePlans>("/clinics/current/healthcare-plans"),
   });
-  const ownPlans = useQuery({
+  const doctorPlans = useQuery({
     queryKey: doctorHealthcarePlansKey(userClinicId),
     enabled,
     queryFn: () =>
@@ -70,41 +83,49 @@ export function DoctorPlansPanel({ doctorName }: { doctorName: string }) {
 
   if (!enabled) return null;
 
+  const description = ownProfile
+    ? "Os convênios que você atende nesta clínica. É a lista oferecida ao agendar uma consulta com você."
+    : "Quais convênios o médico atende nesta clínica. É a lista oferecida ao agendar uma consulta com ele.";
+
   return (
     <section className={styles.panel} aria-labelledby="profile-plans-title">
       <div className={styles.panelHeader}>
         <div>
           <h2 id="profile-plans-title">Convênios</h2>
-          <p>
-            Os convênios que você atende nesta clínica. É a lista oferecida ao agendar
-            uma consulta com você.
-          </p>
+          <p>{note ? `${description} ${note}` : description}</p>
         </div>
       </div>
-      {catalog.isLoading || clinicPlans.isLoading || ownPlans.isLoading ? (
-        <LoadingBlock label="Carregando seus convênios…" />
-      ) : !catalog.data || !clinicPlans.data || !ownPlans.data ? (
+      {catalog.isLoading || clinicPlans.isLoading || doctorPlans.isLoading ? (
+        <LoadingBlock
+          label={ownProfile ? "Carregando seus convênios…" : "Carregando os convênios…"}
+        />
+      ) : !catalog.data || !clinicPlans.data || !doctorPlans.data ? (
         <ErrorBlock
-          message="Não foi possível carregar seus convênios."
+          message={
+            ownProfile
+              ? "Não foi possível carregar seus convênios."
+              : "Não foi possível carregar os convênios do médico."
+          }
           retry={() => {
             void catalog.refetch();
             void clinicPlans.refetch();
-            void ownPlans.refetch();
+            void doctorPlans.refetch();
           }}
         />
       ) : canEdit ? (
         <EditablePlans
           doctorName={doctorName}
+          onSaved={onSaved}
           clinicId={clinicId!}
           plans={catalog.data}
           clinic={clinicDraftFromSaved(clinicPlans.data)}
-          saved={ownPlans.data}
+          saved={doctorPlans.data}
         />
       ) : (
         <ReadOnlyPlans
           plans={catalog.data}
           clinic={clinicDraftFromSaved(clinicPlans.data)}
-          saved={ownPlans.data}
+          saved={doctorPlans.data}
         />
       )}
     </section>
@@ -113,12 +134,14 @@ export function DoctorPlansPanel({ doctorName }: { doctorName: string }) {
 
 function EditablePlans({
   doctorName,
+  onSaved,
   clinicId,
   plans,
   clinic,
   saved,
 }: {
   doctorName: string;
+  onSaved?(): void;
   clinicId: string;
   plans: HealthcarePlan[];
   clinic: ClinicDraft;
@@ -154,6 +177,7 @@ function EditablePlans({
       void queryClient.invalidateQueries({ queryKey: ["new-appointment"] });
       setDraft(null);
       setSavedNote(true);
+      onSaved?.();
     },
   });
 

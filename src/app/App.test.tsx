@@ -227,24 +227,24 @@ describe("App routing", () => {
     await waitFor(() => expect(window.location.pathname).toBe("/app/agenda"));
   });
 
-  test("médico abre a configuração de disponibilidade da clínica atual", async () => {
+  test("o link antigo de disponibilidade leva o médico à aba de Meu perfil", async () => {
     sessionStorage.setItem(
       "clinicflow.session",
-      JSON.stringify(contextualSession("Doctor", false, ["Doctor"])),
+      JSON.stringify(contextualSession("Doctor", true, ["Doctor", "Admin"])),
     );
     window.history.replaceState({}, "", "/app/configuracoes/agenda");
     apiRequest.mockImplementation(async (path: string) => {
-      if (path === "/clinics/current") {
+      if (path === "/users/me") {
         return {
-          id: "clinic-1",
-          name: "Clínica Centro",
-          timeZoneId: "America/Sao_Paulo",
-          phone: "+551130000000",
-          address: "Rua das Flores, 100",
-          plan: "Clinic",
-          subscriptionStatus: "Active",
-          maxDoctors: 10,
-          createdAtUtc: "2026-08-01T12:00:00Z",
+          userId: "user-1",
+          email: "pessoa@clinic.test",
+          phone: "+5511999999999",
+          name: "Pessoa da clínica",
+          role: "Doctor",
+          isAdmin: true,
+          medicalLicense: null,
+          medicalLicenseState: null,
+          specialty: null,
         };
       }
       if (path === "/doctors/user-1/schedule") {
@@ -260,10 +260,100 @@ describe("App routing", () => {
 
     render(<App />);
 
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/app/configuracoes/perfil/disponibilidade"),
+    );
     expect(
       await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
     ).toBeVisible();
-    expect(window.location.pathname).toBe("/app/configuracoes/agenda");
+  });
+
+  test("o link antigo de disponibilidade leva a administração à aba do primeiro médico", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Secretary", true, ["Secretary", "Admin"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/agenda");
+    const doctor = {
+      userClinicId: "doctor-membership",
+      userId: "doctor-user",
+      clinicId: "clinic-1",
+      displayName: "Dra. Helena Martins",
+      status: "Active",
+      role: "Doctor",
+      isAdmin: false,
+      isOwner: false,
+      email: "helena@centro.test",
+      phone: "+5511999998888",
+      emailConfirmedAtUtc: "2026-08-01T10:00:00Z",
+      phoneConfirmedAtUtc: null,
+      doctorProfile: {
+        professionalAuthority: "CRM",
+        professionalRegistrationNumber: "123",
+        professionalRegistrationRegion: "SP",
+        professionalRegistrationCountryCode: "BR",
+        specialty: null,
+        practiceAreas: null,
+        bio: null,
+        defaultAppointmentDurationMinutes: 30,
+      },
+      defaultAppointmentDurationSource: "Configured",
+      sessionVersion: 1,
+      createdAtUtc: "2026-08-01T10:00:00Z",
+      updatedAtUtc: "2026-08-01T10:00:00Z",
+    };
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path === "/clinics/clinic-1/members/summary") {
+        return [
+          { userClinicId: "membership-1", userId: "user-1", displayName: "Pessoa da clínica", role: "Secretary", isAdmin: true, specialty: null, defaultAppointmentDurationMinutes: null },
+          { userClinicId: "doctor-membership", userId: "doctor-user", displayName: "Dra. Helena Martins", role: "Doctor", isAdmin: false, specialty: null, defaultAppointmentDurationMinutes: 30 },
+        ];
+      }
+      if (path === "/clinics/clinic-1/members") return [doctor];
+      if (path === "/doctors/doctor-user/schedule") {
+        return {
+          doctorUserId: "doctor-user",
+          slotDurationMinutes: 30,
+          intervals: [],
+          blocks: [],
+        };
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/app/equipe/doctor-membership/disponibilidade"),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Disponibilidade de atendimento" }),
+    ).toBeVisible();
+    const tabs = within(screen.getByRole("navigation", { name: "Seções do perfil" }));
+    expect(tabs.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  test("administração sem médico na clínica cai no cadastro de médico", async () => {
+    sessionStorage.setItem(
+      "clinicflow.session",
+      JSON.stringify(contextualSession("Secretary", true, ["Secretary", "Admin"])),
+    );
+    window.history.replaceState({}, "", "/app/configuracoes/agenda");
+    apiRequest.mockImplementation(async (path: string) => {
+      if (path === "/clinics/clinic-1/members/summary") {
+        return [
+          { userClinicId: "membership-1", userId: "user-1", displayName: "Pessoa da clínica", role: "Secretary", isAdmin: true, specialty: null, defaultAppointmentDurationMinutes: null },
+        ];
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe("/app/equipe/novo"));
   });
 
   test("médico abre a aba Disponibilidade de Meu perfil pela rota própria", async () => {

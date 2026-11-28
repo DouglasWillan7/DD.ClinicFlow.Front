@@ -18,7 +18,8 @@
   color: var(--color-ink);
 }
 
-/* O título da tela está na linha de contexto; aqui é título de painel. */
+/* O título da tela está na linha de contexto ou no cabeçalho do perfil; aqui é título
+   de painel. */
 .heading h2 {
   margin-top: 4px;
   font-size: 20px;
@@ -33,12 +34,6 @@
   color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.5;
-}
-
-.eyebrow {
-  color: var(--color-primary);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .section {
@@ -91,44 +86,6 @@
 
 .wide {
   grid-column: 1 / -1;
-}
-
-.identitySummary {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: var(--radius-control);
-  background: var(--color-primary-subtle);
-}
-
-.identitySummary > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.identitySummary strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.identitySummary small {
-  color: var(--color-text-muted);
-}
-
-.avatar {
-  display: inline-flex;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  font-weight: 700;
 }
 
 .roleFieldset {

@@ -9,8 +9,8 @@ import styles from "./ScheduleWeekEditor.module.css";
 
 /**
  * Semana padrão de atendimento: um dia por linha, com os períodos lado a lado na mesma
- * linha. É o mesmo editor em Meu perfil, em Configurações › Disponibilidade e no
- * cadastro do médico em Equipe; quem o usa guarda o rascunho e decide quando salvar.
+ * linha. É o mesmo editor nas abas Disponibilidade (Meu perfil e o perfil do médico em
+ * Equipe) e no cadastro do médico; quem o usa guarda o rascunho e decide quando salvar.
  *
  * Os campos de hora não têm rótulo visível (o nome do dia e o "até" já dizem o que
  * são): cada um leva o próprio `aria-label` com dia, período e início ou fim.

@@ -186,11 +186,11 @@ async function authenticate(page: Page) {
   await page.route("**/patients?includeInactive=true", (route) =>
     route.fulfill({ status: 200, json: [] }),
   );
-  // O vínculo de médico carrega a semana de atendimento junto com o formulário.
+  // A aba Disponibilidade do perfil do médico carrega a semana de atendimento.
   await page.route("**/doctors/*/schedule", (route) =>
     route.fulfill({ status: 200, json: emptySchedule }),
   );
-  // E os convênios: catálogo, teto da clínica e a lista do médico.
+  // E a aba Convênios: catálogo, teto da clínica e a lista do médico.
   await page.route("**/healthcare-plans", (route) =>
     route.fulfill({ status: 200, json: planCatalog }),
   );
@@ -228,7 +228,7 @@ const emptySchedule = {
   blocks: [],
 };
 
-test("administração define a disponibilidade do médico dentro do vínculo", async ({
+test("administração define a disponibilidade na aba do perfil do médico", async ({
   page,
 }) => {
   await authenticate(page);
@@ -259,10 +259,16 @@ test("administração define a disponibilidade do médico dentro do vínculo", a
     });
   });
 
-  await page.goto(`/app/equipe?vinculo=${doctor.userClinicId}`);
+  await page.goto(`/app/equipe/${doctor.userClinicId}/disponibilidade`);
   await expect(
     page.getByRole("heading", { name: "Disponibilidade de atendimento" }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: doctor.displayName })).toBeVisible();
+  const tabs = page.getByRole("navigation", { name: "Seções do perfil" });
+  await expect(tabs.getByRole("link", { name: "Disponibilidade" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await page.getByRole("checkbox", { name: /Segunda-feira/ }).check();
   await page.getByRole("button", { name: "Adicionar período em Segunda-feira" }).click();
   await page.getByLabel("Segunda-feira, período 2, início").fill("13:00");
@@ -271,10 +277,11 @@ test("administração define a disponibilidade do médico dentro do vínculo", a
     path: "/private/tmp/clinicflow-team-availability-desktop.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Salvar vínculo" }).click();
+  await page.getByRole("button", { name: "Salvar disponibilidade" }).click();
 
-  await expect(page.getByText("Vínculo atualizado.")).toBeVisible();
-  expect(writes).toEqual(["vínculo", "horários"]);
+  await expect(page.getByText("Disponibilidade atualizada.")).toBeVisible();
+  // A aba salva só a semana; o vínculo tem o próprio salvar.
+  expect(writes).toEqual(["horários"]);
   expect(schedulePayload).toEqual({
     defaultAppointmentDurationMinutes: 30,
     intervals: [
@@ -302,7 +309,7 @@ test("administração define a disponibilidade do médico dentro do vínculo", a
   });
 });
 
-test("administração define os convênios do médico dentro do vínculo", async ({ page }) => {
+test("administração define os convênios na aba do perfil do médico", async ({ page }) => {
   await authenticate(page);
   const writes: string[] = [];
   let plansPayload: Record<string, unknown> | undefined;
@@ -332,7 +339,7 @@ test("administração define os convênios do médico dentro do vínculo", async
     },
   );
 
-  await page.goto(`/app/equipe?vinculo=${doctor.userClinicId}`);
+  await page.goto(`/app/equipe/${doctor.userClinicId}/convenios`);
   await expect(page.getByRole("heading", { name: "Convênios", exact: true })).toBeVisible();
   // No padrão da clínica a lista aparece travada, só com os convênios aceitos.
   const plans = page.getByRole("group", {
@@ -355,10 +362,10 @@ test("administração define os convênios do médico dentro do vínculo", async
     path: "/private/tmp/clinicflow-team-plans-custom-desktop.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Salvar vínculo" }).click();
+  await page.getByRole("button", { name: "Salvar convênios" }).click();
 
-  await expect(page.getByText("Vínculo atualizado.")).toBeVisible();
-  expect(writes).toEqual(["vínculo", "convênios"]);
+  await expect(page.getByText("Convênios atualizados.")).toBeVisible();
+  expect(writes).toEqual(["convênios"]);
   expect(plansPayload).toEqual({
     mode: "Custom",
     healthcarePlanIds: ["plan-amil", "plan-bradesco"],
