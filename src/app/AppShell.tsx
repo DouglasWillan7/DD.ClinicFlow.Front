@@ -1,13 +1,12 @@
 import clsx from "clsx";
 import {
-  Building2,
-  CalendarClock,
   CalendarDays,
   ChevronDown,
   House,
   LogOut,
   Menu,
   Pin,
+  Settings,
   UserRound,
   UserRoundPlus,
   UsersRound,
@@ -137,20 +136,11 @@ export function AppShell({ children }: PropsWithChildren) {
     can(session, "ManageClinicMemberships")
       ? { to: "/app/equipe", label: "Equipe", icon: UserRoundPlus }
       : undefined,
-  ].filter((item) => item !== undefined);
-  const configurationNav = [
-    can(session, "ConfigureDoctorSchedule")
-      ? {
-          to: "/app/configuracoes/agenda",
-          label: "Disponibilidade",
-          icon: CalendarClock,
-        }
+    // A disponibilidade do médico não tem item próprio: abre por Primeiros passos,
+    // pelo vínculo em Equipe e pela aba de Meu perfil.
+    can(session, "ManageClinicSettings")
+      ? { to: "/app/configuracoes/clinica", label: "Configuração", icon: Settings }
       : undefined,
-    can(session, "ManageClinicSettings") ? {
-      to: "/app/configuracoes/clinica",
-      label: "Clínica",
-      icon: Building2,
-    } : undefined,
   ].filter((item) => item !== undefined);
 
   function toggleRailPin() {
@@ -251,13 +241,6 @@ export function AppShell({ children }: PropsWithChildren) {
           aria-label="Navegação principal"
         >
           {primaryNav.map(renderLink)}
-
-          {configurationNav.length > 0 ? (
-            <>
-              <span className={styles.navLabel}>Configuração</span>
-              {configurationNav.map(renderLink)}
-            </>
-          ) : null}
         </nav>
       </aside>
 

@@ -126,45 +126,6 @@
   display: none;
 }
 
-/* Recolhido não há espaço para o rótulo do grupo: ele vira uma hairline
-   ocupando a mesma altura, então a lista não salta ao expandir. */
-.navLabel {
-  position: relative;
-  display: flex;
-  min-height: 26px;
-  flex: 0 0 auto;
-  align-items: flex-end;
-  padding: 0 14px 4px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1.4;
-  opacity: 0;
-  text-transform: uppercase;
-  transition: opacity var(--transition-context);
-  white-space: nowrap;
-}
-
-.navLabel::before {
-  position: absolute;
-  right: 14px;
-  bottom: 8px;
-  left: 14px;
-  height: 1px;
-  background: var(--color-border-hairline);
-  content: "";
-  transition: opacity var(--transition-context);
-}
-
-.shellExpanded .navLabel {
-  opacity: 1;
-}
-
-.shellExpanded .navLabel::before {
-  opacity: 0;
-}
-
 .railItem {
   display: flex;
   width: 100%;
@@ -501,13 +462,8 @@
 
   /* O drawer já ocupa a largura toda: rótulos sempre visíveis, sem alfinete. */
   .wordmark,
-  .navLabel,
   .railItemText {
     opacity: 1;
-  }
-
-  .navLabel::before {
-    content: none;
   }
 
   .pinButton {
@@ -621,8 +577,6 @@
   .sidebar,
   .wordmark,
   .pinButton,
-  .navLabel,
-  .navLabel::before,
   .railItem,
   .railItemText,
   .userChevron,

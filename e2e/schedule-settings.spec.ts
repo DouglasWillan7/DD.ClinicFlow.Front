@@ -112,7 +112,10 @@ test("médico configura a semana sem perder a edição em viewport mobile", asyn
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(page.getByRole("link", { name: "Disponibilidade" })).toBeVisible();
+  const rail = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(rail).toBeVisible();
+  // A página continua no ar, mas sem item próprio no menu lateral.
+  await expect(rail.getByRole("link", { name: "Disponibilidade" })).toHaveCount(0);
   await page.screenshot({
     path: "/private/tmp/clinicflow-schedule-settings-desktop.png",
     fullPage: true,

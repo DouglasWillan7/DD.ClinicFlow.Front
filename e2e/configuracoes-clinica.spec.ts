@@ -210,10 +210,10 @@ test("WhatsApp é uma aba da configuração da clínica e o link antigo continua
   ).toBeVisible();
   await expect(page.getByLabel("ID do número de telefone")).toHaveValue("123456789");
 
-  // No menu lateral sobra um destino só: "Clínica", ativo também nesta aba.
+  // No menu lateral sobra um destino só: "Configuração", ativo também nesta aba.
   const rail = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(rail.getByRole("link", { name: "WhatsApp" })).toHaveCount(0);
-  await expect(rail.getByRole("link", { name: "Clínica" })).toHaveAttribute(
+  await expect(rail.getByRole("link", { name: "Configuração" })).toHaveAttribute(
     "aria-current",
     "true",
   );
@@ -237,10 +237,10 @@ test("primeiros passos são a entrada da configuração enquanto houver etapa pe
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app/agenda");
 
-  // O menu lateral não tem mais o destino próprio: a lista mora dentro de "Clínica".
+  // O menu lateral não tem mais o destino próprio: a lista mora dentro de "Configuração".
   const rail = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(rail.getByRole("link", { name: "Primeiros passos" })).toHaveCount(0);
-  await rail.getByRole("link", { name: "Clínica" }).click();
+  await rail.getByRole("link", { name: "Configuração" }).click();
   await expect(page).toHaveURL(/\/app\/configuracoes\/clinica$/);
 
   const tabs = page.getByRole("navigation", { name: "Configuração da clínica" });
